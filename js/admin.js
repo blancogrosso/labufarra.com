@@ -246,16 +246,16 @@ async function doChangePassword() {
 // ─── TAB MANAGEMENT ───
 function switchTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+    
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-    document.getElementById(`tab-${tabName}`).classList.add('active');
+    document.getElementById(`tab-${tabName}`).style.display = 'block';
 }
 
 // ─── ROSTER ───
 async function loadRoster() {
-    // Roster is in config under 'roster' key or just hardcoded for now
-    const configs = await spFetch('config', 'GET', null, 'value');
-    const rosterData = configs.find(c => true)?.value?.roster || [
+    const data = await spFetch('config?key=eq.roster', 'GET', null, 'value');
+    const rosterData = data && data[0] ? data[0].value : [
         "Martínez", "López", "García", "Fernández", "Pérez", "González", "Sánchez", "Romero", "Sosa", "Torres"
     ];
     roster = rosterData;
@@ -842,12 +842,12 @@ async function saveUpcoming(editId) {
     
     let res;
     if (editId) {
-        res = await apiFetch(`/api/upcoming/${editId}`, { method: 'PUT', body: JSON.stringify(data) });
+        res = await spFetch(`upcoming?id=eq.${editId}`, 'PATCH', data);
     } else {
-        res = await apiFetch('/api/upcoming', { method: 'POST', body: JSON.stringify(data) });
+        res = await spFetch('upcoming', 'POST', data);
     }
     
-    if (res && !res.error) {
+    if (res) {
         toast(editId ? 'Partido actualizado' : 'Partido agregado', 'success');
         closeModal();
         await loadUpcoming();
@@ -860,11 +860,9 @@ function editUpcoming(id) {
 
 async function deleteUpcoming(id) {
     if (!confirm('¿Eliminar este próximo partido?')) return;
-    const res = await apiFetch(`/api/upcoming/${id}`, { method: 'DELETE' });
-    if (res && !res.error) {
-        toast('Eliminado', 'success');
-        await loadUpcoming();
-    }
+    const res = await spFetch(`upcoming?id=eq.${id}`, 'DELETE');
+    toast('Eliminado', 'success');
+    await loadUpcoming();
 }
 
 // ─── FINANCES ───
@@ -911,47 +909,114 @@ function renderBalance() {
     document.getElementById('totalEgresos').textContent = `$${egresos.toLocaleString()}`;
 }
 
+
 // ── Cuotas ──
 function renderCuotas() {
     const table = document.getElementById('cuotasTable');
-    const cuotas = financesData.cuotas || {};
-    const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const currentYear = new Date().getFullYear();
+    if (!table) return;
     
-    // Generate month keys for current year
-    const monthKeys = months.map((m, i) => `${currentYear}-${String(i+1).padStart(2,'0')}`);
+    const cuotas = financesData.cuotas || {}; // Map of { player: { paid:0, total:2970, multas:0 } }
+    const defaultTotal = financesData.cuotaObjetivo || 2970;
     
-    let html = '<thead><tr><th>Jugador</th>';
-    months.forEach(m => html += `<th>${m}</th>`);
-    html += '</tr></thead><tbody>';
+    let html = `
+        <thead>
+            <tr>
+                <th>Jugador</th>
+                <th>Total</th>
+                <th>Pagado</th>
+                <th>Multas</th>
+                <th>Saldo</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
     
     roster.forEach(name => {
-        html += `<tr><td>${name}</td>`;
-        monthKeys.forEach(mk => {
-            const paid = cuotas[name]?.[mk] || false;
-            html += `<td>
-                <button class="cuota-check ${paid ? 'paid' : 'unpaid'}" 
-                        onclick="toggleCuota('${name}', '${mk}', ${!paid})">
-                    ${paid ? '✓' : '✕'}
-                </button>
-            </td>`;
-        });
-        html += '</tr>';
+        const c = cuotas[name] || { paid: 0, total: defaultTotal, multas: 0 };
+        const saldo = (c.total + (c.multas || 0)) - c.paid;
+        const saldoColor = saldo <= 0 ? 'var(--green)' : 'var(--red)';
+        
+        html += `
+            <tr>
+                <td><strong>${name}</strong></td>
+                <td>$${c.total}</td>
+                <td style="color:var(--green)">$${c.paid}</td>
+                <td style="color:var(--red)">$${c.multas || 0}</td>
+                <td style="color:${saldoColor}; font-weight:bold">$${saldo}</td>
+                <td>
+                    <div style="display:flex; gap:0.3rem">
+                        <button class="btn btn-icon btn-sm" onclick="showPagoForm('${name}')" title="Cargar Pago">
+                            <i class="ph-bold ph-hand-coins"></i>
+                        </button>
+                        <button class="btn btn-icon btn-sm" onclick="toggleMulta('${name}')" title="Multa ($50)">
+                            <i class="ph-bold ph-warning-circle"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
     });
     
     html += '</tbody>';
     table.innerHTML = html;
 }
 
-async function toggleCuota(jugador, mes, pagado) {
-    if (!financesData.cuotas) financesData.cuotas = {};
-    if (!financesData.cuotas[jugador]) financesData.cuotas[jugador] = {};
-    financesData.cuotas[jugador][mes] = pagado;
-    
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    renderCuotas();
+function showPagoForm(jugador) {
+    const c = (financesData.cuotas && financesData.cuotas[jugador]) || { paid: 0 };
+    openModal(`Cargar Pago: ${jugador}`, `
+        <div class="form-group">
+            <label>Monto a sumar</label>
+            <div style="display:flex; gap:0.5rem; margin-bottom:1rem">
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = 495">$495</button>
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = 990">$990</button>
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = 2970">$2970</button>
+            </div>
+            <input type="number" id="pagoMonto" placeholder="Monto extra" class="glass-panel">
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="savePago('${jugador}')">Registrar Pago</button>
+        </div>
+    `);
 }
 
+async function savePago(jugador) {
+    const monto = parseInt(document.getElementById('pagoMonto').value) || 0;
+    if (!monto) return;
+    
+    if (!financesData.cuotas) financesData.cuotas = {};
+    if (!financesData.cuotas[jugador]) financesData.cuotas[jugador] = { paid: 0, total: financesData.cuotaObjetivo || 2970, multas: 0 };
+    
+    financesData.cuotas[jugador].paid += monto;
+    
+    // Also record a transaction for the general balance
+    if (!financesData.transacciones) financesData.transacciones = [];
+    financesData.transacciones.push({
+        id: 't' + Date.now(),
+        tipo: 'ingreso',
+        monto: monto,
+        categoria: 'Cuotas cobradas',
+        fecha: formatDateForUI(new Date().toISOString().split('T')[0]),
+        descripcion: `Pago cuota: ${jugador}`
+    });
+    
+    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    toast('Pago registrado', 'success');
+    closeModal();
+    renderFinances();
+}
+
+async function toggleMulta(jugador) {
+    if (!financesData.cuotas) financesData.cuotas = {};
+    if (!financesData.cuotas[jugador]) financesData.cuotas[jugador] = { paid: 0, total: financesData.cuotaObjetivo || 2970, multas: 0 };
+    
+    financesData.cuotas[jugador].multas = (financesData.cuotas[jugador].multas || 0) + 50;
+    
+    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    toast(`Multa de $50 aplicada a ${jugador}`, 'warning');
+    renderFinances();
+}
 async function saveCostoFecha() {
     const costo = parseInt(document.getElementById('costoFechaInput').value) || 0;
     financesData.costoFecha = costo;
@@ -1035,8 +1100,10 @@ async function saveMulta() {
 
 async function deleteMulta(id) {
     if (!confirm('¿Eliminar esta multa?')) return;
-    await apiFetch(`/api/finances/multa/${id}`, { method: 'DELETE' });
-    await loadFinances();
+    financesData.multas = financesData.multas.filter(m => m.id !== id);
+    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    toast('Multa eliminada', 'success');
+    renderFinances();
 }
 
 // ── Transacciones ──
