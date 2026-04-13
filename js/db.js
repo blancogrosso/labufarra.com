@@ -124,8 +124,9 @@ async function loadMatches() {
                 const playersJson = await playerRes.json();
                 allPlayers = {};
                 playersJson.forEach(p => {
-                    if (!allPlayers[p.year]) allPlayers[p.year] = [];
-                    allPlayers[p.year].push({
+                    const year = p.year || 'ALL';
+                    if (!allPlayers[year]) allPlayers[year] = [];
+                    allPlayers[year].push({
                         PLAYER: p.player_name || '',
                         PJ: String(p.pj ?? 0),
                         PG: String(p.pg ?? 0),

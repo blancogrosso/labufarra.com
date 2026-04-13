@@ -17,7 +17,7 @@ let roster = [];
 let matchesData = [];
 let playersData = {};
 let upcomingData = [];
-let financesData = {};
+let financesData = { cuotas:{}, costoFecha:0, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
 let editingMatchId = null;
 
 // ─── INIT ───
@@ -256,10 +256,13 @@ function switchTab(tabName) {
 // ─── ROSTER ───
 async function loadRoster() {
     const data = await spFetch('config?key=eq.roster', 'GET', null, 'value');
-    const rosterData = data && data[0] ? data[0].value : [
-        "Martínez", "López", "García", "Fernández", "Pérez", "González", "Sánchez", "Romero", "Sosa", "Torres"
-    ];
-    roster = rosterData;
+    if (data && data[0]) {
+        roster = data[0].value;
+    } else {
+        // Fallback or attempt to find in old users record
+        const usersData = await spFetch('config?key=eq.users', 'GET', null, 'value');
+        roster = usersData?.[0]?.value?.roster || ["Blanco", "Iza", "Martinez"];
+    }
     buildPlayersFormTable();
 }
 
@@ -539,6 +542,23 @@ async function deleteMatch(matchId) {
     }
 }
 
+function normalizeName(name) {
+    if (!name) return 'Desconocido';
+    const n = name.trim().toLowerCase();
+    
+    // Check if it matches or partially matches any roster member
+    const rosterMatch = roster.find(r => r.toLowerCase() === n);
+    if (rosterMatch) return rosterMatch;
+
+    // Historical mappings
+    if (n.includes('rodriguez') || n.includes('rodrigues')) return "Guillermo Rodríguez";
+    if (n.includes('leon') || n.includes('león')) return "De León";
+    if (n === 'pedemonte' || n === 'pedemonte sebastian' || n === 'sebastian pedemonte') return "Pedemonte";
+    
+    // Capitalize first letter of each word as default
+    return name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
 async function recalculateAllStats() {
     console.log("Recalculating all stats...");
     const stats = {};
@@ -550,7 +570,8 @@ async function recalculateAllStats() {
         
         const res = m.gf > m.gc ? 'V' : (m.gf === m.gc ? 'E' : 'D');
         
-        for (const [name, p] of Object.entries(m.jugadores || {})) {
+        for (let [name, p] of Object.entries(m.jugadores || {})) {
+            name = normalizeName(name);
             const update = (obj) => {
                 if (!obj[name]) obj[name] = { pj:0, pg:0, pe:0, pp:0, goles:0, asistencias:0, amarillas:0, rojas:0, mvp:0 };
                 const s = obj[name];
@@ -868,9 +889,13 @@ async function deleteUpcoming(id) {
 
 // ─── FINANCES ───
 async function loadFinances() {
-    const configs = await spFetch('config?key=eq.finances', 'GET', null, 'value');
-    const data = configs.find(c => true)?.value || { cuotas:{}, costoFecha:0, multas:[], transacciones:[], deadlines:[] };
-    financesData = data;
+    const data = await spFetch('config?key=eq.finances', 'GET', null, 'value');
+    if (data && data[0]) {
+        financesData = data[0].value;
+    } else {
+        // Init financesData with defaults if missing
+        financesData = { cuotas:{}, costoFecha:0, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
+    }
     renderFinances();
 }
 
@@ -932,6 +957,9 @@ function renderCuotas() {
         </thead>
         <tbody>
     `;
+    
+    // Ensure roster names are normalized
+    roster = roster.map(n => normalizeName(n));
     
     roster.forEach(name => {
         const c = cuotas[name] || { paid: 0, total: defaultTotal, multas: 0 };
