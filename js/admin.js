@@ -75,26 +75,22 @@ async function doLogin() {
     try {
         // Get users config from Supabase
         const configs = await spFetch('config', 'GET', null, 'value');
-        const userData = configs.find(c => true)?.value || {}; // value is the JSON object
+        const configVal = configs.find(c => true)?.value || {}; 
+        const userData = configVal.users || {};
         
         const loginUser = userData[user];
         if (!loginUser) throw new Error('Usuario no encontrado');
 
-        // Simple Hash Verification (Note: In a real app we'd use Supabase Auth, 
-        // but for migration ease we use PBKDF2 in JS)
-        const salt = loginUser.salt;
+        const saltHex = loginUser.salt;
         const storedHash = loginUser.hash;
         
-        // This is a simplified check for the demo, we should use the same hashing as server.py
-        // For now, let's assume if it matches 'justi2018' etc.
-        // I will implement a quick PBKDF2 check if possible or just rely on a simpler check for now
-        // since we want to move fast.
+        // Convert hex salt to Uint8Array bytes (matching server.py unhexlify)
+        const saltData = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
         
-        // RE-IMPLEMENTING PBKDF2 in JS (for compatibility with existing hashes)
         const encoder = new TextEncoder();
-        const data = encoder.encode(pw);
-        const saltData = encoder.encode(salt);
-        const keyMaterial = await crypto.subtle.importKey('raw', data, 'PBKDF2', false, ['deriveBits', 'deriveKey']);
+        const pwData = encoder.encode(pw);
+        
+        const keyMaterial = await crypto.subtle.importKey('raw', pwData, 'PBKDF2', false, ['deriveBits']);
         const derivedKey = await crypto.subtle.deriveBits({
             name: 'PBKDF2',
             salt: saltData,
