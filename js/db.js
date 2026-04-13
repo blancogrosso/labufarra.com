@@ -86,56 +86,65 @@ async function loadMatches() {
     const cacheBuster = `?t=${Date.now()}`;
     
     try {
-        // ═══ Try API first (new JSON-based backend) ═══
+        // ═══ Try Supabase (Cloud Database) ═══
         let apiSuccess = false;
+        const SUPABASE_URL = "https://hmaqdzkpjkxamggaiypo.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_Vu_F-McwcDK4g2k8fU6w7A_p_Mva8-Y";
+        const SP_HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
+
         try {
             const [matchRes, playerRes] = await Promise.all([
-                fetch('/api/matches' + cacheBuster),
-                fetch('/api/players' + cacheBuster)
+                fetch(`${SUPABASE_URL}/rest/v1/matches?select=*&order=fecha.desc`, { headers: SP_HEADERS }),
+                fetch(`${SUPABASE_URL}/rest/v1/players_stats?select=*`, { headers: SP_HEADERS })
             ]);
             
             if (matchRes.ok) {
                 const matchesJson = await matchRes.json();
-                // Convert API format to internal format
                 allMatches = matchesJson.map((m, i) => ({
                     ID: m.id || `m${i}`,
-                    FECHA: m.fecha || '',
+                    FECHA: formatDate(m.fecha),
                     VS: m.rival || '',
                     LUGAR: m.lugar || '',
                     torneo: m.instancia ? `${m.torneo} - ${m.instancia}` : (m.torneo || ''),
                     torneo_base: m.torneo || '',
                     INSTANCIA: m.instancia || '',
-                    AÑO: m.año || '',
+                    AÑO: m.fecha ? m.fecha.split('-')[0] : '',
                     GF: String(m.gf ?? ''),
                     GC: String(m.gc ?? ''),
-                    RESULTADO: (m.gf !== undefined && m.gc !== undefined) ? `${m.gf}x${m.gc}` : ''
+                    RESULTADO: (m.gf !== null && m.gc !== null) ? `${m.gf}x${m.gc}` : ''
                 }));
-                console.log(`DB: Loaded ${allMatches.length} matches from API.`);
+                console.log(`DB: Loaded ${allMatches.length} matches from Supabase.`);
                 apiSuccess = true;
             }
             
             if (playerRes.ok) {
                 const playersJson = await playerRes.json();
-                // Convert API format to internal format
                 allPlayers = {};
-                for (const [year, players] of Object.entries(playersJson)) {
-                    allPlayers[year] = players.map(p => ({
-                        PLAYER: p.nombre || p.PLAYER || '',
-                        PJ: String(p.pj ?? p.PJ ?? 0),
-                        PG: String(p.pg ?? p.PG ?? 0),
-                        PE: String(p.pe ?? p.PE ?? 0),
-                        PP: String(p.pp ?? p.PP ?? 0),
-                        GOLES: String(p.goles ?? p.GOLES ?? 0),
-                        ASISTENCIAS: String(p.asistencias ?? p.ASISTENCIAS ?? 0),
-                        AMARILLAS: String(p.amarillas ?? p.AMARILLAS ?? 0),
-                        ROJAS: String(p.rojas ?? p.ROJAS ?? 0),
-                        MVP: String(p.mvp ?? p.MVP ?? 0)
-                    }));
-                }
-                console.log("DB: Loaded players from API.");
+                playersJson.forEach(p => {
+                    if (!allPlayers[p.year]) allPlayers[p.year] = [];
+                    allPlayers[p.year].push({
+                        PLAYER: p.player_name || '',
+                        PJ: String(p.pj ?? 0),
+                        PG: String(p.pg ?? 0),
+                        PE: String(p.pe ?? 0),
+                        PP: String(p.pp ?? 0),
+                        GOLES: String(p.goles ?? 0),
+                        ASISTENCIAS: String(p.asistencias ?? 0),
+                        AMARILLAS: String(p.amarillas ?? 0),
+                        ROJAS: String(p.rojas ?? 0),
+                        MVP: String(p.mvp ?? 0)
+                    });
+                });
+                console.log("DB: Loaded players from Supabase.");
             }
         } catch(apiErr) {
-            console.warn("DB: API not available, falling back to CSV...", apiErr);
+            console.warn("DB: Supabase not available, trying local files...", apiErr);
+        }
+
+        function formatDate(isoDate) {
+            if (!isoDate) return '';
+            const [y, m, d] = isoDate.split('-');
+            return `${parseInt(d)}/${parseInt(m)}/${y}`;
         }
 
         // ═══ Fallback: Load JSON directly (for static hosts like Netlify) ═══
