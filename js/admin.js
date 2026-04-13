@@ -166,28 +166,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-async function doChangePassword() {
-    const newPw = document.getElementById('newPasswordInput').value;
-    if (!newPw) return;
-    
-    // Get users config
-    const configs = await spFetch('config', 'GET', null, 'value');
-    const configVal = configs.find(c => true)?.value || {};
-    const username = currentUser.toLowerCase();
-    const userObj = configVal.users?.[username];
-    
-    if (!userObj) {
-        toast('Error: Usuario no encontrado', 'error');
-        return;
-    }
-    
-    // Create new hash (Note: For brevity we use a simple salt/iterations here 
-    // but in a real app we'd use Supabase Auth)
-    const salt = 'cbc2f726bf3fba696890a723018eb561'; // Reusing old salt for simplicity or generating a new one
-    // Actually let's just stick to the emergency master for now or implement full hash
-    // since I don't want to break their existing hashes if I don't have a Python environment here.
-    toast('Función deshabilitada temporalmente por migración. Usar la de emergencia.', 'warning');
-}
+// Función original deshabilitada movida a la segunda declaración de doChangePassword
 
 function doLogout() {
     authToken = '';
@@ -250,16 +229,60 @@ async function doChangePassword() {
     if (newPw !== confirmPw) { toast('Las contraseñas no coinciden', 'error'); return; }
     if (newPw.length < 4) { toast('Mínimo 4 caracteres', 'error'); return; }
     
-    const res = await apiFetch('/api/change-password', {
-        method: 'POST',
-        body: JSON.stringify({ old_password: oldPw, new_password: newPw })
-    });
+    // Traer usuarios de Supabase para validar clave vieja
+    const data = await spFetch('config?key=eq.users', 'GET', null, 'value');
+    if (!data || !data[0]) { toast('Error de conexión', 'error'); return; }
+    const configVal = data[0].value;
+    const userData = configVal.users || {};
     
-    if (res && res.message) {
+    // currentUser se graba globalmente en el login (es por ej. "Oso" en display o usuario)
+    // Buscamos el key correcto en el objeto de usuarios:
+    const username = Object.keys(userData).find(k => (userData[k].display_name || k).toLowerCase() === currentUser.toLowerCase());
+    if (!username) { toast('Usuario no encontrado', 'error'); return; }
+    
+    const userObj = userData[username];
+    const passwordMatchParams = {
+        name: 'PBKDF2',
+        salt: new TextEncoder().encode(userObj.salt),
+        iterations: 100000,
+        hash: 'SHA-256'
+    };
+    
+    const encoder = new TextEncoder();
+    
+    // 1. Verificar la contraseña vieja
+    const oldKeyMaterial = await crypto.subtle.importKey('raw', encoder.encode(oldPw), 'PBKDF2', false, ['deriveBits']);
+    const oldDerivedKey = await crypto.subtle.deriveBits(passwordMatchParams, oldKeyMaterial, 256);
+    const oldHashHex = Array.from(new Uint8Array(oldDerivedKey)).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // labufarra2026 es el pasaporte de emergencia por si perdimos la pass vieja
+    if (oldHashHex !== userObj.hash && oldPw !== 'labufarra2026') {
+        toast('Contraseña actual incorrecta', 'error');
+        return;
+    }
+    
+    // 2. Generar el hash y salt de la NUEVA contraseña
+    const newSaltHex = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+    const newKeyMaterial = await crypto.subtle.importKey('raw', encoder.encode(newPw), 'PBKDF2', false, ['deriveBits']);
+    const newDerivedKey = await crypto.subtle.deriveBits({
+        name: 'PBKDF2',
+        salt: encoder.encode(newSaltHex),
+        iterations: 100000,
+        hash: 'SHA-256'
+    }, newKeyMaterial, 256);
+    const newHashHex = Array.from(new Uint8Array(newDerivedKey)).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // 3. Guardar en Supabase
+    userData[username].salt = newSaltHex;
+    userData[username].hash = newHashHex;
+    
+    const res = await spFetch('config?key=eq.users', 'PATCH', { value: configVal });
+    
+    if (res) {
         toast('Contraseña actualizada ✓', 'success');
         closeModal();
     } else {
-        toast(res?.error || 'Error al cambiar', 'error');
+        toast('Error al guardar la nueva contraseña', 'error');
     }
 }
 
@@ -273,13 +296,20 @@ function switchTab(tabName) {
 }
 
 // ─── ROSTER ───
+// Helper to strip accents to avoid normalization mismatch
+function removeAccents(str) {
+    if (!str) return str;
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 async function loadRoster() {
     const data = await spFetch('config?key=eq.roster', 'GET', null, 'value');
     if (data && data[0]) {
-        roster = data[0].value;
+        // Strip accents from loaded roster
+        roster = data[0].value.map(removeAccents);
     } else {
         // Absolute fallback if DB is down
-        roster = ["Anzuatte", "Blanco", "Bonilla", "Colombo", "Da Silveira", "De León", "Flores", "Iza", "Martinez", "Mari", "Mateo", "Menchaca", "Molina", "Olarte", "Pedemonte", "Sparkov"];
+        roster = ["Anzuatte", "Blanco", "Bonilla", "Colombo", "Da Silveira", "De Leon", "Flores", "Iza", "Martinez", "Mari", "Mateo", "Menchaca", "Molina", "Olarte", "Pedemonte", "Sparkov"];
     }
     buildPlayersFormTable();
 }
@@ -579,15 +609,15 @@ async function deleteMatch(matchId) {
 
 function normalizeName(name) {
     if (!name) return 'Desconocido';
-    const n = name.trim().toLowerCase();
+    let n = removeAccents(name.trim().toLowerCase());
     
     // Check if it matches or partially matches any roster member
-    const rosterMatch = roster.find(r => r.toLowerCase() === n);
+    const rosterMatch = roster.find(r => removeAccents(r.toLowerCase()) === n);
     if (rosterMatch) return rosterMatch;
 
-    // Historical mappings
-    if (n.includes('rodriguez') || n.includes('rodrigues')) return "Guillermo Rodríguez";
-    if (n.includes('leon') || n.includes('león')) return "De León";
+    // Historical mappings (all lowercase, no accents compared)
+    if (n.includes('rodriguez') || n.includes('rodrigues')) return "Guillermo Rodriguez";
+    if (n.includes('leon')) return "De Leon";
     if (n === 'pedemonte' || n === 'pedemonte sebastian' || n === 'sebastian pedemonte') return "Pedemonte";
     
     // Capitalize first letter of each word as default
@@ -1407,8 +1437,10 @@ async function saveDeadline() {
 
 async function deleteDeadline(id) {
     if (!confirm('¿Eliminar este deadline?')) return;
-    await apiFetch(`/api/finances/deadline/${id}`, { method: 'DELETE' });
-    await loadFinances();
+    financesData.deadlines = financesData.deadlines.filter(d => d.id !== id);
+    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    toast('Deadline eliminado', 'success');
+    renderFinances();
 }
 
 // ─── MODAL ───
