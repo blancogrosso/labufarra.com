@@ -84,11 +84,9 @@ async function doLogin() {
         const saltHex = loginUser.salt;
         const storedHash = loginUser.hash;
         
-        // Convert hex salt to Uint8Array bytes (matching server.py unhexlify)
-        const saltData = new Uint8Array(saltHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-        
         const encoder = new TextEncoder();
         const pwData = encoder.encode(pw);
+        const saltData = encoder.encode(saltHex); // Matches Python's salt.encode()
         
         const keyMaterial = await crypto.subtle.importKey('raw', pwData, 'PBKDF2', false, ['deriveBits']);
         const derivedKey = await crypto.subtle.deriveBits({
