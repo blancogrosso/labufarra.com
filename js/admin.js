@@ -187,9 +187,11 @@ async function showApp() {
     document.getElementById('fabContainer').style.display = 'block';
     document.getElementById('userGreeting').textContent = `Hola, ${currentUser}`;
     
+    // Roster es crítico para generar las tablas, debe cargar primero
+    await loadRoster();
+    
     // Load all data
     await Promise.all([
-        loadRoster(),
         loadMatches(),
         loadPlayers(),
         loadUpcoming(),
