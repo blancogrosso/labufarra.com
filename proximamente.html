@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LA BUFARRA - Próximamente</title>
+    
+    <!-- Custom Local Font: Poppins -->
+    <style>
+        @font-face {
+            font-family: 'Poppins';
+            src: url('font/Poppins-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Poppins';
+            src: url('font/Poppins-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Poppins';
+            src: url('font/Poppins-SemiBold.ttf') format('truetype');
+            font-weight: 600;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Poppins';
+            src: url('font/Poppins-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Poppins';
+            src: url('font/Poppins-ExtraBold.ttf') format('truetype');
+            font-weight: 800;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Poppins';
+            src: url('font/Poppins-Black.ttf') format('truetype');
+            font-weight: 900;
+            font-style: normal;
+        }
+    </style>
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        :root {
+            --bg-dark: #f4f4f6;
+            --bg-card: #ffffff;
+            --accent-primary: #e69aa4; /* Rosado escudo */
+            --accent-hover: #d28590;
+            --text-main: #2b2b2b;
+            --text-muted: #737373;
+            --border-light: rgba(0, 0, 0, 0.1);
+            
+            --font-main: 'Poppins', sans-serif;
+            --font-display: 'Poppins', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(230, 154, 164, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(230, 154, 164, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            overflow: hidden;
+        }
+
+        .coming-soon-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo-container {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .logo-container::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            background: var(--accent-primary);
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: -1;
+            border-radius: 50%;
+            animation: pulseGlow 4s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { opacity: 0.1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .logo-img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+        }
+
+        .coming-soon-title {
+            font-family: var(--font-display);
+            font-size: 3.5rem;
+            font-weight: 800; /* ExtraBold */
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            color: var(--accent-primary);
+            text-shadow: 0 4px 15px rgba(230, 154, 164, 0.4);
+            margin-bottom: 0.5rem;
+        }
+
+        .coming-soon-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(0, 0, 0, 0.03);
+            border: 2px solid var(--accent-primary);
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .social-link:hover {
+            background: var(--accent-primary);
+            color: #ffffff;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(230, 154, 164, 0.3);
+        }
+
+        .social-link i {
+            font-size: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .coming-soon-title {
+                font-size: 2.5rem;
+            }
+            .logo-container {
+                width: 120px;
+                height: 120px;
+            }
+        }
+
+        /* 4 Stars Animation */
+        .stars-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 1.5rem 0 0.5rem 0;
+        }
+
+        .star-icon {
+            color: var(--accent-primary);
+            font-size: 2.5rem;
+            opacity: 0;
+            filter: drop-shadow(0 0 8px rgba(230, 154, 164, 0.6));
+            animation: starLoad 2s infinite;
+        }
+
+        .star-icon:nth-child(1) { animation-delay: 0s; }
+        .star-icon:nth-child(2) { animation-delay: 0.4s; }
+        .star-icon:nth-child(3) { animation-delay: 0.8s; }
+        .star-icon:nth-child(4) { animation-delay: 1.2s; }
+
+        @keyframes starLoad {
+            0% { opacity: 0; transform: scale(0.5); }
+            30% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 15px rgba(230, 154, 164, 0.9)); }
+            70% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 0; }
+        }
+
+        .ay-text {
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 1.2rem;
+            letter-spacing: 4px;
+            color: var(--accent-primary);
+            margin-bottom: 2rem;
+            opacity: 0.8;
+            animation: pulseText 2s infinite alternate;
+        }
+
+        @keyframes pulseText {
+            from { opacity: 0.6; text-shadow: 0 0 5px rgba(230, 154, 164, 0.3); }
+            to { opacity: 1; text-shadow: 0 0 15px rgba(230, 154, 164, 0.6); }
+        }
+
+    </style>
+    <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
+</head>
+<body>
+
+    <div class="coming-soon-container">
+        <div class="logo-container">
+            <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo LA BUFARRA" class="logo-img" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'ph-fill ph-shield\' style=\'font-size: 100px; color: var(--accent-primary);\'></i>'">
+        </div>
+        
+        <div>
+            <h1 class="coming-soon-title">Próximamente</h1>
+            <p class="coming-soon-subtitle" style="display:none;">
+                Estamos construyendo el registro estadístico definitivo.<br>
+                Toda la historia de LA BUFARRA, en un solo lugar.
+            </p>
+            
+            <div class="stars-container">
+                <i class="ph-fill ph-star star-icon"></i>
+                <i class="ph-fill ph-star star-icon"></i>
+                <i class="ph-fill ph-star star-icon"></i>
+                <i class="ph-fill ph-star star-icon"></i>
+            </div>
+            
+            <p class="ay-text">AY AY AY</p>
+        </div>
+
+        <a href="https://instagram.com/labufarra" target="_blank" class="social-link">
+            <i class="ph-bold ph-instagram-logo"></i>
+            Seguinos en Instagram
+        </a>
+    </div>
+
+</body>
+</html>

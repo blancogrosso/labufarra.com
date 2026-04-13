@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Bufarra</title>
+    
+    <!-- Evitar caché en desarrollo/producción para datos dinámicos -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/styles.css?v=3.2">
+    
+    <style>
+        .page-header {
+            padding: 8rem 5% 4rem;
+            text-align: center;
+        }
+        
+        .page-title {
+            font-size: 3rem;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .matches-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .match-card-full {
+            display: flex;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .match-card-full:hover {
+            transform: translateX(10px);
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        .match-date-badge {
+            background: rgba(0,0,0,0.5);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .match-date-badge .day {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .match-date-badge .month {
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+
+        .match-content {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .match-tournament {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: rgba(255,255,255,0.05);
+            padding: 0.2rem 0.8rem;
+            border-radius: 4px;
+        }
+
+        .match-teams {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .match-teams span {
+            flex: 1;
+        }
+        
+        .team-home { text-align: right; }
+        .team-away { text-align: left; }
+
+        .match-score {
+            background: rgba(252, 218, 217, 0.1);
+            color: var(--accent-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 800;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .match-footer {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .match-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .goalscorers {
+            width: 100%;
+            margin-top: 0.5rem;
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+
+        .res-circle-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            padding: 0;
+        }
+
+        .res-circle-btn:hover {
+            transform: scale(1.2);
+        }
+
+        .res-circle-btn.active {
+            border-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .res-circle-btn.res-W { background: #2ecc71; }
+        .res-circle-btn.res-D { background: #f1c40f; }
+        .res-circle-btn.res-L { background: #e74c3c; }
+
+        #totalMatchesCounter {
+            font-family: var(--font-display);
+        }
+    </style>
+    <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo LA BUFARRA" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
+                LA BUFARRA
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="jugadores.html">Jugadores</a></li>
+                <li><a href="partidos.html" class="active">Partidos</a></li>
+                <li><a href="entrenadores.html">Entrenadores</a></li>
+                <li><a href="campeonatos.html">Campeonatos</a></li>
+                <li><a href="historia.html">Historia</a></li>
+                <li><a href="juego.html">Juego</a></li>
+                <li><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
+            </ul>
+        </div>
+    </header>
+
+    <main class="container mb-5" style="margin-bottom: 5rem;">
+        <div class="page-header">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-bottom: 2rem;">
+                <div style="text-align: right;">
+                    <span id="totalMatchesCounter" style="font-size: 4rem; font-weight: 800; color: var(--accent-primary); line-height: 1;">0</span>
+                </div>
+                <div style="text-align: left; border-left: 2px solid var(--border-light); padding-left: 1.5rem;">
+                    <div style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Partidos<br>Jugados</div>
+                </div>
+            </div>
+            <p style="color: var(--text-muted)">El registro oficial de todos nuestros encuentros desde la primera temporada.</p>
+        </div>
+
+        <div class="filters-container" style="display: flex; flex-direction: column; gap: 2rem; margin-bottom: 4rem;">
+            <!-- Row 1: Search and Result Circles -->
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1.5rem;">
+                <div class="search-box">
+                    <i class="ph-bold ph-magnifying-glass" style="color: var(--text-muted)"></i>
+                    <input type="text" id="rivalSearchInput" placeholder="Buscar por rival..." class="glass-panel">
+                </div>
+                
+                <div class="result-circles" id="resultFilters" style="display: flex; gap: 1rem; align-items: center;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Resultado:</span>
+                    <button class="res-circle-btn res-W" data-result="W" title="Ganados"></button>
+                    <button class="res-circle-btn res-D" data-result="D" title="Empatados"></button>
+                    <button class="res-circle-btn res-L" data-result="L" title="Perdidos"></button>
+                    <button class="res-circle-btn active" data-result="ALL" style="background: var(--text-muted); border-color: var(--text-muted);" title="Todos"></button>
+                </div>
+            </div>
+
+            <!-- Row 2: Year Filters -->
+            <div class="filters-bar" id="yearFilters" style="margin-bottom: 0;">
+                <button class="filter-btn active" data-year="2026">2026</button>
+                <button class="filter-btn" data-year="2025">2025</button>
+                <button class="filter-btn" data-year="2024">2024</button>
+                <button class="filter-btn" data-year="2023">2023</button>
+                <button class="filter-btn" data-year="2022">2022</button>
+                <button class="filter-btn" data-year="2021">2021</button>
+                <button class="filter-btn" data-year="AMISTOSOS">Amistosos</button>
+                <button class="filter-btn" data-year="ALL">Todos</button>
+            </div>
+        </div>
+
+        <div class="filters-bar" id="tournamentFilters" style="display: none; margin-bottom: 3rem; justify-content: center; flex-wrap: wrap; gap: 0.5rem;">
+            <button class="filter-btn active" data-tournament="ALL">Todos (este año)</button>
+            <button class="filter-btn" data-tournament="Apertura">Apertura</button>
+            <button class="filter-btn" data-tournament="Intermedio">Intermedio</button>
+            <button class="filter-btn" data-tournament="Clausura">Clausura</button>
+            <button class="filter-btn" data-tournament="Verano">Verano</button>
+            <button class="filter-btn" data-tournament="Campeones">C. Campeones</button>
+            <button class="filter-btn" data-tournament="SuperCopa">SuperCopa</button>
+            <button class="filter-btn" data-tournament="Rey">Copa del Rey</button>
+            <button class="filter-btn" data-tournament="Amistoso">Amistoso</button>
+        </div>
+
+        <div class="matches-container" id="allMatchesContainer">
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                Cargando historial...
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-logo">LA BUFARRA</div>
+        <p>© 2026 Estadísticas Oficiales. Archivo histórico desde 2021.</p>
+    </footer>
+
+    <script src="js/db.js?v=3.2"></script>
+    <script src="js/partidos.js?v=3.2"></script>
+</body>
+</html>

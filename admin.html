@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin — La Bufarra</title>
+    <meta name="robots" content="noindex, nofollow">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <link rel="stylesheet" href="css/admin.css?v=1.0">
+    <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
+</head>
+<body>
+
+    <!-- ═══ LOGIN ═══ -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-card">
+            <img src="img/logo/ESCUDO_BUFARRA.png" style="width:60px;height:auto;margin-bottom:1rem;opacity:0.8" onerror="this.style.display='none'">
+            <div class="logo-text">LA BUFARRA</div>
+            <div class="subtitle">Panel de Gestión</div>
+            <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
+            <div class="form-group" style="margin-bottom:0.8rem">
+                <input type="text" id="usernameInput" placeholder="Usuario" autocomplete="off" style="margin-bottom:0">
+            </div>
+            <div class="form-group" style="margin-bottom:1.5rem; position:relative;">
+                <input type="password" id="passwordInput" placeholder="Contraseña" autocomplete="off" style="margin-bottom:0; padding-right:45px">
+                <button type="button" onclick="togglePasswordVisibility()" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:1.2rem;">
+                    <i class="ph-bold ph-eye" id="passwordToggleIcon"></i>
+                </button>
+            </div>
+            <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">
+                <i class="ph-bold ph-lock-key"></i> Ingresar
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══ ADMIN APP ═══ -->
+    <div class="admin-app" id="adminApp">
+        <header class="admin-header">
+            <div class="header-left">
+                <span class="brand">LA BUFARRA</span>
+                <span class="tag">Admin</span>
+                <span class="user-greeting" id="userGreeting"></span>
+            </div>
+            <div class="header-right">
+                <button class="btn-logout" onclick="showChangePassword()" title="Cambiar contraseña">
+                    <i class="ph-bold ph-key"></i>
+                </button>
+                <button class="btn-logout" onclick="doLogout()">
+                    <i class="ph-bold ph-sign-out"></i> Salir
+                </button>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs-bar">
+            <button class="tab-btn active" data-tab="partidos" onclick="switchTab('partidos')">
+                <i class="ph-bold ph-soccer-ball"></i> Partidos
+            </button>
+            <button class="tab-btn" data-tab="jugadores" onclick="switchTab('jugadores')">
+                <i class="ph-bold ph-users"></i> Jugadores
+            </button>
+            <button class="tab-btn" data-tab="proximos" onclick="switchTab('proximos')">
+                <i class="ph-bold ph-calendar"></i> Próximos
+            </button>
+            <button class="tab-btn" data-tab="finanzas" onclick="switchTab('finanzas')">
+                <i class="ph-bold ph-wallet"></i> Finanzas
+            </button>
+        </div>
+
+        <!-- ═══ TAB: PARTIDOS ═══ -->
+        <div class="tab-content active" id="tab-partidos">
+            <!-- Add Match Form -->
+            <div class="panel" id="matchFormPanel">
+                <div class="panel-header">
+                    <div class="panel-title" id="matchFormTitle">Agregar Partido</div>
+                    <button class="btn btn-secondary btn-sm" id="toggleFormBtn" onclick="toggleMatchForm()">
+                        <i class="ph-bold ph-plus"></i> Nuevo
+                    </button>
+                </div>
+                <div id="matchFormContainer" style="display:none;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Año</label>
+                            <input type="number" id="mAño" value="2026" min="2020" max="2030">
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="mFecha">
+                        </div>
+                        <div class="form-group">
+                            <label>Torneo</label>
+                            <select id="mTorneo">
+                                <option value="">Seleccionar...</option>
+                                <option>Pretemporada</option>
+                                <option>Apertura</option>
+                                <option>Intermedio</option>
+                                <option>Clausura</option>
+                                <option>Copa de Oro</option>
+                                <option>Copa de Plata</option>
+                                <option>Copa de Bronce</option>
+                                <option>Copa de Campeones</option>
+                                <option>Copa del Rey</option>
+                                <option>SuperCopa</option>
+                                <option>Copa de Verano</option>
+                                <option>Amistosos</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Instancia</label>
+                            <select id="mInstancia">
+                                <option value="">-</option>
+                                <option>FECHA 1</option>
+                                <option>FECHA 2</option>
+                                <option>FECHA 3</option>
+                                <option>FECHA 4</option>
+                                <option>FECHA 5</option>
+                                <option>FECHA 6</option>
+                                <option>FECHA 7</option>
+                                <option>FECHA 8</option>
+                                <option>FECHA 9</option>
+                                <option>FECHA 10</option>
+                                <option>FECHA 11</option>
+                                <option>FECHA 12</option>
+                                <option>FECHA 13</option>
+                                <option>FECHA 14</option>
+                                <option>FECHA 15</option>
+                                <option>FASE DE GRUPOS</option>
+                                <option>CUARTOS DE FINAL</option>
+                                <option>SEMI FINAL</option>
+                                <option>FINAL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Rival</label>
+                            <input type="text" id="mRival" placeholder="Nombre del rival">
+                        </div>
+                        <div class="form-group">
+                            <label>GF</label>
+                            <input type="number" id="mGF" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>GC</label>
+                            <input type="number" id="mGC" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Lugar</label>
+                            <select id="mLugar">
+                                <option value="">Seleccionar...</option>
+                                <option>PRO</option>
+                                <option>POLI</option>
+                                <option>CENTENARIO</option>
+                                <option>ALCO BENDAS</option>
+                                <option>RINCONADA</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Player Stats Table -->
+                    <div style="margin-top:1.5rem">
+                        <div class="panel-title" style="margin-bottom:1rem">Cargar Datos Individuales</div>
+                        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+                            <table class="players-table" id="playersFormTable">
+                                <thead>
+                                    <tr>
+                                        <th>Jugador</th>
+                                        <th>Jugó</th>
+                                        <th>Goles</th>
+                                        <th>Asist.</th>
+                                        <th>Amar.</th>
+                                        <th>Roja</th>
+                                        <th>MVP</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="playersFormBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-secondary" onclick="cancelMatchForm()">Cancelar</button>
+                        <button class="btn btn-primary" id="saveMatchBtn" onclick="saveMatch()" style="width:auto">
+                            <i class="ph-bold ph-floppy-disk"></i> Guardar Partido
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Match List -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Historial de Partidos</div>
+                </div>
+                <div class="filter-bar" id="matchYearFilters"></div>
+                <div id="matchesList"></div>
+            </div>
+        </div>
+
+        <!-- ═══ TAB: JUGADORES ═══ -->
+        <div class="tab-content" id="tab-jugadores">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Estadísticas del Plantel</div>
+                </div>
+                <div class="filter-bar" id="playerYearFilters"></div>
+                <div class="stats-grid" id="playersStatsGrid"></div>
+            </div>
+        </div>
+
+        <!-- ═══ TAB: PRÓXIMOS ═══ -->
+        <div class="tab-content" id="tab-proximos">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Próximos Partidos</div>
+                    <button class="btn btn-secondary btn-sm" onclick="showUpcomingForm()">
+                        <i class="ph-bold ph-plus"></i> Agregar
+                    </button>
+                </div>
+                <div id="upcomingList"></div>
+            </div>
+        </div>
+
+        <!-- ═══ TAB: FINANZAS ═══ -->
+        <div class="tab-content" id="tab-finanzas">
+            <!-- Balance -->
+            <div class="balance-card">
+                <div class="balance-label">Balance Total</div>
+                <div class="balance-amount" id="totalBalance">$0</div>
+            </div>
+
+            <div class="finance-grid">
+                <div class="finance-mini-card">
+                    <div class="mini-val" id="totalIngresos" style="color:var(--green)">$0</div>
+                    <div class="mini-lbl">Ingresos</div>
+                </div>
+                <div class="finance-mini-card">
+                    <div class="mini-val" id="totalEgresos" style="color:var(--red)">$0</div>
+                    <div class="mini-lbl">Egresos</div>
+                </div>
+            </div>
+
+            <!-- Costo por fecha -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Costo por Fecha</div>
+                </div>
+                <div class="form-grid" style="grid-template-columns:1fr auto;align-items:end">
+                    <div class="form-group">
+                        <label>Monto por partido (cancha, árbitro, etc.)</label>
+                        <input type="number" id="costoFechaInput" min="0" placeholder="0">
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="saveCostoFecha()" style="margin-bottom:0.4rem">Guardar</button>
+                </div>
+            </div>
+
+            <!-- Deadlines -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Deadlines / Pagos Pendientes</div>
+                    <button class="btn btn-secondary btn-sm" onclick="showDeadlineForm()">
+                        <i class="ph-bold ph-plus"></i>
+                    </button>
+                </div>
+                <div id="deadlinesList"></div>
+            </div>
+
+            <!-- Cuotas -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Cuotas por Jugador</div>
+                </div>
+                <div class="cuotas-wrapper">
+                    <table class="cuotas-table" id="cuotasTable">
+                        <!-- Populated by JS -->
+                    </table>
+                </div>
+            </div>
+
+            <!-- Multas -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Multas</div>
+                    <button class="btn btn-secondary btn-sm" onclick="showMultaForm()">
+                        <i class="ph-bold ph-plus"></i>
+                    </button>
+                </div>
+                <div id="multasList"></div>
+            </div>
+
+            <!-- Transacciones -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Gastos e Ingresos</div>
+                    <button class="btn btn-secondary btn-sm" onclick="showTransaccionForm()">
+                        <i class="ph-bold ph-plus"></i>
+                    </button>
+                </div>
+                <div id="transaccionesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ MODAL ═══ -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" id="modalContent" onclick="event.stopPropagation()">
+            <div class="modal-title" id="modalTitle"></div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/admin.js?v=1.1"></script>
+</body>
+</html>

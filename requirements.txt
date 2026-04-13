@@ -1,0 +1,2 @@
+# Servidor Python La Bufarra
+# (Solo librerías estándar por ahora)

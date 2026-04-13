@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Bufarra</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        .page-header {
+            padding: 8rem 5% 4rem;
+            text-align: center;
+        }
+        
+        .page-title {
+            font-size: 3rem;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .coaches-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 4rem;
+        }
+
+        .coach-card {
+            background: linear-gradient(135deg, rgba(26,26,26,0.6) 0%, rgba(10,10,10,0.9) 100%);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s, border-color 0.3s;
+            text-align: center;
+        }
+        
+        .coach-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-primary);
+        }
+
+        .coach-photo {
+            height: 180px;
+            background: rgba(255,255,255,0.02);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 2px solid var(--accent-primary);
+            position: relative;
+        }
+
+        .coach-photo span {
+            font-family: var(--font-display);
+            font-size: 4rem;
+            color: rgba(255,255,255,0.1);
+            font-weight: 800;
+        }
+
+        .coach-info {
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .coach-years {
+            color: var(--accent-primary);
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .coach-name {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .coach-stats {
+            margin-top: auto;
+            border-top: 1px solid var(--border-light);
+            padding-top: 1rem;
+        }
+
+        .stat-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffd700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+        }
+
+        /* Interinatos */
+        .interinatos-container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .interinatos-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-display);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            padding: 1rem 2rem;
+            transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .interinatos-toggle:hover {
+            color: var(--text-main);
+        }
+
+        .interinatos-list {
+            display: none;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            text-align: left;
+        }
+        
+        .interinatos-list.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .interino-item {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .interino-item:last-child {
+            border-bottom: none;
+        }
+
+        .interino-item i {
+            color: var(--accent-primary);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 1200px) {
+            .coaches-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .coaches-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .coaches-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo La Bufarra" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
+                LA BUFARRA
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="jugadores.html">Jugadores</a></li>
+                <li><a href="partidos.html">Partidos</a></li>
+                <li><a href="entrenadores.html" class="active">Entrenadores</a></li>
+                <li><a href="campeonatos.html">Campeonatos</a></li>
+                <li><a href="historia.html">Historia</a></li>
+                <li><a href="juego.html">Juego</a></li>
+                <li><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
+            </ul>
+        </div>
+    </header>
+
+    <main class="container mb-5" style="margin-bottom: 5rem;">
+        <div class="page-header">
+            <h1 class="page-title">Directores Técnicos</h1>
+            <p style="color: var(--text-muted)">Quienes guiaron a La Bufarra desde el banco.</p>
+        </div>
+
+        <div class="coaches-grid">
+            <!-- Coach 1 -->
+            <div class="coach-card">
+                <div class="coach-photo">
+                    <span>FD</span>
+                </div>
+                <div class="coach-info">
+                    <div class="coach-years">2021 - 2023</div>
+                    <div class="coach-name">Federico<br>Dobal</div>
+                    <div class="coach-stats">
+                        <div class="stat-val"><i class="ph-fill ph-trophy"></i> 2 Títulos</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coach 2 -->
+            <div class="coach-card">
+                <div class="coach-photo">
+                    <span>SM</span>
+                </div>
+                <div class="coach-info">
+                    <div class="coach-years">Finales 2023</div>
+                    <div class="coach-name">Santiago<br>Mateo</div>
+                    <div class="coach-stats">
+                        <div class="stat-val"><i class="ph-fill ph-trophy"></i> 1 Título</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coach 3 -->
+            <div class="coach-card">
+                <div class="coach-photo">
+                    <span>GR</span>
+                </div>
+                <div class="coach-info">
+                    <div class="coach-years">2024</div>
+                    <div class="coach-name">Guillermo<br>Rodriguez</div>
+                    <div class="coach-stats">
+                        <div class="stat-val" style="color: var(--text-muted); font-size: 1rem;"><i class="ph-bold ph-calendar"></i> Temporada</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coach 4 -->
+            <div class="coach-card">
+                <div class="coach-photo">
+                    <span>ER</span>
+                </div>
+                <div class="coach-info">
+                    <div class="coach-years">2025</div>
+                    <div class="coach-name">Emiliano<br>Reyes</div>
+                    <div class="coach-stats">
+                        <div class="stat-val"><i class="ph-fill ph-trophy"></i> 1 Título</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coach 5 -->
+            <div class="coach-card">
+                <div class="coach-photo">
+                    <span>M/R</span>
+                </div>
+                <div class="coach-info">
+                    <div class="coach-years">Actualidad</div>
+                    <div class="coach-name">Mateo &<br>Reyes (Dupla)</div>
+                    <div class="coach-stats">
+                        <div class="stat-val" style="color: var(--text-muted); font-size: 1rem;"><i class="ph-bold ph-play"></i> En cargo</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interinatos -->
+        <div class="interinatos-container">
+            <button class="interinatos-toggle" id="toggleInterinos">
+                Ver Interinatos <i class="ph-bold ph-caret-down" id="interinosIcon"></i>
+            </button>
+            
+            <div class="interinatos-list" id="interinosList">
+                <div class="interino-item">
+                    <i class="ph-bold ph-user-circle"></i>
+                    <span><strong>Sebastian Pedemonte</strong> (Interinato)</span>
+                </div>
+                <div class="interino-item">
+                    <i class="ph-bold ph-user-circle"></i>
+                    <span><strong>Justiniano Molina</strong> (Interinato)</span>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <div class="footer-logo">LA BUFARRA</div>
+        <p>© 2026 Estadísticas Oficiales. Archivo histórico desde 2021.</p>
+    </footer>
+
+    <script>
+        document.getElementById('toggleInterinos').addEventListener('click', function() {
+            const list = document.getElementById('interinosList');
+            const icon = document.getElementById('interinosIcon');
+            
+            list.classList.toggle('show');
+            if (list.classList.contains('show')) {
+                icon.classList.remove('ph-caret-down');
+                icon.classList.add('ph-caret-up');
+            } else {
+                icon.classList.remove('ph-caret-up');
+                icon.classList.add('ph-caret-down');
+            }
+        });
+    </script>
+</body>
+</html>

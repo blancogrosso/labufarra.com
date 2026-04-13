@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: labufarra-admin
+    env: python
+    buildCommand: ""
+    startCommand: python server.py
+    disk:
+      name: data-storage
+      mountPath: /data
+      sizeGB: 1

@@ -1,0 +1,37 @@
+{
+  "roster": [
+    "Anzuatte",
+    "Blanco",
+    "Bonilla",
+    "Colombo",
+    "Da Silveira",
+    "De León",
+    "Flores",
+    "Iza",
+    "Martinez",
+    "Mari",
+    "Mateo",
+    "Menchaca",
+    "Molina",
+    "Olarte",
+    "Pedemonte",
+    "Sparkov"
+  ],
+  "users": {
+    "justi": {
+      "display_name": "Justi",
+      "salt": "06c1e62c237713ed5990dcd047d343c6",
+      "hash": "9bb7c8ebbbb8f415018ca1cb6fd67bcdef5b95be86b3472561c36510c5c11208"
+    },
+    "oso": {
+      "display_name": "Oso",
+      "salt": "cbc2f726bf3fba696890a723018eb561",
+      "hash": "28d9de3975550207d7b9f9ec7328c27110302729151d12304a85d6c588b4349a"
+    },
+    "feli": {
+      "display_name": "Feli",
+      "salt": "6693323dac0e36b101e4c2c302e3fe59",
+      "hash": "218d22ef3b0423f520684192765f9a0f42fb12cd85ec08590ca294d90e2f04cf"
+    }
+  }
+}

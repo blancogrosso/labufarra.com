@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Bufarra</title>
+    
+    <!-- Evitar caché en desarrollo/producción para datos dinámicos -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Modern Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Phosphor) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css?v=3.2">
+    
+    <style>
+        /* Specific Styles for Players Page overridden in styles.css for Grid */
+        .page-header {
+            padding: 8rem 5% 4rem;
+            text-align: center;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo La Bufarra" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
+                LA BUFARRA
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="jugadores.html" class="active">Jugadores</a></li>
+                <li><a href="partidos.html">Partidos</a></li>
+                <li><a href="entrenadores.html">Entrenadores</a></li>
+                <li><a href="campeonatos.html">Campeonatos</a></li>
+                <li><a href="historia.html">Historia</a></li>
+                <li><a href="juego.html">Juego</a></li>
+                <li><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
+            </ul>
+        </div>
+    </header>
+
+    <main class="container mb-5" style="margin-bottom: 5rem;">
+        <div class="page-header">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-bottom: 2rem;">
+                <div style="text-align: right;">
+                    <span id="playerCountLarge" style="font-size: 4rem; font-weight: 800; color: var(--accent-primary); line-height: 1;">0</span>
+                </div>
+                <div style="text-align: left; border-left: 2px solid var(--border-light); padding-left: 1.5rem;">
+                    <div style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Jugadores<br>Históricos</div>
+                </div>
+            </div>
+            <p style="color: var(--text-muted)">Estadísticas globales de todos los jugadores que han vestido la camiseta desde 2021.</p>
+        </div>
+
+        <div class="filters-container" style="display: flex; flex-direction: column; gap: 2rem; margin-bottom: 4rem;">
+            <!-- Row 1: Search and Count/Sort -->
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1.5rem;">
+                <div class="search-box">
+                    <i class="ph-bold ph-magnifying-glass" style="color: var(--text-muted)"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre o apodo..." class="glass-panel">
+                </div>
+                
+                <div class="sort-selector" id="sortFilters" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Ordenar por:</span>
+                    <button class="filter-btn active" data-sort="PJ" title="Partidos Jugados">PJ</button>
+                    <button class="filter-btn" data-sort="GOLES" title="Goles">Goles</button>
+                    <button class="filter-btn" data-sort="ASISTENCIAS" title="Asistencias">Asist.</button>
+                    <button class="filter-btn btn-yellow" data-sort="AMARILLAS" title="Tarjetas Amarillas">
+                        <i class="ph-fill ph-square" style="color: #f1c40f; font-size: 1.2rem;"></i>
+                    </button>
+                    <button class="filter-btn btn-red" data-sort="ROJAS" title="Tarjetas Rojas">
+                        <i class="ph-fill ph-square" style="color: #e74c3c; font-size: 1.2rem;"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Row 2: Year Filters -->
+            <div class="filters-bar" id="yearFiltersJugadores" style="margin-bottom: 0; flex-wrap: wrap; justify-content: flex-start; gap: 0.5rem;">
+                <button class="filter-btn active" data-year="ALL">Todos Histórico</button>
+                <button class="filter-btn" data-year="2026">2026</button>
+                <button class="filter-btn" data-year="2025">2025</button>
+                <button class="filter-btn" data-year="2024">2024</button>
+                <button class="filter-btn" data-year="2023">2023</button>
+                <button class="filter-btn" data-year="2022">2022</button>
+                <button class="filter-btn" data-year="2021">2021</button>
+            </div>
+        </div>
+
+        <div id="playersGrid" class="players-grid">
+            <!-- Datos inyectados por JS en forma de "Tarjetas" como 1891.uy -->
+            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: var(--text-muted);">
+                Cargando Leyendas...
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-logo">LA BUFARRA</div>
+        <p>© 2026 Estadísticas Oficiales. Archivo histórico desde 2021.</p>
+    </footer>
+
+    <!-- Use shared DB logical module -->
+    <script src="js/db.js?v=99.9"></script>
+    <script src="js/jugadores.js?v=99.9"></script>
+</body>
+</html>

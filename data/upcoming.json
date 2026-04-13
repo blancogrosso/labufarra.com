@@ -1,0 +1,92 @@
+[
+  {
+    "fecha": "19/4/2026",
+    "hora": "",
+    "rival": "ENFUGEIRA",
+    "torneo": "Apertura",
+    "instancia": "FECHA 2",
+    "lugar": "PRO",
+    "id": "id_1776050048270_74e97ded"
+  },
+  {
+    "fecha": "26/4/2026",
+    "hora": "",
+    "rival": "SAFAERA",
+    "torneo": "Apertura",
+    "instancia": "FECHA 3",
+    "lugar": "PRO",
+    "id": "id_1776050068340_2b63460c"
+  },
+  {
+    "fecha": "26/4/2026",
+    "hora": "",
+    "rival": "PARENAESE",
+    "torneo": "Apertura",
+    "instancia": "FECHA 4",
+    "lugar": "PRO",
+    "id": "id_1776050508391_923789ea"
+  },
+  {
+    "fecha": "3/5/2026",
+    "hora": "",
+    "rival": "PARQUE GUARANI",
+    "torneo": "Apertura",
+    "instancia": "FECHA 5",
+    "lugar": "PRO",
+    "id": "id_1776050528219_e6e50c53"
+  },
+  {
+    "fecha": "10/5/2026",
+    "hora": "",
+    "rival": "PORTE",
+    "torneo": "Apertura",
+    "instancia": "FECHA 6",
+    "lugar": "PRO",
+    "id": "id_1776050732294_73e6636b"
+  },
+  {
+    "fecha": "17/5/2026",
+    "hora": "",
+    "rival": "MAGNA",
+    "torneo": "Apertura",
+    "instancia": "FECHA 7",
+    "lugar": "PRO",
+    "id": "id_1776050757950_f112cd03"
+  },
+  {
+    "fecha": "24/5/2026",
+    "hora": "",
+    "rival": "ALTA GAMA",
+    "torneo": "Apertura",
+    "instancia": "FECHA 8",
+    "lugar": "PRO",
+    "id": "id_1776050776524_bc456509"
+  },
+  {
+    "fecha": "31/5/2026",
+    "hora": "",
+    "rival": "LA COSTA",
+    "torneo": "Apertura",
+    "instancia": "FECHA 9",
+    "lugar": "PRO",
+    "id": "id_1776050794029_53cb51a6"
+  },
+  {
+    "fecha": "7/6/2026",
+    "hora": "",
+    "rival": "PRESTCOLD",
+    "torneo": "Apertura",
+    "instancia": "FECHA 10",
+    "lugar": "PRO",
+    "id": "id_1776050830040_bbb6756f"
+  },
+  {
+    "fecha": "14/6/2026",
+    "hora": "",
+    "rival": "BERGES",
+    "torneo": "Apertura",
+    "instancia": "FECHA 11",
+    "lugar": "PRO",
+    "id": "id_1776050850637_0fbb91ed"
+  }
+]

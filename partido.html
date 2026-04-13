@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles del Partido | LA BUFARRA</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        .match-hero {
+            padding: 8rem 5% 4rem;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), var(--bg-main)), url('img/hero/default-match.jpg') center/cover;
+            position: relative;
+        }
+
+        .match-tourney-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            color: var(--text-muted);
+            padding: 0.5rem 1.5rem;
+            border-radius: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+        }
+
+        .scoreboard {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4rem;
+            margin-bottom: 2rem;
+        }
+
+        .team-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            width: 200px;
+        }
+
+        .team-shield {
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .team-shield img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .team-name {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+            text-transform: uppercase;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .score-block {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-family: var(--font-display);
+            font-size: 5rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+        }
+
+        .score-separator {
+            font-size: 2rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .match-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+        }
+
+        .meta-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .meta-card i {
+            font-size: 2rem;
+            color: var(--accent-primary);
+        }
+
+        .meta-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .meta-val {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 1.1rem;
+        }
+
+        /* Match Events */
+        .events-container {
+            display: grid;
+            grid-template-columns: 1fr 1px 1fr;
+            gap: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .events-divider {
+            background: var(--border-light);
+            width: 1px;
+            height: 100%;
+        }
+
+        .event-side {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .event-side.home { text-align: right; }
+        .event-side.away { text-align: left; }
+
+        .event-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .event-side.home .event-item {
+            flex-direction: row-reverse;
+        }
+
+        .event-icon {
+            color: var(--text-main);
+            font-size: 1.25rem;
+        }
+
+        .event-icon.goal { color: #ffd700; }
+        .event-icon.yellow { color: #f1c40f; }
+        .event-icon.red { color: #e74c3c; }
+
+        @media (max-width: 768px) {
+            .scoreboard {
+                flex-direction: column;
+                gap: 2rem;
+            }
+            .score-block {
+                order: -1;
+            }
+            .match-meta-grid {
+                grid-template-columns: 1fr;
+            }
+            .events-container {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+            .events-divider { display: none; }
+            .event-side.home, .event-side.away {
+                text-align: center;
+                align-items: center;
+            }
+            .event-side.home .event-item {
+                flex-direction: row;
+            }
+        }
+    </style>
+    <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo LA BUFARRA" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
+                LA BUFARRA
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="jugadores.html">Jugadores</a></li>
+                <li><a href="partidos.html">Partidos</a></li>
+                <li><a href="entrenadores.html">Entrenadores</a></li>
+                <li><a href="campeonatos.html">Campeonatos</a></li>
+                <li><a href="historia.html">Historia</a></li>
+                <li><a href="juego.html">Juego</a></li>
+                <li><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
+            </ul>
+        </div>
+    </header>
+
+    <div class="match-hero">
+        <div class="match-tourney-badge" id="m-tourney">Cargando Torneo...</div>
+        
+        <div class="scoreboard">
+            <div class="team-block">
+                <div class="team-shield">
+                    <img src="img/logo/ESCUDO_BUFARRA.png" alt="LA BUFARRA" onerror="this.style.display='none';">
+                </div>
+                <div class="team-name">LA BUFARRA</div>
+            </div>
+
+            <div class="score-block">
+                <span id="score-home">-</span>
+                <span class="score-separator">:</span>
+                <span id="score-away">-</span>
+            </div>
+
+            <div class="team-block">
+                <div class="team-shield">
+                    <img src="img/escudos/default.png" id="away-shield" alt="Rival" onerror="this.src=''; this.style.display='none';">
+                    <!-- Placeholder shield icon if image fails -->
+                    <i class="ph-bold ph-shield" style="font-size: 3rem; color: var(--text-muted); position: absolute; z-index: -1;"></i>
+                </div>
+                <div class="team-name" id="team-away">Cargando Rival...</div>
+            </div>
+        </div>
+    </div>
+
+    <main class="container mb-5">
+        
+        <div class="match-meta-grid">
+            <div class="meta-card">
+                <i class="ph-fill ph-calendar-blank"></i>
+                <div class="meta-title">Fecha</div>
+                <div class="meta-val" id="m-date">--/--/----</div>
+            </div>
+            <div class="meta-card">
+                <i class="ph-fill ph-map-pin"></i>
+                <div class="meta-title">Lugar</div>
+                <div class="meta-val" id="m-venue">Complejo</div>
+            </div>
+        </div>
+
+        <h2 style="font-family: var(--font-display); color: var(--text-main); text-align: center; margin-bottom: 3rem; margin-top: 4rem;">Incidencias del Partido</h2>
+        
+        <div class="events-container">
+            <!-- LA BUFARRA Events -->
+            <div class="event-side home" id="home-events">
+                <div style="color: var(--text-muted); font-style: italic; font-size: 0.9rem;">Cargando goleadores...</div>
+                <!-- 
+                <div class="event-item">
+                    <span>Sparkov</span>
+                    <i class="ph-fill ph-soccer-ball event-icon goal"></i>
+                </div>
+                <div class="event-item">
+                    <span>Torres</span>
+                    <i class="ph-fill ph-soccer-ball event-icon goal"></i>
+                </div>
+                -->
+            </div>
+            
+            <div class="events-divider"></div>
+
+            <!-- Rival Events -->
+            <div class="event-side away" id="away-events">
+                <div style="color: var(--text-muted); font-style: italic; font-size: 0.9rem;">Cargando incidencias del rival...</div>
+                <!--
+                <div class="event-item">
+                    <i class="ph-fill ph-warning event-icon yellow"></i>
+                    <span>Jugador Rival</span>
+                </div>
+                -->
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <div class="footer-logo">LA BUFARRA</div>
+        <p>© 2026 Estadísticas Oficiales.</p>
+    </footer>
+
+    <script src="js/db.js"></script>
+    <script src="js/partido_detail.js"></script>
+</body>
+</html>
