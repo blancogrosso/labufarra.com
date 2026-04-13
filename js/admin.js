@@ -84,12 +84,12 @@ async function doLogin() {
     
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="ph-bold ph-spinner"></i> Verificando...';
+    btn.innerHTML = '<i class="ph-bold ph-circle-notch animate-spin"></i> Entrando...';
     
     try {
-        // Get users config from Supabase
-        const configs = await spFetch('config', 'GET', null, 'value');
-        const configVal = configs.find(c => true)?.value || {}; 
+        // Specifically fetch the users config record
+        const data = await spFetch('config?key=eq.users', 'GET', null, 'value');
+        const configVal = data?.[0]?.value || {};
         const userData = configVal.users || {};
         
         const loginUser = userData[user];
