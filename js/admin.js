@@ -133,6 +133,19 @@ function togglePasswordVisibility() {
     }
 }
 
+// ─── UI Helpers ───
+function toggleFAB() {
+    document.getElementById('fabContainer').classList.toggle('active');
+}
+
+// Close FAB when clicking outside
+document.addEventListener('click', (e) => {
+    const fab = document.getElementById('fabContainer');
+    if (fab && !fab.contains(e.target) && fab.classList.contains('active')) {
+        fab.classList.remove('active');
+    }
+});
+
 async function doChangePassword() {
     const newPw = document.getElementById('newPasswordInput').value;
     if (!newPw) return;

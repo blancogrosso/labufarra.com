@@ -245,29 +245,15 @@
                 </div>
             </div>
 
-            <!-- Costo por fecha -->
+            <!-- Transacciones (MOVED UP) -->
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">Costo por Fecha</div>
-                </div>
-                <div class="form-grid" style="grid-template-columns:1fr auto;align-items:end">
-                    <div class="form-group">
-                        <label>Monto por partido (cancha, árbitro, etc.)</label>
-                        <input type="number" id="costoFechaInput" min="0" placeholder="0">
-                    </div>
-                    <button class="btn btn-secondary btn-sm" onclick="saveCostoFecha()" style="margin-bottom:0.4rem">Guardar</button>
-                </div>
-            </div>
-
-            <!-- Deadlines -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">Deadlines / Pagos Pendientes</div>
-                    <button class="btn btn-secondary btn-sm" onclick="showDeadlineForm()">
+                    <div class="panel-title">Gastos e Ingresos</div>
+                    <button class="btn btn-secondary btn-sm" onclick="showTransaccionForm()">
                         <i class="ph-bold ph-plus"></i>
                     </button>
                 </div>
-                <div id="deadlinesList"></div>
+                <div id="transaccionesList"></div>
             </div>
 
             <!-- Cuotas -->
@@ -293,17 +279,52 @@
                 <div id="multasList"></div>
             </div>
 
-            <!-- Transacciones -->
+            <!-- Deadlines -->
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">Gastos e Ingresos</div>
-                    <button class="btn btn-secondary btn-sm" onclick="showTransaccionForm()">
+                    <div class="panel-title">Deadlines / Pagos Pendientes</div>
+                    <button class="btn btn-secondary btn-sm" onclick="showDeadlineForm()">
                         <i class="ph-bold ph-plus"></i>
                     </button>
                 </div>
-                <div id="transaccionesList"></div>
+                <div id="deadlinesList"></div>
+            </div>
+
+            <!-- Costo por Fecha -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Costo por Fecha</div>
+                </div>
+                <div class="form-grid" style="grid-template-columns:1fr auto;align-items:end">
+                    <div class="form-group">
+                        <label>Monto por partido (cancha, árbitro, etc.)</label>
+                        <input type="number" id="costoFechaInput" min="0" placeholder="0">
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="saveCostoFecha()" style="margin-bottom:0.4rem">Guardar</button>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- ═══ Floating Action Button (FAB) ═══ -->
+    <div class="fab-container" id="fabContainer">
+        <div class="fab-menu" id="fabMenu">
+            <button class="fab-item" onclick="switchTab('partidos'); showMatchForm(); toggleFAB()">
+                <i class="ph-bold ph-soccer-ball"></i> Nuevo Partido
+            </button>
+            <button class="fab-item" onclick="switchTab('finanzas'); showTransaccionForm(); toggleFAB()">
+                <i class="ph-bold ph-currency-dollar"></i> Nuevo Gasto/Ingreso
+            </button>
+            <button class="fab-item" onclick="switchTab('proximos'); showUpcomingForm(); toggleFAB()">
+                <i class="ph-bold ph-calendar-plus"></i> Próximo Encuentro
+            </button>
+            <button class="fab-item" onclick="switchTab('finanzas'); showMultaForm(); toggleFAB()">
+                <i class="ph-bold ph-warning-circle"></i> Nueva Multa
+            </button>
+        </div>
+        <button class="fab-main" id="fabMain" onclick="toggleFAB()">
+            <i class="ph-bold ph-plus"></i>
+        </button>
     </div>
 
     <!-- ═══ MODAL ═══ -->
