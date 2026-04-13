@@ -1025,10 +1025,10 @@ function renderCuotas() {
         <tbody>
     `;
     
-    // Ensure roster names are normalized
-    roster = roster.map(n => normalizeName(n));
+    // Use local sorted copy so we don't mutate the global roster keys used in DB
+    const sortedRoster = [...roster].sort();
     
-    roster.forEach(name => {
+    sortedRoster.forEach(name => {
         const c = cuotas[name] || { paid: 0, total: defaultTotal, multas: 0 };
         const saldo = (c.total + (c.multas || 0)) - c.paid;
         const saldoColor = saldo <= 0 ? 'var(--green)' : 'var(--red)';
