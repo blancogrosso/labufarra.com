@@ -40,10 +40,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ─── Supabase Helper ───
-async function spFetch(table, method = 'GET', body = null, select = '*') {
-    // Add cache-buster to GET requests
-    const buster = `&t=${Date.now()}`;
-    const url = `${SUPABASE_URL}/rest/v1/${table}${select ? '?select=' + select : '?'}${method === 'GET' ? buster : ''}`;
+async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
+    // Correctly handle endpoint with existing query params
+    const baseUrl = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const buster = method === 'GET' ? `${separator}t=${Date.now()}` : '';
+    const selectParam = (select && !baseUrl.includes('select=')) ? `${baseUrl.includes('?') || buster.includes('?') ? '&' : '?'}select=${select}` : '';
+    
+    const url = `${baseUrl}${selectParam}${buster}`;
     const opts = {
         method,
         headers: { ...SP_HEADERS }
@@ -103,8 +107,14 @@ async function doLogin() {
         const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
         if (hashHex === storedHash || pw === 'labufarra2026') {
-            authToken = 'supabase_authed'; // Dummy token for UI
+            authToken = 'supabase_authed'; 
             currentUser = loginUser.display_name || user;
+            
+            // Clean roster if it came from users config value
+            if (configVal.roster) {
+                console.log("Found nested roster, utilizing separate config record instead.");
+            }
+            
             sessionStorage.setItem('bufarra_token', authToken);
             sessionStorage.setItem('bufarra_user', currentUser);
             showApp();
@@ -261,9 +271,8 @@ async function loadRoster() {
     if (data && data[0]) {
         roster = data[0].value;
     } else {
-        // Fallback or attempt to find in old users record
-        const usersData = await spFetch('config?key=eq.users', 'GET', null, 'value');
-        roster = usersData?.[0]?.value?.roster || ["Blanco", "Iza", "Martinez"];
+        // Absolute fallback if DB is down
+        roster = ["Anzuatte", "Blanco", "Bonilla", "Colombo", "Da Silveira", "De León", "Flores", "Iza", "Martinez", "Mari", "Mateo", "Menchaca", "Molina", "Olarte", "Pedemonte", "Sparkov"];
     }
     buildPlayersFormTable();
 }
