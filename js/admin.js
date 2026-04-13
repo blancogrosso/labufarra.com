@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showApp();
     } else {
         document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('fabContainer').style.display = 'none';
     }
     
     // Enter key on password
@@ -171,19 +172,19 @@ async function doChangePassword() {
 
 function doLogout() {
     authToken = '';
-    currentUser = '';
-    sessionStorage.removeItem('bufarra_token');
     sessionStorage.removeItem('bufarra_user');
     document.getElementById('adminApp').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('passwordInput').value = '';
     document.getElementById('usernameInput').value = '';
     document.getElementById('loginError').style.display = 'none';
+    document.getElementById('fabContainer').style.display = 'none';
 }
 
 async function showApp() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('adminApp').style.display = 'block';
+    document.getElementById('fabContainer').style.display = 'block';
     document.getElementById('userGreeting').textContent = `Hola, ${currentUser}`;
     
     // Load all data
@@ -629,7 +630,7 @@ function renderFilteredPlayers(year) {
     const sorted = players.sort((a, b) => (b.pj || b.PJ || 0) - (a.pj || a.PJ || 0));
     
     container.innerHTML = sorted.map(p => {
-        const nombre = p.nombre || p.PLAYER || '';
+        const nombre = p.player_name || p.nombre || p.PLAYER || 'Sin nombre';
         const pj = p.pj || p.PJ || 0;
         const pg = p.pg || p.PG || 0;
         const pe = p.pe || p.PE || 0;
