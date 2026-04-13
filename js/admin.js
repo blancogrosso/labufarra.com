@@ -41,7 +41,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ─── Supabase Helper ───
 async function spFetch(table, method = 'GET', body = null, select = '*') {
-    const url = `${SUPABASE_URL}/rest/v1/${table}${select ? '?select=' + select : ''}`;
+    // Add cache-buster to GET requests
+    const buster = `&t=${Date.now()}`;
+    const url = `${SUPABASE_URL}/rest/v1/${table}${select ? '?select=' + select : '?'}${method === 'GET' ? buster : ''}`;
     const opts = {
         method,
         headers: { ...SP_HEADERS }
@@ -350,9 +352,24 @@ function filterMatches(year) {
 
 function renderFilteredMatches(year) {
     const container = document.getElementById('matchesList');
-    // Sort all matches by date desc to ensure 'Todos' shows current at top
-    const sorted = [...matchesData].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
-    const filtered = year === 'all' ? sorted : sorted.filter(m => String(m.fecha).startsWith(year));
+    if (!matchesData) return;
+    
+    // Robust date parser for sorting
+    const parseDate = (s) => {
+        if (!s) return 0;
+        if (s.includes('/')) {
+            const [d, m, y] = s.split('/');
+            return new Date(y, m - 1, d).getTime();
+        }
+        return new Date(s).getTime();
+    };
+
+    // Sort all matches by date desc
+    const sorted = [...matchesData].sort((a,b) => parseDate(b.fecha) - parseDate(a.fecha));
+    
+    const filtered = year === 'all' 
+        ? sorted 
+        : sorted.filter(m => String(m.fecha || '').includes(year) || String(m.año || '').includes(year));
     
     if (filtered.length === 0) {
         container.innerHTML = '<div class="empty-state"><i class="ph-bold ph-soccer-ball"></i><p>No hay partidos cargados</p></div>';
