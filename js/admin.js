@@ -49,15 +49,17 @@ async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
         
         // Add select if not already in URL
         if (select && !finalUrl.includes('select=')) {
-            finalUrl += `${sep}select=${select}&t=${Date.now()}`;
-        } else {
-            finalUrl += `${sep}t=${Date.now()}`;
+            finalUrl += `${sep}select=${select}`;
         }
     }
     
     const opts = {
         method,
-        headers: { ...SP_HEADERS }
+        headers: { 
+            ...SP_HEADERS,
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        }
     };
     if (body) opts.body = JSON.stringify(body);
     if (method === 'PATCH' || method === 'DELETE') {

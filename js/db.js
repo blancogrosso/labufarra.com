@@ -250,12 +250,16 @@ async function loadMatches() {
         if (typeof renderLastMatches === 'function') renderLastMatches();
         if (typeof renderAllMatches === 'function') renderAllMatches();
         if (typeof renderEfeméride === 'function') renderEfeméride();
+        if (typeof renderNextMatch === 'function') renderNextMatch();
         
         if (typeof applyYearFilters === 'function') {
             console.log("DB: Initializing Players Page...");
             applyYearFilters();
             if (typeof initCounter === 'function') initCounter();
         }
+        
+        // Dispatch event for other pages depending on data load completion
+        document.dispatchEvent(new Event('dataLoaded'));
     } catch (err) {
         console.error("DB: Global data load error:", err);
     }
@@ -540,7 +544,6 @@ function getRivalShield(rivalName) {
 // Initialize on DOM Load
 document.addEventListener('DOMContentLoaded', () => {
     loadMatches();
-    renderNextMatch();
 });
 
 // Render dynamic next match from API
@@ -600,9 +603,82 @@ async function renderNextMatch() {
                 </div>
             </div>
         </div>
-        
-        <a href="campeonatos.html" class="btn-link" style="justify-content: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-light); font-size: 0.8rem; letter-spacing: 1px;">
-            Ver Fixture Completo <i class="ph-bold ph-calendar-check"></i>
-        </a>
     `;
+}
+
+function openFixtureModal() {
+    const modal = document.getElementById('fixtureModal');
+    const container = document.getElementById('fixtureListContainer');
+    if (!modal || !container) return;
+    
+    // Asumimos que el torneo actual es el del "Próximo Encuentro"
+    const currentTournament = allUpcoming.length > 0 ? (allUpcoming[0].torneo || 'Apertura') : 'Apertura';
+    
+    // Filtrar los que ya se jugaron de ese mismo torneo Y que sean del año en curso
+    const currentYear = new Date().getFullYear().toString();
+    const playedMatches = allMatches.filter(m => {
+        let isCurrentYear = m.AÑO === currentYear || (m.FECHA && m.FECHA.includes(currentYear));
+        return m.torneo && m.torneo.toLowerCase().includes(currentTournament.toLowerCase()) && isCurrentYear;
+    }).sort((a,b) => parseDateForSort(a.FECHA) - parseDateForSort(b.FECHA)); // Orden cronológico antiguo a nuevo
+    
+    let html = '';
+    
+    // 1. Mostrar Jugados
+    if (playedMatches.length > 0) {
+        playedMatches.forEach(m => {
+            const shield = getRivalShield(m.VS);
+            let scoreHTML = m.RESULTADO;
+            let bgColor = 'rgba(255,255,255,0.05)';
+            if (m.GF > m.GC) bgColor = 'rgba(39, 174, 96, 0.2)'; // Win
+            else if (m.GF < m.GC) bgColor = 'rgba(192, 57, 43, 0.2)'; // Loss
+            else bgColor = 'rgba(243, 156, 18, 0.2)'; // Draw
+            
+            html += `
+                <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-light); padding: 1rem; border-radius: 8px;">
+                    <div style="flex:1; text-align:right; font-weight:bold; font-size:1rem;">LA BUFARRA</div>
+                    <div style="padding: 0.3rem 0.8rem; border-radius:4px; font-weight:800; font-size:1.1rem; color:var(--accent-primary); mx:auto; text-align:center; min-width: 60px; background:${bgColor}">
+                        ${scoreHTML.replace('x', ' - ')}
+                    </div>
+                    <div style="flex:1; display:flex; align-items:center; gap:0.5rem; justify-content:flex-start; padding-left:1rem; font-weight:bold; font-size:1rem; color:var(--text-muted);">
+                        ${shield ? `<img src="${shield}" style="width:20px;">` : ''} ${m.VS || 'Rival'}
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    // 2. Mostrar upcoming
+    if (allUpcoming.length > 0) {
+        allUpcoming.forEach((u, i) => {
+            const shield = getRivalShield(u.rival);
+            const isNext = i === 0;
+            const borderStyle = isNext ? 'border: 1px solid var(--accent-primary); box-shadow: 0 0 10px rgba(252,218,217,0.2);' : 'border: 1px solid var(--border-light); opacity: 0.7;';
+            
+            html += `
+                <div style="display:flex; flex-direction:column; background: var(--bg-card); ${borderStyle} padding: 1rem; border-radius: 8px; margin-top:0.5rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem; font-size:0.75rem; color:var(--accent-primary);">
+                        <span>${u.instancia || 'Fecha ?'}</span>
+                        <span>${u.fecha}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex:1; text-align:right; font-weight:bold;">LA BUFARRA</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted); padding:0 1rem;">VS</div>
+                        <div style="flex:1; display:flex; align-items:center; gap:0.5rem; font-weight:bold; color:var(--text-muted);">
+                            ${shield ? `<img src="${shield}" style="width:20px;">` : ''} ${u.rival || 'A confirmar'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    if(!html) html = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay partidos cargados en este torneo.</div>';
+    
+    container.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function closeFixtureModal() {
+    const modal = document.getElementById('fixtureModal');
+    if (modal) modal.style.display = 'none';
 }

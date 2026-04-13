@@ -30,14 +30,20 @@ const PLAYER_MAP = {
     'Olarte': { fullName: 'Juan Miguel Olarte', aliases: ['Juan'] },
     'Pedemonte': { fullName: 'Sebastian Pedemonte', aliases: ['Seba', 'Sebita'] },
     'Rocca': { fullName: 'Diego Rocca', aliases: ['Harry'] },
-    'Rodríguez': { fullName: 'Facundo Rodríguez', aliases: ['Facu'] },
+    'Rodríguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
+    'Rodriguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
+    'Guillermo Rodriguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
     'Silva': { fullName: 'Bruno Silva', aliases: ['Bruno', 'Silva'] },
     'Silva, Gaston': { fullName: 'Gaston Silva', aliases: ['Junior'] },
     'Silva, Gastón': { fullName: 'Gaston Silva', aliases: ['Junior'] },
+    'Gaston Silva': { fullName: 'Gaston Silva', aliases: ['Junior'] },
     'Sparkov': { fullName: 'Santiago Sparkov', aliases: ['Spark', 'Sparky'] },
-    'Valle': { fullName: 'Ignacio Valle', aliases: ['Nacho'] },
-    'Vigil': { fullName: 'Joaquin Vigil', aliases: ['Joaco'] },
-    'Balestie': { fullName: 'Santiago Balestie', aliases: ['Santi'] }
+    'Valle': { fullName: 'Joaquin Valle', aliases: ['Joaco'] },
+    'Joaquin Valle': { fullName: 'Joaquin Valle', aliases: ['Joaco'] },
+    'Vigil': { fullName: 'Sebastian Vigil', aliases: ['Seba'] },
+    'Sebastian Vigil': { fullName: 'Sebastian Vigil', aliases: ['Seba'] },
+    'Balestie': { fullName: 'Kevin Balestie', aliases: ['Kevin'] },
+    'Kevin Balestie': { fullName: 'Kevin Balestie', aliases: ['Kevin'] }
 };
 
 function normalizePlayerName(name) {

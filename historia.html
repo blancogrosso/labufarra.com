@@ -155,7 +155,7 @@
                 <li><a href="entrenadores.html">Entrenadores</a></li>
                 <li><a href="campeonatos.html">Campeonatos</a></li>
                 <li><a href="historia.html" class="active">Historia</a></li>
-                <li><a href="juego.html">Juego</a></li>
+                
                 <li><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
             </ul>
         </div>
@@ -236,64 +236,107 @@
             </div>
         </section>
 
-        <!-- Paseo de la Fama integrated -->
-        <section id="hof" style="margin-bottom: 8rem; background: linear-gradient(180deg, rgba(255,215,0,0.05) 0%, transparent 100%); padding: 4rem 2rem; border-radius: 30px; border: 1px solid rgba(255,215,0,0.1);">
+        <!-- Camisetas -->
+        <section id="hof" style="margin-bottom: 8rem; background: linear-gradient(180deg, rgba(230, 126, 34, 0.05) 0%, transparent 100%); padding: 4rem 2rem; border-radius: 30px; border: 1px solid rgba(230, 126, 34, 0.1);">
             <div style="text-align: center; margin-bottom: 5rem;">
-                <h2 style="font-size: 3rem; font-family: var(--font-display); background: linear-gradient(to right, #ffd700, #fff, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1rem;">PASEO DE LA FAMA</h2>
-                <p style="color: #ffd700; letter-spacing: 4px; text-transform: uppercase; font-size: 0.8rem; font-weight: 700;">Las figuras externas de LA BUFARRA</p>
+                <h2 style="font-size: 3rem; font-family: var(--font-display); background: linear-gradient(to right, #e67e22, #fff, #e67e22); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1rem;">NUESTRAS CAMISETAS</h2>
+                <p style="color: #e67e22; letter-spacing: 4px; text-transform: uppercase; font-size: 0.8rem; font-weight: 700;">La evolución de la piel bufarrera</p>
             </div>
 
             <style>
-                .hof-grid {
+                .kit-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
                     gap: 3rem;
                 }
-                .hof-card {
+                .kit-card {
                     background: rgba(0,0,0,0.6);
-                    border: 1px solid rgba(255,215,0,0.2);
+                    border: 1px solid rgba(230, 126, 34, 0.2);
                     border-radius: 20px;
                     padding: 2.5rem 2rem;
                     text-align: center;
                     transition: all 0.4s;
                 }
-                .hof-card:hover {
-                    border-color: #ffd700;
+                .kit-card:hover {
+                    border-color: #e67e22;
                     transform: scale(1.05);
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px rgba(255,215,0,0.2);
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px rgba(230, 126, 34, 0.2);
                 }
-                .hof-icon {
+                .kit-icon {
                     font-size: 3.5rem;
-                    color: #ffd700;
-                    margin-bottom: 1.5rem;
+                    color: #e67e22;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 160px;
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 12px;
+                    margin-bottom: 2rem;
+                }
+                .kit-toggles {
+                    display: flex;
+                    gap: 1rem;
+                    justify-content: center;
+                    margin-top: 1.5rem;
+                }
+                .kit-btn {
+                    background: rgba(255,255,255,0.1);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    color: var(--text-main);
+                    cursor: pointer;
+                    font-size: 0.8rem;
+                    transition: all 0.2s;
+                }
+                .kit-btn:hover {
+                    background: var(--accent-primary);
+                    border-color: var(--accent-primary);
                 }
             </style>
 
-            <div class="hof-grid">
-                <div class="hof-card">
-                    <div class="hof-icon"><i class="ph-fill ph-crown"></i></div>
-                    <h3 style="color: #ffd700; font-size: 1.8rem; margin-bottom: 0.5rem;">Sparkov</h3>
-                    <p style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 1.5rem;">Goleador Histórico</p>
-                    <div style="border-top: 1px solid rgba(255,215,0,0.1); padding-top: 1rem; color: #aaa; font-size: 0.9rem;">
-                        Consagrado como el máximo artillero del club, protagonista de todas las estrellas.
+            <div class="kit-grid">
+                <!-- Kit 2021 -->
+                <div class="kit-card">
+                    <div class="kit-icon"><i class="ph-bold ph-t-shirt"></i></div>
+                    <h3 style="color: #e67e22; font-size: 1.8rem; margin-bottom: 0.5rem;">Kit 2021</h3>
+                    <p style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 1.5rem;">Orígenes</p>
+                    <div class="kit-toggles">
+                        <button class="kit-btn"><i class="ph-bold ph-user"></i> Jugador</button>
+                        <button class="kit-btn"><i class="ph-bold ph-hand-fist"></i> Golero</button>
                     </div>
                 </div>
 
-                <div class="hof-card">
-                    <div class="hof-icon"><i class="ph-fill ph-shield-star"></i></div>
-                    <h3 style="color: #ffd700; font-size: 1.8rem; margin-bottom: 0.5rem;">Blanco</h3>
-                    <p style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 1.5rem;">Capitán Eterno</p>
-                    <div style="border-top: 1px solid rgba(255,215,0,0.1); padding-top: 1rem; color: #aaa; font-size: 0.9rem;">
-                        Líder y referente dentro y fuera de la cancha, el alma del equipo desde 2018.
+                <!-- Kit 2022/23 -->
+                <div class="kit-card">
+                    <div class="kit-icon"><i class="ph-bold ph-t-shirt"></i></div>
+                    <h3 style="color: #e67e22; font-size: 1.8rem; margin-bottom: 0.5rem;">Kit 22/23</h3>
+                    <p style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 1.5rem;">Primera Gloria</p>
+                    <div class="kit-toggles">
+                        <button class="kit-btn"><i class="ph-bold ph-user"></i> Jugador</button>
+                        <button class="kit-btn"><i class="ph-bold ph-hand-fist"></i> Golero</button>
                     </div>
                 </div>
 
-                <div class="hof-card">
-                    <div class="hof-icon"><i class="ph-fill ph-trophy"></i></div>
-                    <h3 style="color: #ffd700; font-size: 1.8rem; margin-bottom: 0.5rem;">Pekeno</h3>
-                    <p style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 1.5rem;">Muro Defensivo</p>
-                    <div style="border-top: 1px solid rgba(255,215,0,0.1); padding-top: 1rem; color: #aaa; font-size: 0.9rem;">
-                        Calidad técnica y entrega total, pieza clave en la solidez del arco bufarrero.
+                <!-- Kit 2024/25 -->
+                <div class="kit-card">
+                    <div class="kit-icon"><i class="ph-bold ph-t-shirt"></i></div>
+                    <h3 style="color: #e67e22; font-size: 1.8rem; margin-bottom: 0.5rem;">Kit 24/25</h3>
+                    <p style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 1.5rem;">Consolidación</p>
+                    <div class="kit-toggles">
+                        <button class="kit-btn"><i class="ph-bold ph-user"></i> Jugador</button>
+                        <button class="kit-btn"><i class="ph-bold ph-hand-fist"></i> Golero</button>
+                    </div>
+                </div>
+
+                <!-- Kit 2026 -->
+                <div class="kit-card">
+                    <div class="kit-icon"><i class="ph-bold ph-t-shirt"></i></div>
+                    <h3 style="color: #e67e22; font-size: 1.8rem; margin-bottom: 0.5rem;">Kit 2026</h3>
+                    <p style="color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 1.5rem;">Actualidad</p>
+                    <div class="kit-toggles">
+                        <button class="kit-btn"><i class="ph-bold ph-user"></i> Jugador</button>
+                        <button class="kit-btn"><i class="ph-bold ph-hand-fist"></i> Golero</button>
                     </div>
                 </div>
             </div>
