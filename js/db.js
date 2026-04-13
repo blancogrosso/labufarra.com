@@ -79,7 +79,8 @@ function parseCSV(text) {
 
 // Global Data Store
 let allMatches = [];
-let allPlayers = []; // Historical Players Stats
+let allPlayers = {}; 
+let allUpcoming = []; // Added for Supabase sync
 
 async function loadMatches() {
     console.log("DB: Starting data load...");
@@ -93,9 +94,10 @@ async function loadMatches() {
         const SP_HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
         try {
-            const [matchRes, playerRes] = await Promise.all([
+            const [matchRes, playerRes, upcomingRes] = await Promise.all([
                 fetch(`${SUPABASE_URL}/rest/v1/matches?select=*&order=fecha.desc`, { headers: SP_HEADERS }),
-                fetch(`${SUPABASE_URL}/rest/v1/players_stats?select=*`, { headers: SP_HEADERS })
+                fetch(`${SUPABASE_URL}/rest/v1/players_stats?select=*`, { headers: SP_HEADERS }),
+                fetch(`${SUPABASE_URL}/rest/v1/upcoming?select=*&order=fecha.asc`, { headers: SP_HEADERS })
             ]);
             
             if (matchRes.ok) {
@@ -111,7 +113,8 @@ async function loadMatches() {
                     AÑO: m.fecha ? m.fecha.split('-')[0] : '',
                     GF: String(m.gf ?? ''),
                     GC: String(m.gc ?? ''),
-                    RESULTADO: (m.gf !== null && m.gc !== null) ? `${m.gf}x${m.gc}` : ''
+                    RESULTADO: (m.gf !== null && m.gc !== null) ? `${m.gf}x${m.gc}` : '',
+                    jugadores: m.jugadores || {}
                 }));
                 console.log(`DB: Loaded ${allMatches.length} matches from Supabase.`);
                 apiSuccess = true;
@@ -136,6 +139,19 @@ async function loadMatches() {
                     });
                 });
                 console.log("DB: Loaded players from Supabase.");
+            }
+
+            if (upcomingRes.ok) {
+                const upcomingJson = await upcomingRes.json();
+                allUpcoming = upcomingJson.map(u => ({
+                    fecha: formatDate(u.fecha),
+                    hora: u.hora || '',
+                    rival: u.rival || '',
+                    torneo: u.torneo || '',
+                    instancia: u.instancia || '',
+                    lugar: u.lugar || ''
+                }));
+                console.log("DB: Loaded upcomings from Supabase.");
             }
         } catch(apiErr) {
             console.warn("DB: Supabase not available, trying local files...", apiErr);
@@ -234,18 +250,13 @@ async function loadMatches() {
         if (typeof renderAllMatches === 'function') renderAllMatches();
         if (typeof renderEfeméride === 'function') renderEfeméride();
         
-        // Players page init
         if (typeof applyYearFilters === 'function') {
             console.log("DB: Initializing Players Page...");
             applyYearFilters();
             if (typeof initCounter === 'function') initCounter();
         }
-
-        // Notify other scripts that data is ready
-        document.dispatchEvent(new CustomEvent('dataLoaded'));
-    } catch (e) {
-        console.error("Local data load failed:", e);
-        showFallbackWarning();
+    } catch (err) {
+        console.error("DB: Global data load error:", err);
     }
 }
 
@@ -536,76 +547,61 @@ async function renderNextMatch() {
     const card = document.getElementById('nextMatchCard');
     if (!card) return;
     
-    try {
-        const res = await fetch('/api/upcoming?t=' + Date.now());
-        if (!res.ok) throw new Error('API unavailable');
-        const upcoming = await res.json();
-        
-        if (upcoming.length === 0) {
-            card.innerHTML = `
-                <div style="text-align:center;color:var(--text-muted);padding:2rem;">
-                    <i class="ph-bold ph-calendar-x" style="font-size:2rem;display:block;margin-bottom:1rem;"></i>
-                    No hay próximos partidos programados
-                </div>
-            `;
-            return;
-        }
-        
-        const next = upcoming[0];
-        const torneo = next.instancia ? `${next.torneo} - ${next.instancia}` : (next.torneo || 'Amistoso');
-        const rivalShield = getRivalShield(next.rival);
-        
-        // Format date for display
-        let fechaDisplay = next.fecha || '';
-        const horaDisplay = next.hora ? `, ${next.hora} hs` : '';
-        
-        card.innerHTML = `
-            <div>
-                <div style="display: flex; justify-content: center; width: 100%;">
-                    <a href="#" class="torneo-tag">${torneo}</a>
-                </div>
-                
-                <div class="teams-display" style="margin: 1.5rem 0;">
-                    <div class="team">
-                        <div class="team-shield" style="display:flex; align-items:center; justify-content:center;">
-                            <img src="img/logo/ESCUDO_BUFARRA.png" style="width: 28px; height: auto;" alt="LA BUFARRA">
-                        </div>
-                        <span class="team-name">LA BUFARRA</span>
-                    </div>
-                    
-                    <div class="vs-badge">VS</div>
-                    
-                    <div class="team">
-                        <div class="team-shield" style="color: #666;">
-                            ${rivalShield ? `<img src="${rivalShield}" style="width:28px;height:auto;" onerror="this.outerHTML='<i class=\\'ph-fill ph-shield\\'></i>'">` : '<i class="ph-fill ph-shield"></i>'}
-                        </div>
-                        <span class="team-name">${next.rival || 'A confirmar'}</span>
-                    </div>
-                </div>
-                
-                <div class="match-details" style="margin-top: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem; gap: 1.5rem;">
-                    <div class="detail-item">
-                        <i class="ph-fill ph-calendar-blank detail-icon"></i>
-                        <span>${fechaDisplay}${horaDisplay}</span>
-                    </div>
-                    <div class="detail-item">
-                        <i class="ph-fill ph-map-pin detail-icon"></i>
-                        <span>${next.lugar || 'A confirmar'}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <a href="campeonatos.html" class="btn-link" style="justify-content: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-light); font-size: 0.8rem; letter-spacing: 1px;">
-                Ver Fixture Completo <i class="ph-bold ph-calendar-check"></i>
-            </a>
-        `;
-    } catch (e) {
-        // Fallback: just show a loading/unavailable message
+    // We already have allUpcoming loaded by loadMatches()
+    if (!allUpcoming || allUpcoming.length === 0) {
         card.innerHTML = `
             <div style="text-align:center;color:var(--text-muted);padding:2rem;">
                 <i class="ph-bold ph-calendar-x" style="font-size:2rem;display:block;margin-bottom:1rem;"></i>
-                Próximo partido a confirmar
+                No hay próximos partidos programados
             </div>
         `;
+        return;
     }
+    
+    // Find the first upcoming match that is NOT today/past if we wanted to filter, 
+    // but the API order is already fecha.asc.
+    const next = allUpcoming[0];
+    const torneo = next.instancia ? `${next.torneo} - ${next.instancia}` : (next.torneo || 'Amistoso');
+    const rivalShield = getRivalShield(next.rival);
+    
+    card.innerHTML = `
+        <div>
+            <div style="display: flex; justify-content: center; width: 100%;">
+                <a href="#" class="torneo-tag">${torneo}</a>
+            </div>
+            
+            <div class="teams-display" style="margin: 1.5rem 0;">
+                <div class="team">
+                    <div class="team-shield" style="display:flex; align-items:center; justify-content:center;">
+                        <img src="img/logo/ESCUDO_BUFARRA.png" style="width: 28px; height: auto;" alt="LA BUFARRA">
+                    </div>
+                    <span class="team-name">LA BUFARRA</span>
+                </div>
+                
+                <div class="vs-badge">VS</div>
+                
+                <div class="team">
+                    <div class="team-shield" style="color: #666;">
+                        ${rivalShield ? `<img src="${rivalShield}" style="width:28px;height:auto;" onerror="this.outerHTML='<i class=\\'ph-fill ph-shield\\'></i>'">` : '<i class="ph-fill ph-shield"></i>'}
+                    </div>
+                    <span class="team-name">${next.rival || 'A confirmar'}</span>
+                </div>
+            </div>
+            
+            <div class="match-details" style="margin-top: 1.5rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem; gap: 1.5rem;">
+                <div class="detail-item">
+                    <i class="ph-fill ph-calendar-blank detail-icon"></i>
+                    <span>${next.fecha || ''}${next.hora ? ', ' + next.hora + ' hs' : ''}</span>
+                </div>
+                <div class="detail-item">
+                    <i class="ph-fill ph-map-pin detail-icon"></i>
+                    <span>${next.lugar || 'A confirmar'}</span>
+                </div>
+            </div>
+        </div>
+        
+        <a href="campeonatos.html" class="btn-link" style="justify-content: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-light); font-size: 0.8rem; letter-spacing: 1px;">
+            Ver Fixture Completo <i class="ph-bold ph-calendar-check"></i>
+        </a>
+    `;
 }
