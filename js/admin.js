@@ -41,13 +41,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ─── Supabase Helper ───
 async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
-    // Correctly handle endpoint with existing query params
-    const baseUrl = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-    const separator = baseUrl.includes('?') ? '&' : '?';
-    const buster = method === 'GET' ? `${separator}t=${Date.now()}` : '';
-    const selectParam = (select && !baseUrl.includes('select=')) ? `${baseUrl.includes('?') || buster.includes('?') ? '&' : '?'}select=${select}` : '';
+    let finalUrl = `${SUPABASE_URL}/rest/v1/${endpoint}`;
     
-    const url = `${baseUrl}${selectParam}${buster}`;
+    if (method === 'GET') {
+        const hasParams = finalUrl.includes('?');
+        const sep = hasParams ? '&' : '?';
+        
+        // Add select if not already in URL
+        if (select && !finalUrl.includes('select=')) {
+            finalUrl += `${sep}select=${select}&t=${Date.now()}`;
+        } else {
+            finalUrl += `${sep}t=${Date.now()}`;
+        }
+    }
+    
     const opts = {
         method,
         headers: { ...SP_HEADERS }
@@ -59,7 +66,7 @@ async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
     }
 
     try {
-        const res = await fetch(url, opts);
+        const res = await fetch(finalUrl, opts);
         if (!res.ok) throw new Error(`Supabase Error: ${res.statusText}`);
         return await res.json();
     } catch (e) {
