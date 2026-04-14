@@ -14,94 +14,110 @@ const SUPABASE_KEY = "sb_publishable_Vu_F-McwcDK4g2k8fU6w7A_p_Mva8-Y";
 const SP_HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
 async function loadMatches() {
-    console.log("%c DB: Iniciando carga de datos... ", "background: #e91e63; color: #white; font-weight: bold;");
+    console.log("%c DB: Iniciando carga de datos... ", "background: #e91e63; color: white; font-weight: bold;");
     const cacheBuster = `?t=${Date.now()}`;
-    
+    let matchesLoaded = [];
+    let playersLoaded = {};
+    let sourcesChecked = [];
+
+    // Siempre intentamos cargar partidos próximos (upcoming) al inicio
+    const fetchUpcoming = async (baseUrl, isApi = false) => {
+        try {
+            const url = isApi ? `${baseUrl}/api/upcoming` : `${baseUrl}/rest/v1/upcoming?select=*`;
+            const headers = isApi ? {} : SP_HEADERS;
+            const res = await fetch(url + (isApi ? cacheBuster : ''), { headers }).catch(() => null);
+            if (res && res.ok) window.allUpcoming = await res.json();
+        } catch(e) {}
+    };
+
     // ─── PASO 1: Intentar API Local (server.py) ───
     try {
-        console.log("DB: Probando API Local...");
         const res = await fetch('/api/matches' + cacheBuster).catch(() => ({ok:false}));
         if (res.ok) {
             const data = await res.json();
             if (data && data.length > 0) {
-                window.allMatches = mapMatches(data);
-                console.log("DB: ✅ Cargado desde API Local.");
-                // Si cargó partidos, intentamos otros datos de la misma fuente
-                const pRes = await fetch('/api/players' + cacheBuster).catch(() => null);
-                if (pRes && pRes.ok) {
-                    const pData = await pRes.json();
-                    window.allPlayers = mapPlayers(pData);
-                }
-                const uRes = await fetch('/api/upcoming' + cacheBuster).catch(() => null);
-                if (uRes && uRes.ok) window.allUpcoming = await uRes.json();
+                matchesLoaded = mapMatches(data);
+                sourcesChecked.push("API Local");
                 
-                finishLoad("API Local");
-                return;
+                const pRes = await fetch('/api/players' + cacheBuster).catch(() => null);
+                if (pRes && pRes.ok) playersLoaded = mapPlayers(await pRes.json());
+                
+                await fetchUpcoming('', true);
             }
         }
     } catch(e) { console.warn("DB: Falló API Local."); }
 
     // ─── PASO 2: Intentar Supabase (Nube) ───
-    if (window.allMatches.length === 0) {
+    if (matchesLoaded.length === 0) {
         try {
-            console.log("DB: Probando Supabase...");
             const res = await fetch(`${SUPABASE_URL}/rest/v1/matches?select=*&order=fecha.desc`, { headers: SP_HEADERS });
             if (res.ok) {
                 const data = await res.json();
                 if (data && data.length > 0) {
-                    window.allMatches = mapMatches(data);
-                    console.log("DB: ✅ Cargado desde Supabase.");
+                    matchesLoaded = mapMatches(data);
+                    sourcesChecked.push("Supabase Cloud");
                     
                     const pRes = await fetch(`${SUPABASE_URL}/rest/v1/players_stats?select=*`, { headers: SP_HEADERS });
-                    if (pRes.ok) {
-                        const pData = await pRes.json();
-                        window.allPlayers = mapPlayers(pData);
-                    }
+                    if (pRes.ok) playersLoaded = mapPlayers(await pRes.json());
                     
-                    finishLoad("Supabase Cloud");
-                    return;
+                    await fetchUpcoming(SUPABASE_URL, false);
                 }
             }
         } catch(e) { console.warn("DB: Falló Supabase."); }
     }
 
-    // ─── PASO 3: Intentar JSON Estático ───
-    if (window.allMatches.length === 0) {
+    // ─── PASO 3: Intentar JSON Estático (Archivo Histórico) ───
+    if (matchesLoaded.length < 50) {
         try {
-            console.log("DB: Probando JSON Estático...");
+            console.log("DB: Complementando con JSON Estático...");
             const res = await fetch('data/matches.json' + cacheBuster).catch(() => ({ok:false}));
             if (res.ok) {
-                const data = await res.json();
-                window.allMatches = mapMatches(data);
-                if (window.allMatches.length > 0) {
-                    console.log("DB: ✅ Cargado desde JSON Estático.");
-                    finishLoad("Static JSON");
-                    return;
+                const staticData = mapMatches(await res.json());
+                const existingIds = new Set(matchesLoaded.map(m => m.ID));
+                staticData.forEach(m => {
+                    if (!existingIds.has(m.ID)) {
+                        matchesLoaded.push(m);
+                    }
+                });
+                sourcesChecked.push("Static JSON");
+                
+                if (Object.keys(playersLoaded).length === 0) {
+                    const pRes = await fetch('data/players.json' + cacheBuster).catch(() => null);
+                    if (pRes && pRes.ok) playersLoaded = mapPlayers(await pRes.json());
+                }
+                
+                // Si aún no hay upcoming, intentar de un archivo local si existe
+                if (!window.allUpcoming || window.allUpcoming.length === 0) {
+                    const uRes = await fetch('data/upcoming.json' + cacheBuster).catch(() => null);
+                    if (uRes && uRes.ok) window.allUpcoming = await uRes.json();
                 }
             }
         } catch(e) { console.warn("DB: Falló JSON Estático."); }
     }
 
-    // ─── PASO 4: Intentar CSV (Excel Original) ───
-    if (window.allMatches.length === 0) {
+    // ─── FINALIZAR ───
+    if (matchesLoaded.length > 0) {
+        window.allMatches = matchesLoaded;
+        window.allPlayers = playersLoaded;
+        finishLoad(sourcesChecked.join(" + "));
+    } else {
         try {
-            console.log("DB: Probando CSV (Excel)...");
             const res = await fetch('DATOS%20EXCEL/BUFARRA%20ESTADISTICAS%20-%20PARTIDOS.csv' + cacheBuster);
             if (res.ok) {
-                const text = await res.text();
-                window.allMatches = parseCSV(text);
-                console.log("DB: ✅ Cargado desde Excel CSV.");
+                window.allMatches = parseCSV(await res.text());
                 finishLoad("CSV Excel");
-                return;
+            } else {
+                showFallbackWarning();
+                finishLoad("FAILED");
             }
-        } catch(e) { console.warn("DB: Falló CSV."); }
+        } catch(e) { 
+            showFallbackWarning();
+            finishLoad("FAILED");
+        }
     }
-
-    // Si llegamos acá y no hay nada...
-    console.error("DB: No se encontró información en ninguna fuente.");
-    showFallbackWarning();
-    finishLoad("FAILED");
 }
+
+
 
 function mapMatches(data) {
     return data.map((m, i) => {
@@ -122,6 +138,7 @@ function mapMatches(data) {
             torneo: instancia ? `${torneo} - ${instancia}` : torneo,
             torneo_base: torneo,
             AÑO: año,
+            LUGAR: m.lugar || m.LUGAR || '',
             GF: String(gf),
             GC: String(gc),
             RESULTADO: (gf !== '' && gc !== '') ? `${gf}x${gc}` : ''
@@ -130,23 +147,46 @@ function mapMatches(data) {
 }
 
 function mapPlayers(data) {
+    // Si data es un objeto (ej. del JSON local que está agrupado por años)
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+        let mapped = {};
+        for (const [year, players] of Object.entries(data)) {
+            mapped[year] = players.map(p => ({
+                PLAYER: p.player_name || p.nombre || p.PLAYER || '',
+                PJ: String(p.pj ?? p.PJ ?? 0),
+                PG: String(p.pg ?? p.PG ?? 0),
+                PE: String(p.pe ?? p.PE ?? 0),
+                PP: String(p.pp ?? p.PP ?? 0),
+                GOLES: String(p.goles ?? p.GOLES ?? 0),
+                ASISTENCIAS: String(p.asistencias ?? p.ASISTENCIAS ?? 0),
+                AMARILLAS: String(p.amarillas ?? p.AMARILLAS ?? 0),
+                ROJAS: String(p.rojas ?? p.ROJAS ?? 0),
+                MVP: String(p.mvp ?? p.MVP ?? 0)
+            }));
+        }
+        return mapped;
+    }
+
+    // Si data es un array (ej. de Supabase o API local)
     let playersByYear = {};
-    data.forEach(p => {
-        const year = p.year || 'ALL';
-        if (!playersByYear[year]) playersByYear[year] = [];
-        playersByYear[year].push({
-            PLAYER: p.player_name || p.nombre || p.PLAYER || '',
-            PJ: String(p.pj ?? p.PJ ?? 0),
-            PG: String(p.pg ?? p.PG ?? 0),
-            PE: String(p.pe ?? p.PE ?? 0),
-            PP: String(p.pp ?? p.PP ?? 0),
-            GOLES: String(p.goles ?? p.GOLES ?? 0),
-            ASISTENCIAS: String(p.asistencias ?? p.ASISTENCIAS ?? 0),
-            AMARILLAS: String(p.amarillas ?? p.AMARILLAS ?? 0),
-            ROJAS: String(p.rojas ?? p.ROJAS ?? 0),
-            MVP: String(p.mvp ?? p.MVP ?? 0)
+    if (Array.isArray(data)) {
+        data.forEach(p => {
+            const year = p.year || 'ALL';
+            if (!playersByYear[year]) playersByYear[year] = [];
+            playersByYear[year].push({
+                PLAYER: p.player_name || p.nombre || p.PLAYER || '',
+                PJ: String(p.pj ?? p.PJ ?? 0),
+                PG: String(p.pg ?? p.PG ?? 0),
+                PE: String(p.pe ?? p.PE ?? 0),
+                PP: String(p.pp ?? p.PP ?? 0),
+                GOLES: String(p.goles ?? p.GOLES ?? 0),
+                ASISTENCIAS: String(p.asistencias ?? p.ASISTENCIAS ?? 0),
+                AMARILLAS: String(p.amarillas ?? p.AMARILLAS ?? 0),
+                ROJAS: String(p.rojas ?? p.ROJAS ?? 0),
+                MVP: String(p.mvp ?? p.MVP ?? 0)
+            });
         });
-    });
+    }
     return playersByYear;
 }
 
@@ -297,6 +337,7 @@ function renderNextMatch() {
             <div class="match-details" style="border-top: 1px solid var(--border-light); padding-top: 1rem;">
                 <div class="detail-item"><i class="ph ph-calendar-blank"></i> ${next.fecha || 'TBD'}</div>
                 <div class="detail-item"><i class="ph ph-clock"></i> ${next.hora || 'TBD'}</div>
+                <div class="detail-item"><i class="ph ph-map-pin"></i> ${next.lugar || next.LUGAR || 'TBD'}</div>
             </div>
         </div>
     `;
@@ -329,20 +370,53 @@ function openFixtureModal() {
     if (!modal || !container) return;
     
     let html = '';
-    const upcoming = window.allUpcoming || [];
     
-    if (upcoming.length === 0) {
+    // TORNEO AUTORITATIVO: Apertura 2026
+    const CURRENT_TORNEO = "Apertura 2026";
+    
+    // 1. Get played matches for this tournament
+    const played = (window.allMatches || []).filter(m => 
+        (m.torneo || "").toLowerCase().includes("apertura 2026") || 
+        (m.torneo || "").toLowerCase().includes("apertura") && String(m.fecha).includes("2026")
+    );
+    
+    // 2. Get upcoming matches
+    const upcoming = (window.allUpcoming || []).filter(u => 
+        (u.torneo || "").toLowerCase().includes("apertura 2026") || 
+        (u.torneo || "").toLowerCase().includes("apertura")
+    );
+    
+    // Helper to parse dates D/M/YYYY
+    const parseDate = (s) => {
+        if (!s) return 0;
+        const [d, m, y] = s.split('/');
+        return new Date(y, m - 1, d).getTime();
+    };
+
+    // 3. Combine and Sort
+    const fullFixture = [
+        ...played.map(m => ({ ...m, type: 'played', displayDate: m.FECHA || m.fecha })),
+        ...upcoming.map(u => ({ ...u, type: 'upcoming', displayDate: u.fecha }))
+    ];
+    
+    fullFixture.sort((a, b) => parseDate(a.displayDate) - parseDate(b.displayDate));
+
+    if (fullFixture.length === 0) {
         html = '<div style="text-align:center; padding:2rem; color:var(--text-muted);">No hay fixture cargado para este torneo aún.</div>';
     } else {
-        upcoming.forEach(u => {
-            const shield = getRivalShield(u.rival);
+        fullFixture.forEach(m => {
+            const rival = m.rival || m.VS || "Rival";
+            const shield = getRivalShield(rival);
+            const score = m.type === 'played' ? `<span style="font-weight:bold; color:var(--accent-primary); margin-left:10px;">${m.RESULTADO || ''}</span>` : `<span style="font-size:0.7rem; color:var(--text-muted); opacity:0.8;">PRÓXIMO</span>`;
+            
             html += `
-                <div class="glass-panel" style="padding:1rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size:0.8rem; font-weight:bold;">${u.fecha}</div>
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        ${shield ? `<img src="${shield}" style="width:20px;">` : ''}
-                        <span style="font-size:0.9rem;">${u.rival}</span>
+                <div class="glass-panel" style="padding:1rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center; border-left: 3px solid ${m.type === 'played' ? 'var(--accent-primary)' : 'transparent'}">
+                    <div style="font-size:0.8rem; font-weight:bold;">${m.displayDate}</div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+                        ${shield ? `<img src="${shield}" style="width:20px; height:20px; object-fit:contain;">` : ''}
+                        <span style="font-size:0.9rem; text-transform:uppercase; font-weight:600;">${rival}</span>
                     </div>
+                    <div>${score}</div>
                 </div>
             `;
         });
@@ -352,6 +426,12 @@ function openFixtureModal() {
     modal.style.display = 'flex';
 }
 
+function closeFixtureModal(e) {
+    // If called with an event (click on overlay), only close if clicking the overlay itself
+    if (e && e.target && e.target.id !== 'fixtureModal') return;
+    const modal = document.getElementById('fixtureModal');
+    if (modal) modal.style.display = 'none';
+}
 
 function renderLastMatches() {
     const listContainer = document.getElementById('homeLatestMatches');

@@ -145,7 +145,7 @@ function renderAllMatches() {
                 <div class="match-footer">
                     <span class="match-detail"><i class="ph-fill ph-map-pin" style="color: var(--accent-primary)"></i> ${match.LUGAR || 'No especificado'}</span>
                     ${match.HORA ? `<span class="match-detail"><i class="ph-fill ph-clock" style="color: var(--accent-primary)"></i> ${match.HORA}</span>` : ''}
-                    <span style="margin-left:auto; font-size: 0.8rem; font-weight:bold; color:var(--text-muted); padding: 0.2rem 0.5rem; background:rgba(255,255,255,0.05); border-radius:12px;">Ver detalles</span>
+                    <span style="margin-left:auto; font-size: 0.8rem; font-weight:bold; color:var(--text-muted); padding: 0.2rem 0.5rem; background:rgba(0,0,0,0.05); border-radius:12px;">Ver detalles</span>
                 </div>
             </div>
         `;

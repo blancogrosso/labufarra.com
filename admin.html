@@ -206,6 +206,11 @@
                 <div class="panel-header">
                     <div class="panel-title">Historial de Partidos</div>
                 </div>
+                <!-- Search bar for Matches -->
+                <div style="padding: 0 1.5rem 1rem;">
+                    <input type="text" id="matchSearchInput" placeholder="Buscar por rival..." oninput="filterMatchesBySearch()" 
+                           style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--border-light); background:rgba(255,255,255,0.05); color:white;">
+                </div>
                 <div class="filter-bar" id="matchYearFilters"></div>
                 <div id="matchesList"></div>
             </div>
@@ -216,6 +221,11 @@
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">Estadísticas del Plantel</div>
+                </div>
+                <!-- Search bar for Players -->
+                <div style="padding: 0 1.5rem 1rem;">
+                    <input type="text" id="playerSearchInput" placeholder="Buscar por nombre..." oninput="filterPlayersBySearch()" 
+                           style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--border-light); background:rgba(255,255,255,0.05); color:white;">
                 </div>
                 <div class="filter-bar" id="playerYearFilters"></div>
                 <div class="stats-grid" id="playersStatsGrid"></div>
@@ -324,7 +334,7 @@
     </div>
 
     <!-- ═══ Floating Action Button (FAB) ═══ -->
-    <div class="fab-container" id="fabContainer">
+    <div class="fab-container" id="fabContainer" style="display: none;">
         <div class="fab-menu" id="fabMenu">
             <button class="fab-item" onclick="switchTab('partidos'); showMatchForm(); toggleFAB()">
                 <i class="ph-bold ph-soccer-ball"></i> Nuevo Partido
@@ -355,6 +365,6 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="js/admin.js?v=2.0"></script>
+    <script src="js/admin.js?v=2.2"></script>
 </body>
 </html>

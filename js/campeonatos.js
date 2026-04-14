@@ -158,11 +158,13 @@ function renderCampeonatos() {
     CONSOLIDATED_TOURNAMENTS.forEach(config => {
         // Find all matches for this consolidated tournament
         const torMatches = allMatches.filter(m => {
-            if(!m.AÑO || !m.torneo_base) return false;
-            // Check if match year matches config year
-            if(m.AÑO !== config.year) return false;
+            const matchYear = String(m.AÑO || m.año || '').trim();
+            const configYear = String(config.year).trim();
+            if(!matchYear || !m.torneo_base) return false;
             
-            // Check if tournament base is in the csvTournaments list (case insensitive)
+            // Allow loose matching for years
+            if(matchYear !== configYear) return false;
+            
             const baseUp = m.torneo_base.toUpperCase().trim();
             return config.csvTournaments.some(t => t.toUpperCase() === baseUp);
         });

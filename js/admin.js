@@ -18,8 +18,13 @@ let matchesData = [];
 let playersData = {};
 let upcomingData = [];
 let financesData = { cuotas:{}, costoFecha:0, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
+let manualStatsData = {};
 let editingMatchId = null;
 let currentTxFilter = 'all';
+let currentMatchSearch = '';
+let currentPlayerSearch = '';
+let currentMatchYear = 'all';
+let currentPlayerYear = 'ALL';
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', async () => {
@@ -70,11 +75,21 @@ async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
 
     try {
         const res = await fetch(finalUrl, opts);
-        if (!res.ok) throw new Error(`Supabase Error: ${res.statusText}`);
-        return await res.json();
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Supabase Error: ${res.status} ${errorText}`);
+        }
+        
+        // Handle 204 No Content or empty bodies
+        if (res.status === 204 || res.headers.get('content-length') === '0') {
+            return {};
+        }
+        
+        const text = await res.text();
+        return text ? JSON.parse(text) : {};
     } catch (e) {
         console.error('Supabase Fetch Error:', e);
-        toast('Error de conexión con la nube', 'error');
+        // Silently fail for certain operations or toast for critical ones
         return null;
     }
 }
@@ -175,11 +190,9 @@ function doLogout() {
     authToken = '';
     sessionStorage.removeItem('bufarra_user');
     document.getElementById('adminApp').style.display = 'none';
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('passwordInput').value = '';
-    document.getElementById('usernameInput').value = '';
-    document.getElementById('loginError').style.display = 'none';
     document.getElementById('fabContainer').style.display = 'none';
+    const errorEl = document.getElementById('loginError');
+    if (errorEl) errorEl.style.display = 'none';
 }
 
 async function showApp() {
@@ -188,16 +201,21 @@ async function showApp() {
     document.getElementById('fabContainer').style.display = 'block';
     document.getElementById('userGreeting').textContent = `Hola, ${currentUser}`;
     
-    // Roster es crítico para generar las tablas, debe cargar primero
-    await loadRoster();
-    
     // Load all data
+    await loadRoster();
+    await loadManualStats(); // Load this before others for UI consistency
+    
     await Promise.all([
         loadMatches(),
         loadPlayers(),
         loadUpcoming(),
         loadFinances()
     ]);
+
+    // Recalcular automáticamente si no hay datos o hay inconsistencias
+    if (Object.keys(playersData).length === 0) {
+        await recalculateAllStats();
+    }
 }
 
 // ── Password Change ──
@@ -309,13 +327,23 @@ function removeAccents(str) {
 
 async function loadRoster() {
     const data = await spFetch('config?key=eq.roster', 'GET', null, 'value');
+    const authoritativeSurnames = [
+        'Alvez', 'Anzuatte', 'Blanco', 'Brito', 'Bonilla', 'Cravino', 'Colombo', 'Da Silveira', 
+        'De Leon', 'Dobal', 'Fernandez', 'Flores', 'Iza', 'Lorenzo', 'Luzardo', 'Martinez', 
+        'Mari', 'Mateo', 'Menchaca', 'Molina', 'Olarte', 'Pedemonte', 'Rocca', 'Rodriguez', 
+        'Silva', 'G. Silva', 'Sparkov', 'Valle', 'Vigil', 'Balestie'
+    ];
+
     if (data && data[0]) {
-        // Strip accents from loaded roster
-        roster = data[0].value.map(removeAccents);
+        // Filter and normalize loaded roster
+        roster = data[0].value.map(n => normalizeName(n)).filter((v, i, a) => a.indexOf(v) === i);
     } else {
-        // Absolute fallback if DB is down
-        roster = ["Anzuatte", "Blanco", "Bonilla", "Colombo", "Da Silveira", "De Leon", "Flores", "Iza", "Martinez", "Mari", "Mateo", "Menchaca", "Molina", "Olarte", "Pedemonte", "Sparkov"];
+        roster = authoritativeSurnames;
     }
+    
+    // Sort roster alphabetically
+    roster.sort();
+    
     buildPlayersFormTable();
 }
 
@@ -424,14 +452,31 @@ function togglePlayerRow(idx) {
 
 // ─── MATCHES ───
 async function loadMatches() {
-    const data = await spFetch('matches', 'GET', null, '*');
+    let data = await spFetch('matches', 'GET', null, '*');
+    
+    // Complement with local JSON if history is missing
+    if (!data || data.length < 50) {
+        try {
+            const res = await fetch('data/matches.json').catch(() => null);
+            if (res && res.ok) {
+                const staticData = await res.json();
+                const cloudIds = new Set((data || []).map(m => m.id));
+                staticData.forEach(m => {
+                    if (!cloudIds.has(m.id)) data.push(m);
+                });
+            }
+        } catch(e) {}
+    }
+
     if (data) {
-        // Map Supabase DATE to D/M/YYYY for UI
-        matchesData = data.map(m => ({
-            ...m,
-            fecha: formatDateForUI(m.fecha),
-            año: m.fecha ? m.fecha.split('-')[0] : 'S/D'
-        }));
+        matchesData = data.map(m => {
+            const dateStr = m.fecha;
+            return {
+                ...m,
+                fecha: formatDateForUI(dateStr),
+                año: dateStr ? dateStr.split('-')[0] : 'S/D'
+            };
+        });
     }
     renderMatchesList();
 }
@@ -465,9 +510,15 @@ function renderMatchesList() {
 }
 
 function filterMatches(year) {
+    currentMatchYear = year;
     document.querySelectorAll('#matchYearFilters .filter-pill').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
     renderFilteredMatches(year);
+}
+
+function filterMatchesBySearch() {
+    currentMatchSearch = document.getElementById('matchSearchInput').value.toLowerCase();
+    renderFilteredMatches(currentMatchYear);
 }
 
 function renderFilteredMatches(year) {
@@ -477,12 +528,12 @@ function renderFilteredMatches(year) {
     // Check for pending "Upcoming" matches that are past their date
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const pendingMatches = upcomingData.filter(u => {
+    const pendingMatches = (upcomingData || []).filter(u => {
         if (!u.fecha) return false;
         const parts = u.fecha.split('/');
         if (parts.length !== 3) return false;
         const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-        return d <= today; // Include today
+        return d <= today;
     });
     
     let pendingAlertHTML = '';
@@ -504,7 +555,6 @@ function renderFilteredMatches(year) {
         `).join('');
     }
     
-    // Robust date parser for sorting
     const parseDate = (s) => {
         if (!s) return 0;
         if (s.includes('/')) {
@@ -514,15 +564,19 @@ function renderFilteredMatches(year) {
         return new Date(s).getTime();
     };
 
-    // Sort all matches by date desc
-    const sorted = [...matchesData].sort((a,b) => parseDate(b.fecha) - parseDate(a.fecha));
+    // Filter and Sort
+    let filtered = [...matchesData];
+    if (year !== 'all') {
+        filtered = filtered.filter(m => String(m.año) === String(year));
+    }
+    if (currentMatchSearch) {
+        filtered = filtered.filter(m => (m.rival || '').toLowerCase().includes(currentMatchSearch));
+    }
     
-    const filtered = year === 'all' 
-        ? sorted 
-        : sorted.filter(m => String(m.fecha || '').includes(year) || String(m.año || '').includes(year));
+    filtered.sort((a,b) => parseDate(b.fecha) - parseDate(a.fecha));
     
     if (filtered.length === 0 && pendingMatches.length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="ph-bold ph-soccer-ball"></i><p>No hay partidos cargados</p></div>';
+        container.innerHTML = '<div class="empty-state"><i class="ph-bold ph-soccer-ball"></i><p>No se encontraron partidos</p></div>';
         return;
     }
     
@@ -596,16 +650,21 @@ function formatDateToCSV(dateStr) {
     return `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`;
 }
 
-function formatDateToInput(csvDate) {
-    // Convert D/M/YYYY to YYYY-MM-DD
-    if (!csvDate) return '';
-    const parts = csvDate.split('/');
-    if (parts.length !== 3) return csvDate;
-    const d = parts[0].padStart(2, '0');
-    const m = parts[1].padStart(2, '0');
-    let y = parts[2];
-    if (y.length === 2) y = '20' + y;
-    return `${y}-${m}-${d}`;
+function formatDateToInput(val) {
+    if (!val) return '';
+    // If already YYYY-MM-DD (ISO)
+    if (val.includes('-')) return val.split('T')[0];
+    
+    // If D/M/YYYY (UI)
+    const parts = val.split('/');
+    if (parts.length === 3) {
+        const d = parts[0].padStart(2, '0');
+        const m = parts[1].padStart(2, '0');
+        let y = parts[2];
+        if (y.length === 2) y = '20' + y;
+        return `${y}-${m}-${d}`;
+    }
+    return val;
 }
 
 async function saveMatch() {
@@ -629,8 +688,11 @@ async function saveMatch() {
         }
     });
 
+    // The date input type="date" already returns YYYY-MM-DD which is what the DB expects.
+    // Do NOT pass through formatDateForDB (which expects D/M/YYYY and would return null).
+    const rawFecha = document.getElementById('mFecha').value; // YYYY-MM-DD from input[type=date]
     const matchObj = {
-        fecha: formatDateForDB(document.getElementById('mFecha').value),
+        fecha: rawFecha || null,
         torneo: document.getElementById('mTorneo').value,
         instancia: document.getElementById('mInstancia').value,
         rival: rival.toUpperCase(),
@@ -682,7 +744,10 @@ function editMatch(matchId) {
     // Fill in player data from Supabase object format { "Name": { goles: 1... } }
     if (match.jugadores) {
         for (const [name, jug] of Object.entries(match.jugadores)) {
-            const rosterIdx = roster.findIndex(r => r.toLowerCase() === name.toLowerCase());
+            // Match using normalized names to handle accents (e.g., De León vs De Leon)
+            const normName = removeAccents(name.toLowerCase());
+            const rosterIdx = roster.findIndex(r => removeAccents(r.toLowerCase()) === normName);
+            
             if (rosterIdx >= 0) {
                 document.querySelector(`.pJugo[data-idx="${rosterIdx}"]`).checked = true;
                 togglePlayerRow(rosterIdx);
@@ -711,32 +776,94 @@ async function deleteMatch(matchId) {
     }
 }
 
-function normalizeName(name) {
-    if (!name) return 'Desconocido';
-    let n = removeAccents(name.trim().toLowerCase());
-    
-    // Check if it matches or partially matches any roster member
-    const rosterMatch = roster.find(r => {
-        const rNorm = removeAccents(r.toLowerCase());
-        return n === rNorm || n.includes(rNorm); // Match "guzman da silveira" with "da silveira"
-    });
-    if (rosterMatch) return rosterMatch;
+// ─── PLAYER DATABASE & NORMALIZATION ───
+const PLAYER_MAP = {
+    'Alvez': { fullName: 'Lautaro Alvez', aliases: ['Pekeno'] },
+    'Anzuatte': { fullName: 'Agustin Anzuatte', aliases: ['Anzu'] },
+    'Blanco': { fullName: 'Tomas Blanco', aliases: ['Oso'] },
+    'Brito': { fullName: 'Emiliano Brito', aliases: ['Emi'] },
+    'Bonilla': { fullName: 'Felipe Bonilla', aliases: ['Feli', 'Boni'] },
+    'Cravino': { fullName: 'Agustin Cravino', aliases: ['Cravi'] },
+    'Colombo': { fullName: 'Mateo Colombo', aliases: ['Pepo'] },
+    'Da Silveira': { fullName: 'Guzman da Silveira', aliases: ['Guz'] },
+    'De Leon': { fullName: 'Enzo de Leon', aliases: ['Enzo'] },
+    'Dobal': { fullName: 'Federico Dobal', aliases: ['Feche'] },
+    'Fernandez': { fullName: 'Geronimo Fernandez', aliases: ['Gero'] },
+    'Flores': { fullName: 'Antonio Flores', aliases: ['Antony'] },
+    'Iza': { fullName: 'Federico Iza', aliases: ['Fede', 'Iza'] },
+    'Lorenzo': { fullName: 'Martin Lorenzo', aliases: ['Tincho'] },
+    'Luzardo': { fullName: 'Valentin Luzardo', aliases: ['Luza'] },
+    'Martinez': { fullName: 'Miqueas Martinez', aliases: ['Mique', 'Quique'] },
+    'Mari': { fullName: 'Pablo Mari', aliases: ['Pablito'] },
+    'Mateo': { fullName: 'Santiago Mateo', aliases: ['Santi'] },
+    'Menchaca': { fullName: 'Mateo Menchaca', aliases: ['Mencha'] },
+    'Molina': { fullName: 'Justiniano Molina', aliases: ['Justi'] }
+};
 
-    // Historical mappings (all lowercase, no accents compared)
-    if (n.includes('rodriguez') || n.includes('rodrigues')) return "Guillermo Rodriguez";
-    if (n.includes('leon')) return "De Leon";
-    if (n === 'pedemonte' || n === 'pedemonte sebastian' || n === 'sebastian pedemonte') return "Pedemonte";
+function removeAccents(str) {
+    if (!str) return "";
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeName(name) {
+    if (!name) return "";
+    const clean = removeAccents(name.trim().toLowerCase());
     
-    // Capitalize first letter of each word as default
-    return name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    // Hardcoded authoritative mappings (Surname only)
+    const authoritativeMap = {
+        'alvez': 'Alvez', 'lautaro alvez': 'Alvez',
+        'anzuatte': 'Anzuatte', 'agustin anzuatte': 'Anzuatte',
+        'blanco': 'Blanco', 'tomas blanco': 'Blanco',
+        'brito': 'Brito', 'emiliano brito': 'Brito',
+        'bonilla': 'Bonilla', 'felipe bonilla': 'Bonilla',
+        'cravino': 'Cravino', 'agustin cravino': 'Cravino',
+        'colombo': 'Colombo', 'mateo colombo': 'Colombo',
+        'da silveira': 'Da Silveira', 'guzman da silveira': 'Da Silveira',
+        'de leon': 'De Leon', 'enzo de leon': 'De Leon',
+        'dobal': 'Dobal', 'federico dobal': 'Dobal',
+        'fernandez': 'Fernandez', 'geronimo fernandez': 'Fernandez',
+        'flores': 'Flores', 'antonio flores': 'Flores',
+        'iza': 'Iza', 'federico iza': 'Iza',
+        'lorenzo': 'Lorenzo', 'martin lorenzo': 'Lorenzo',
+        'luzardo': 'Luzardo', 'valentin luzardo': 'Luzardo',
+        'martinez': 'Martinez', 'miqueas martinez': 'Martinez',
+        'mari': 'Mari', 'pablo mari': 'Mari',
+        'mateo': 'Mateo', 'santiago mateo': 'Mateo',
+        'menchaca': 'Menchaca', 'mateo menchaca': 'Menchaca',
+        'molina': 'Molina', 'justiniano molina': 'Molina',
+        'olarte': 'Olarte', 'juan miguel olarte': 'Olarte',
+        'pedemonte': 'Pedemonte', 'sebastian pedemonte': 'Pedemonte',
+        'rocca': 'Rocca', 'diego rocca': 'Rocca',
+        'rodriguez': 'Rodriguez', 'guillermo rodriguez': 'Rodriguez',
+        'silva': 'Silva', 'bruno silva': 'Silva',
+        'gaston silva': 'Silva, Gaston',
+        'sparkov': 'Sparkov', 'santiago sparkov': 'Sparkov',
+        'valle': 'Valle', 'joaquin valle': 'Valle',
+        'vigil': 'Vigil', 'sebastian vigil': 'Vigil',
+        'balestie': 'Balestie', 'kevin balestie': 'Balestie'
+    };
+
+    return authoritativeMap[clean] || (clean.charAt(0).toUpperCase() + clean.slice(1));
 }
 
 async function recalculateAllStats() {
     console.log("Recalculating all stats...");
-    const stats = {};
     
+    toast('Obteniendo historial completo...', 'success');
+    await loadMatches(); 
+
+    if (!matchesData || matchesData.length === 0) {
+        toast('No se encontraron partidos para procesar', 'error');
+        return;
+    }
+    
+    const stats = {};
+    toast('Procesando datos...', 'success');
+
     matchesData.forEach(m => {
         const year = m.año;
+        if (!year || year === 'null') return; 
+        
         if (!stats[year]) stats[year] = {};
         if (!stats['ALL']) stats['ALL'] = {};
         
@@ -762,6 +889,61 @@ async function recalculateAllStats() {
         }
     });
 
+    await loadManualStats();
+    for (const [name, overrides] of Object.entries(manualStatsData)) {
+        if (!stats['ALL']) stats['ALL'] = {};
+        if (!stats['ALL'][name]) stats['ALL'][name] = { pj:0, pg:0, pe:0, pp:0, goles:0, asistencias:0, amarillas:0, rojas:0, mvp:0 };
+        
+        const s = stats['ALL'][name];
+        s.pj += (overrides.pj || 0);
+        s.pg += (overrides.pg || 0);
+        s.pe += (overrides.pe || 0);
+        s.pp += (overrides.pp || 0);
+        s.goles += (overrides.goles || 0);
+        s.asistencias += (overrides.asistencias || 0);
+        s.amarillas += (overrides.amarillas || 0);
+        s.rojas += (overrides.rojas || 0);
+        s.mvp += (overrides.mvp || 0);
+    }
+    
+    // 3. Cleanup ALL records safely
+    toast('Limpiando base de datos...', 'success');
+    await spFetch('players_stats?pj=gte.0', 'DELETE'); 
+    
+    // 4. Restoration strategy: Merge with MASTER data from data/players.json
+    try {
+        const resStatic = await fetch('data/players.json').catch(() => null);
+        if (resStatic && resStatic.ok) {
+            const staticData = await resStatic.json();
+            for (const [year, plist] of Object.entries(staticData)) {
+                plist.forEach(p => {
+                    const name = normalizeName(p.nombre || p.player_name || p.PLAYER);
+                    if (!stats[year]) stats[year] = {};
+                    if (!stats[year][name]) {
+                        stats[year][name] = { 
+                            pj: parseInt(p.pj || p.PJ || 0),
+                            pg: parseInt(p.pg || p.PG || 0),
+                            pe: parseInt(p.pe || p.PE || 0),
+                            pp: parseInt(p.pp || p.PP || 0),
+                            goles: parseInt(p.goles || p.GOLES || 0),
+                            asistencias: parseInt(p.asistencias || p.ASISTENCIAS || 0),
+                            amarillas: parseInt(p.amarillas || p.AMARILLAS || 0),
+                            rojas: parseInt(p.rojas || p.ROJAS || 0),
+                            mvp: parseInt(p.mvp || p.MVP || 0)
+                        };
+                    } else {
+                        if (year === 'ALL') {
+                             const s = stats[year][name];
+                             const m = p;
+                             s.pj = Math.max(s.pj, parseInt(m.pj || m.PJ || 0));
+                             s.goles = Math.max(s.goles, parseInt(m.goles || m.GOLES || 0));
+                        }
+                    }
+                });
+            }
+        }
+    } catch(e) {}
+
     const rows = [];
     for (const [year, players] of Object.entries(stats)) {
         for (const [name, s] of Object.entries(players)) {
@@ -769,24 +951,92 @@ async function recalculateAllStats() {
         }
     }
     
-    await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
+    // 3. Cleanup ALL records safely
+    toast('Limpiando base de datos...', 'success');
+    await spFetch('players_stats?pj=gte.0', 'DELETE'); // PJ >= 0 covers all entries
+    
+    // 4. Save fresh data
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
         method: 'POST',
         headers: { ...SP_HEADERS, "Prefer": "resolution=merge-duplicates" },
         body: JSON.stringify(rows)
     });
-    
-    await loadPlayers();
+
+    if (res.ok) {
+        toast('¡Estadísticas recalculadas con éxito!', 'success');
+        await loadPlayers();
+    } else {
+        toast('Error al guardar nuevas estadísticas', 'error');
+    }
 }
 
 async function loadPlayers() {
-    const data = await spFetch('players_stats', 'GET', null, '*');
-    if (data) {
-        playersData = {};
-        data.forEach(p => {
-            if (!playersData[p.year]) playersData[p.year] = {};
-            playersData[p.year][p.player_name] = p;
+    let cloudData = await spFetch('players_stats', 'GET', null, '*');
+    let localData = {};
+    
+    // 1. Always load master local data with cache busting
+    try {
+        const res = await fetch(`data/players.json?t=${Date.now()}`).catch(() => null);
+        if (res && res.ok) {
+            localData = await res.json();
+        }
+    } catch(e) { console.error("Error loading master players logic:", e); }
+
+    // 2. Initialize playersData (aggregating internal duplicates in Local JSON)
+    playersData = {};
+    for (const [year, plist] of Object.entries(localData)) {
+        if (!playersData[year]) playersData[year] = {};
+        plist.forEach(p => {
+            const name = normalizeName(p.nombre || p.player_name || p.PLAYER);
+            if (!playersData[year][name]) {
+                playersData[year][name] = {
+                    year,
+                    player_name: name,
+                    pj: 0, pg: 0, pe: 0, pp: 0, goles: 0, asistencias: 0, amarillas: 0, rojas: 0, mvp: 0
+                };
+            }
+            const s = playersData[year][name];
+            s.pj += parseInt(p.pj || p.PJ || 0);
+            s.pg += parseInt(p.pg || p.PG || 0);
+            s.pe += parseInt(p.pe || p.PE || 0);
+            s.pp += parseInt(p.pp || p.PP || 0);
+            s.goles += parseInt(p.goles || p.GOLES || 0);
+            s.asistencias += parseInt(p.asistencias || p.ASISTENCIAS || 0);
+            s.amarillas += parseInt(p.amarillas || p.AMARILLAS || 0);
+            s.rojas += parseInt(p.rojas || p.ROJAS || 0);
+            s.mvp += parseInt(p.mvp || p.MVP || 0);
         });
     }
+
+    // 3. Merge/Update with Cloud Data (Supabase) using Math.max for career totals
+    if (cloudData && Array.isArray(cloudData)) {
+        cloudData.forEach(p => {
+            if (!playersData[p.year]) playersData[p.year] = {};
+            const name = normalizeName(p.player_name);
+            
+            if (!playersData[p.year][name]) {
+                playersData[p.year][name] = { ...p, player_name: name };
+            } else {
+                const s = playersData[p.year][name];
+                // CRITICAL RULE: For career totals (ALL), use Math.max to prevent inflation from outdated sources
+                if (p.year === 'ALL') {
+                    s.pj = Math.max(s.pj, parseInt(p.pj || 0));
+                    s.pg = Math.max(s.pg, parseInt(p.pg || 0));
+                    s.pe = Math.max(s.pe || 0, parseInt(p.pe || 0));
+                    s.pp = Math.max(s.pp || 0, parseInt(p.pp || 0));
+                    s.goles = Math.max(s.goles, parseInt(p.goles || 0));
+                    s.asistencias = Math.max(s.asistencias, parseInt(p.asistencias || 0));
+                    s.amarillas = Math.max(s.amarillas, parseInt(p.amarillas || 0));
+                    s.rojas = Math.max(s.rojas, parseInt(p.rojas || 0));
+                    s.mvp = Math.max(s.mvp, parseInt(p.mvp || 0));
+                } else {
+                    // For specific years, overwrite with cloud data as it reflects recent match entries
+                    playersData[p.year][name] = { ...p, player_name: name };
+                }
+            }
+        });
+    }
+
     renderPlayersStats();
 }
 
@@ -804,18 +1054,44 @@ function renderPlayersStats() {
 }
 
 function filterPlayers(year) {
+    currentPlayerYear = year;
     document.querySelectorAll('#playerYearFilters .filter-pill').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
     renderFilteredPlayers(year);
 }
 
+function filterPlayersBySearch() {
+    currentPlayerSearch = document.getElementById('playerSearchInput').value.trim().toLowerCase();
+    renderFilteredPlayers(currentPlayerYear);
+}
+
 function renderFilteredPlayers(year) {
     const container = document.getElementById('playersStatsGrid');
     const playersObj = playersData[year] || {};
-    const players = Object.values(playersObj);
+    let players = Object.values(playersObj);
     
+    // Apply search filter (Matching names, full names, and aliases)
+    if (currentPlayerSearch) {
+        players = players.filter(p => {
+            const normName = (p.player_name || '').toLowerCase();
+            // Find base entry in PLAYER_MAP
+            let matches = normName.includes(currentPlayerSearch);
+            
+            // Comprehensive check using PLAYER_MAP
+            for (const [sur, data] of Object.entries(PLAYER_MAP)) {
+                if (normName === sur || normName === (sur + ' (G. Silva)')) { // Handle edge cases
+                    if ((data.fullName || '').toLowerCase().includes(currentPlayerSearch) || 
+                        (data.aliases || []).some(a => a.toLowerCase().includes(currentPlayerSearch))) {
+                        matches = true;
+                    }
+                }
+            }
+            return matches;
+        });
+    }
+
     if (players.length === 0) {
-        container.innerHTML = '<div class="empty-state"><i class="ph-bold ph-users"></i><p>No hay datos de jugadores</p></div>';
+        container.innerHTML = '<div class="empty-state"><i class="ph-bold ph-users"></i><p>No se encontraron jugadores</p></div>';
         return;
     }
     
@@ -837,7 +1113,12 @@ function renderFilteredPlayers(year) {
         
         return `
             <div class="player-stat-card">
-                <div class="name">${nombre}</div>
+                <div class="name" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>${nombre}</span>
+                    <button class="btn btn-icon btn-sm" onclick="openEditPlayerModal('${nombre}')" style="background:transparent; color:var(--text-muted);">
+                        <i class="ph-bold ph-pencil-simple"></i>
+                    </button>
+                </div>
                 <div class="stat-row">
                     <div class="stat-item"><div class="val">${pj}</div><div class="lbl">PJ</div></div>
                     <div class="stat-item"><div class="val" style="color:var(--green)">${pg}</div><div class="lbl">PG</div></div>
@@ -976,7 +1257,8 @@ async function convertUpcoming(upcomingId) {
 }
 
 function showUpcomingForm(editId) {
-    const existing = editId ? upcomingData.find(u => u.id === editId) : null;
+    const idToFind = editId ? parseInt(editId) : null;
+    const existing = idToFind ? upcomingData.find(u => u.id === idToFind) : null;
     
     openModal(existing ? 'Editar Próximo Partido' : 'Agregar Próximo Partido', `
         <div class="form-grid">
@@ -990,26 +1272,26 @@ function showUpcomingForm(editId) {
             </div>
             <div class="form-group">
                 <label>Rival</label>
-                <input type="text" id="uRival" value="${existing?.rival || ''}" placeholder="Nombre del rival">
+                <input type="text" id="uRival" value="${existing?.rival || ''}" placeholder="Ej: LOS PIBES">
             </div>
             <div class="form-group">
                 <label>Torneo</label>
                 <select id="uTorneo">
                     <option value="">Seleccionar...</option>
                     ${['Pretemporada','Apertura','Intermedio','Clausura','Copa de Oro','Copa de Plata','Copa de Bronce','Copa de Campeones','Copa del Rey','SuperCopa','Copa de Verano','Amistosos']
-                        .map(t => `<option ${existing?.torneo === t ? 'selected' : ''}>${t}</option>`).join('')}
+                        .map(t => `<option value="${t}" ${existing?.torneo === t ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
             </div>
             <div class="form-group">
                 <label>Instancia</label>
-                <input type="text" id="uInstancia" value="${existing?.instancia || ''}" placeholder="Ej: FECHA 3">
+                <input type="text" id="uInstancia" value="${existing?.instancia || ''}" placeholder="Ej: Fecha 1">
             </div>
             <div class="form-group">
                 <label>Lugar</label>
                 <select id="uLugar">
                     <option value="">Seleccionar...</option>
                     ${['PRO','POLI','CENTENARIO','ALCO BENDAS','RINCONADA']
-                        .map(l => `<option ${existing?.lugar === l ? 'selected' : ''}>${l}</option>`).join('')}
+                        .map(l => `<option value="${l}" ${existing?.lugar === l ? 'selected' : ''}>${l}</option>`).join('')}
                 </select>
             </div>
         </div>
@@ -1024,7 +1306,7 @@ function showUpcomingForm(editId) {
 
 async function saveUpcoming(editId) {
     const data = {
-        fecha: formatDateToCSV(document.getElementById('uFecha').value),
+        fecha: document.getElementById('uFecha').value, // Use raw ISO (YYYY-MM-DD) for database consistency
         hora: document.getElementById('uHora').value,
         rival: document.getElementById('uRival').value.trim().toUpperCase(),
         torneo: document.getElementById('uTorneo').value,
@@ -1571,6 +1853,145 @@ function openModal(title, bodyHtml) {
 function closeModal(event) {
     if (event && event.target !== event.currentTarget) return;
     document.getElementById('modalOverlay').classList.remove('open');
+}
+
+async function loadManualStats() {
+    const data = await spFetch('config?key=eq.manual_stats', 'GET', null, 'value');
+    if (data && data[0]) {
+        manualStatsData = data[0].value || {};
+    }
+}
+
+// ─── PLAYER EDITING (GLOBAL RENAME) ───
+function openEditPlayerModal(oldName) {
+    // Tomar los datos actuales que se ven en la tabla (del año seleccionado)
+    const currentYearData = (playersData[currentPlayerYear] || {})[oldName] || {};
+    const m = manualStatsData[oldName] || {};
+    
+    openModal('Editar Jugador', `
+        <div class="panel-section-title">Nombre y Identidad</div>
+        <div class="form-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label>Nombre Actual</label>
+                <input type="text" value="${oldName}" disabled style="opacity:0.6">
+            </div>
+            <div class="form-group">
+                <label>Nuevo Nombre (Apellido)</label>
+                <input type="text" id="newPlayerNameInput" value="${oldName}" placeholder="Ej: Perez">
+            </div>
+        </div>
+
+        <div class="panel-section-title">Estadísticas de "${currentPlayerYear}"</div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Se pre-llenan con lo que el sistema muestra actualmente para este jugador.
+        </p>
+        <div class="form-grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div class="form-group"><label>PJ</label><input type="number" id="ms_pj" value="${currentYearData.pj || 0}"></div>
+            <div class="form-group"><label>PG</label><input type="number" id="ms_pg" value="${currentYearData.pg || 0}"></div>
+            <div class="form-group"><label>PE</label><input type="number" id="ms_pe" value="${currentYearData.pe || 0}"></div>
+            <div class="form-group"><label>PP</label><input type="number" id="ms_pp" value="${currentYearData.pp || 0}"></div>
+            <div class="form-group"><label>Goles</label><input type="number" id="ms_goles" value="${currentYearData.goles || 0}"></div>
+            <div class="form-group"><label>Asist.</label><input type="number" id="ms_asistencias" value="${currentYearData.asistencias || 0}"></div>
+            <div class="form-group"><label>Amar.</label><input type="number" id="ms_amarillas" value="${currentYearData.amarillas || 0}"></div>
+            <div class="form-group"><label>Rojas</label><input type="number" id="ms_rojas" value="${currentYearData.rojas || 0}"></div>
+            <div class="form-group"><label>MVP</label><input type="number" id="ms_mvp" value="${currentYearData.mvp || 0}"></div>
+        </div>
+
+        <div class="form-actions" style="margin-top: 2rem;">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" style="width:auto" onclick="confirmPlayerRename('${oldName}')">
+                <i class="ph-bold ph-check"></i> Guardar Cambios
+            </button>
+        </div>
+    `);
+}
+
+async function confirmPlayerRename(oldName) {
+    const newName = document.getElementById('newPlayerNameInput').value.trim();
+    if (!newName) { toast('El nombre no puede estar vacío', 'error'); return; }
+
+    const newManual = {
+        pj: parseInt(document.getElementById('ms_pj').value) || 0,
+        pg: parseInt(document.getElementById('ms_pg').value) || 0,
+        pe: parseInt(document.getElementById('ms_pe').value) || 0,
+        pp: parseInt(document.getElementById('ms_pp').value) || 0,
+        goles: parseInt(document.getElementById('ms_goles').value) || 0,
+        asistencias: parseInt(document.getElementById('ms_asistencias').value) || 0,
+        amarillas: parseInt(document.getElementById('ms_amarillas').value) || 0,
+        rojas: parseInt(document.getElementById('ms_rojas').value) || 0,
+        mvp: parseInt(document.getElementById('ms_mvp').value) || 0
+    };
+
+    if (newName === oldName && JSON.stringify(newManual) === JSON.stringify(manualStatsData[oldName] || {})) {
+        closeModal();
+        return;
+    }
+
+    if (!confirm(`¿Confirmar cambios para ${oldName}?\n\n- Nombre: ${newName}\n- Estadísticas manuales actualizadas`)) return;
+
+    toast('Guardando cambios...', 'success');
+    
+    try {
+        // 1. Update Roster & Stats mapping
+        if (newName !== oldName) {
+            const newRoster = roster.map(r => r === oldName ? newName : r).sort();
+            await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
+            roster = newRoster;
+        }
+        
+        // Guardar las nuevas estadísticas para el año seleccionado
+        const statRow = { 
+            year: currentPlayerYear, 
+            player_name: newName, 
+            ...newManual 
+        };
+        
+        // Upsert manual (resolution=merge-duplicates handle cases if needed)
+        await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
+            method: 'POST',
+            headers: { ...SP_HEADERS, "Prefer": "resolution=merge-duplicates" },
+            body: JSON.stringify(statRow)
+        });
+
+        // 2. Update Matches JSON (only if name changed)
+        if (newName !== oldName) {
+            // Remove old stat row if name changed
+            await spFetch(`players_stats?player_name=eq.${oldName}&year=eq.${currentPlayerYear}`, 'DELETE');
+
+            const matchesToUpdate = matchesData.filter(m => m.jugadores && m.jugadores[oldName]);
+            for (const m of matchesToUpdate) {
+                const updatedJugadores = { ...m.jugadores };
+                updatedJugadores[newName] = updatedJugadores[oldName];
+                delete updatedJugadores[oldName];
+                await spFetch(`matches?id=eq.${m.id}`, 'PATCH', { jugadores: updatedJugadores });
+            }
+
+            // 3. Update Finances
+            if (financesData.cuotas && financesData.cuotas[oldName]) {
+                financesData.cuotas[newName] = financesData.cuotas[oldName];
+                delete financesData.cuotas[oldName];
+            }
+            if (financesData.multas) {
+                financesData.multas.forEach(multa => {
+                    if (multa.jugador === oldName) multa.jugador = newName;
+                });
+            }
+            await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+        }
+
+        toast('¡Datos actualizados con éxito!', 'success');
+        closeModal();
+        
+        // 4. Reload (no recalculate needed, we just saved the final stats)
+        await loadRoster();
+        await loadMatches();
+        await loadPlayers();
+        renderFinances();
+        
+    } catch (error) {
+        console.error("Error during rename:", error);
+        toast('Error al actualizar datos', 'error');
+    }
 }
 
 // ─── TOAST ───

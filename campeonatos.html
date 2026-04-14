@@ -23,25 +23,30 @@
 
         .trophy-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2.5rem;
+            padding-top: 2rem;
         }
 
         .trophy-card {
-            background: linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, rgba(10,10,10,0.8) 100%);
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            border-radius: 16px;
-            padding: 3rem 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            border-radius: 24px;
+            padding: 3.5rem 2rem;
             text-align: center;
-            transition: all 0.3s;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
         .trophy-card:hover {
-            transform: translateY(-10px);
-            border-color: rgba(255, 215, 0, 0.6);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.5), 0 0 20px rgba(255, 215, 0, 0.1);
+            transform: translateY(-15px) scale(1.02);
+            border-color: rgba(255, 215, 0, 0.4);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 25px rgba(255, 215, 0, 0.15);
+            background: rgba(255, 215, 0, 0.05);
         }
 
         .trophy-card::before {
@@ -50,44 +55,61 @@
             top: 0;
             left: 50%;
             transform: translateX(-50%);
-            width: 100px;
-            height: 2px;
-            background: #ffd700;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ffd700, transparent);
+            border-radius: 0 0 10px 10px;
         }
 
         .trophy-icon {
             font-size: 5rem;
             color: #ffd700;
-            margin-bottom: 1.5rem;
-            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.3));
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.4));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
 
         .trophy-year {
             font-family: var(--font-display);
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             font-weight: 800;
             color: var(--text-main);
             line-height: 1;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .trophy-name {
-            color: var(--text-muted);
+            color: var(--accent-primary);
             text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 0.9rem;
+            letter-spacing: 3px;
+            font-size: 0.85rem;
+            font-weight: 700;
             margin-bottom: 1.5rem;
         }
 
         .trophy-desc {
             font-size: 0.95rem;
-            line-height: 1.6;
-            color: #aaa;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.6);
+            margin-top: 1rem;
         }
 
         .champion-card {
-            background: var(--accent-primary) !important;
-            border-color: var(--accent-primary) !important;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, #008744 100%) !important;
+            border-color: rgba(255,255,255,0.3) !important;
+            box-shadow: 0 15px 35px rgba(0, 255, 136, 0.3) !important;
+        }
+
+        .champion-card:hover {
+            box-shadow: 0 25px 50px rgba(0, 255, 136, 0.5) !important;
         }
 
         .champion-card .trophy-year,
@@ -96,10 +118,7 @@
         .champion-card .trophy-icon,
         .champion-card div {
             color: white !important;
-        }
-
-        .champion-card .trophy-icon {
-            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.4)) !important;
+            -webkit-text-fill-color: white !important;
         }
     </style>
     <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
@@ -119,7 +138,7 @@
                 <li><a href="campeonatos.html" class="active">Campeonatos</a></li>
                 <li><a href="historia.html">Historia</a></li>
                 
-                <li><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
+                <li style="display:flex; align-items:center;"><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary); line-height: 1;"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
                 <li style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display);">
                     <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-main);">ES</a>
                     <span style="color:var(--text-muted); font-size:1rem;">/</span>
