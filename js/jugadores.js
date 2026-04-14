@@ -49,25 +49,45 @@ const PLAYER_MAP = {
 function normalizePlayerName(name) {
     if (!name) return "";
     let n = name.trim();
-    // Common normalization: "Silva, Gaston" -> "Silva, Gaston", "Gaston Silva" -> "Gaston Silva"
-    // The CSV seems to have both. Let's try to detect if it's in the map.
-    if (PLAYER_MAP[n]) return n;
     
-    // Check if reverse exists "Gaston Silva" -> "Silva, Gaston"
-    const parts = n.split(' ');
-    if (parts.length === 2) {
-        const reversed = `${parts[1]}, ${parts[0]}`;
-        if (PLAYER_MAP[reversed]) return reversed;
-        const reversedSimple = `${parts[1]} ${parts[0]}`; // Just in case
-        if (PLAYER_MAP[reversedSimple]) return reversedSimple;
-    }
-    
-    // Try to find if the name is part of a fullName in PLAYER_MAP
-    for (const key in PLAYER_MAP) {
-        if (PLAYER_MAP[key].fullName === n) return key;
-    }
+    // Hardcoded visual mappings to ensure only Surnames / Short names are rendered
+    const visualMap = {
+        'Alvez': 'Alvez', 'Lautaro Alvez': 'Alvez',
+        'Anzuatte': 'Anzuatte', 'Agustin Anzuatte': 'Anzuatte',
+        'Blanco': 'Blanco', 'Tomas Blanco': 'Blanco',
+        'Brito': 'Brito', 'Emiliano Brito': 'Brito',
+        'Bonilla': 'Bonilla', 'Felipe Bonilla': 'Bonilla',
+        'Cravino': 'Cravino', 'Agustin Cravino': 'Cravino',
+        'Colombo': 'Colombo', 'Mateo Colombo': 'Colombo',
+        'Da Silveira': 'Da Silveira', 'da Silveira': 'Da Silveira', 'Guzman Da Silveira': 'Da Silveira', 'Guzman da Silveira': 'Da Silveira',
+        'De Leon': 'De Leon', 'De León': 'De Leon', 'Enzo De Leon': 'De Leon', 'Enzo de Leon': 'De Leon',
+        'Dobal': 'Dobal', 'Federico Dobal': 'Dobal',
+        'Fernandez': 'Fernandez', 'Geronimo Fernandez': 'Fernandez',
+        'Flores': 'Flores', 'Antonio Flores': 'Flores',
+        'Iza': 'Iza', 'Federico Iza': 'Iza',
+        'Lorenzo': 'Lorenzo', 'Martin Lorenzo': 'Lorenzo',
+        'Luzardo': 'Luzardo', 'Valentin Luzardo': 'Luzardo',
+        'Martinez': 'Martinez', 'Miqueas Martinez': 'Martinez', 'Martínez': 'Martinez',
+        'Mari': 'Mari', 'Pablo Mari': 'Mari',
+        'Mateo': 'Mateo', 'Santiago Mateo': 'Mateo',
+        'Menchaca': 'Menchaca', 'Mateo Menchaca': 'Menchaca',
+        'Molina': 'Molina', 'Justiniano Molina': 'Molina',
+        'Olarte': 'Olarte', 'Juan Miguel Olarte': 'Olarte',
+        'Pedemonte': 'Pedemonte', 'Sebastian Pedemonte': 'Pedemonte',
+        'Rocca': 'Rocca', 'Diego Rocca': 'Rocca',
+        'Rodriguez': 'Rodriguez', 'Guillermo Rodriguez': 'Rodriguez', 'Rodríguez': 'Rodriguez',
+        'Silva': 'Silva', 'Bruno Silva': 'Silva',
+        'Gaston Silva': 'G. Silva', 'Silva, Gaston': 'G. Silva',
+        'Sparkov': 'Sparkov', 'Santiago Sparkov': 'Sparkov',
+        'Valle': 'Valle', 'Joaquin Valle': 'Valle',
+        'Vigil': 'Vigil', 'Sebastian Vigil': 'Vigil',
+        'Balestie': 'Balestie', 'Kevin Balestie': 'Balestie'
+    };
 
-    return n;
+    if (visualMap[n]) return visualMap[n];
+    
+    // Capitalize first letter of each word as default if not mapped
+    return n.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
 // Initialized directly by db.js when data is ready via applyYearFilters()
@@ -288,10 +308,21 @@ document.querySelectorAll('#sortFilters .filter-btn').forEach(btn => {
     });
 });
 
-// Initialized directly by db.js when data is ready
+// Initialized directly by db.js when data is ready or via local listener
+// Initialized directly by db.js when data is ready or via local listener
+document.addEventListener('dataLoaded', () => {
+    applyYearFilters();
+    initCounter();
+});
+
+// Triple-check for late loading
+if (window.dataLoaded || (window.allPlayers && Object.keys(window.allPlayers).length > 0)) {
+    applyYearFilters();
+    initCounter();
+}
 
 function initCounter() {
-    const total = allPlayers['ALL'] ? allPlayers['ALL'].length : 0;
+    const total = window.allPlayers['ALL'] ? window.allPlayers['ALL'].length : 0;
     const counterEl = document.getElementById('playerCountLarge');
     if(!counterEl || total === 0) return;
     

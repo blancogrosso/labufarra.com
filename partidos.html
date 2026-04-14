@@ -18,10 +18,9 @@
     
     <style>
         .page-header {
-            padding: 8rem 5% 4rem;
+            padding: 10rem 5% 4rem;
             text-align: center;
         }
-        
         .page-title {
             font-size: 3rem;
             color: var(--accent-primary);
@@ -151,29 +150,6 @@
             font-size: 0.8rem;
         }
 
-        .res-circle-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
-            padding: 0;
-        }
-
-        .res-circle-btn:hover {
-            transform: scale(1.2);
-        }
-
-        .res-circle-btn.active {
-            border-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-
-        .res-circle-btn.res-W { background: #2ecc71; }
-        .res-circle-btn.res-D { background: #f1c40f; }
-        .res-circle-btn.res-L { background: #e74c3c; }
-
         #totalMatchesCounter {
             font-family: var(--font-display);
         }
@@ -185,8 +161,7 @@
     <header>
         <div class="nav-container">
             <a href="index.html" class="logo">
-                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo LA BUFARRA" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
-                LA BUFARRA
+                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
             </a>
             <ul class="nav-links">
                 <li><a href="index.html">Inicio</a></li>
@@ -197,11 +172,18 @@
                 <li><a href="historia.html">Historia</a></li>
                 
                 <li><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
+                <li style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display);">
+                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-main);">ES</a>
+                    <span style="color:var(--text-muted); font-size:1rem;">/</span>
+                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-muted); cursor:not-allowed;" title="Soon...">EN</a>
+                </li>
             </ul>
         </div>
     </header>
 
+    <!-- Contenido Principal -->
     <main class="container mb-5" style="margin-bottom: 5rem;">
+        
         <div class="page-header">
             <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-bottom: 2rem;">
                 <div style="text-align: right;">
@@ -268,7 +250,7 @@
         <p>© 2026 Estadísticas Oficiales. Archivo histórico desde 2021.</p>
     </footer>
 
-    <script src="js/db.js?v=3.2"></script>
-    <script src="js/partidos.js?v=3.2"></script>
+    <script src="js/db.js?v=5.0"></script>
+    <script src="js/partidos.js?v=5.0"></script>
 </body>
 </html>

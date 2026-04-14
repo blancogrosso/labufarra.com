@@ -166,7 +166,12 @@
 
                     <!-- Player Stats Table -->
                     <div style="margin-top:1.5rem">
-                        <div class="panel-title" style="margin-bottom:1rem">Cargar Datos Individuales</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+                            <div class="panel-title">Cargar Datos Individuales</div>
+                            <button class="btn btn-secondary btn-sm" onclick="showRosterManager()">
+                                <i class="ph-bold ph-users"></i> Gestionar Plantel Global
+                            </button>
+                        </div>
                         <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
                             <table class="players-table" id="playersFormTable">
                                 <thead>
@@ -257,6 +262,11 @@
                         <i class="ph-bold ph-plus"></i>
                     </button>
                 </div>
+                <div class="filter-bar" style="margin-bottom: 1rem; border-bottom: none;" id="txFilterBar">
+                    <button class="filter-pill active" onclick="setTxFilter('all')">Todas</button>
+                    <button class="filter-pill" onclick="setTxFilter('ingreso')">Ingresos</button>
+                    <button class="filter-pill" onclick="setTxFilter('egreso')">Egresos</button>
+                </div>
                 <div id="transaccionesList"></div>
             </div>
 
@@ -264,6 +274,9 @@
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">Cuotas por Jugador</div>
+                    <button class="btn btn-secondary btn-sm" onclick="showRosterManager()">
+                        <i class="ph-bold ph-pencil"></i> Administrar Plantel
+                    </button>
                 </div>
                 <div class="cuotas-wrapper">
                     <table class="cuotas-table" id="cuotasTable">

@@ -6,7 +6,7 @@ let currentResultFilter = 'ALL';
 let currentRivalFilter = '';
 
 // En caso de que cargue súper rápido o desde cache
-if (window.allMatches && window.allMatches.length > 0) {
+if (window.dataLoaded || (window.allMatches && window.allMatches.length > 0)) {
     renderAllMatches();
     initCounter();
 } else {

@@ -28,8 +28,7 @@
     <header>
         <div class="nav-container">
             <a href="index.html" class="logo">
-                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo La Bufarra" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
-                LA BUFARRA
+                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
             </a>
             <ul class="nav-links">
                 <li><a href="index.html" class="active">Inicio</a></li>
@@ -40,64 +39,58 @@
                 <li><a href="historia.html">Historia</a></li>
                 
                 <li><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
+                <li style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display);">
+                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-main);">ES</a>
+                    <span style="color:var(--text-muted); font-size:1rem;">/</span>
+                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-muted); cursor:not-allowed;" title="Soon...">EN</a>
+                </li>
             </ul>
         </div>
     </header>
 
     <!-- Hero Section -->
     <section class="hero container">
-        <!-- 4 Títulos -->
-        <div class="titulos-container">
-            <a href="campeonatos.html" class="titulo-card glass-panel" style="text-decoration: none;">
-                <i class="ph-fill ph-trophy titulo-icon"></i>
-                <span class="titulo-name">Clausura 2021</span>
-            </a>
-            <a href="campeonatos.html" class="titulo-card glass-panel" style="text-decoration: none;">
-                <i class="ph-fill ph-trophy titulo-icon"></i>
-                <span class="titulo-name">Apertura 2023</span>
-            </a>
-            <a href="campeonatos.html" class="titulo-card glass-panel" style="text-decoration: none;">
-                <i class="ph-fill ph-trophy titulo-icon"></i>
-                <span class="titulo-name">C. Campeones 2023</span>
-            </a>
-            <a href="campeonatos.html" class="titulo-card glass-panel" style="text-decoration: none;">
-                <i class="ph-fill ph-trophy titulo-icon"></i>
-                <span class="titulo-name">Clausura 2025</span>
-            </a>
-        </div>
     </section>
+
+    <!-- Marquee -->
+    <div class="marquee-container">
+        <div class="marquee-text">
+            CAMPEÓN CLAUSURA 2021 &nbsp;&nbsp;•&nbsp;&nbsp; CAMPEÓN APERTURA 2023 &nbsp;&nbsp;•&nbsp;&nbsp; CAMPEÓN DE CAMPEONES 2023 &nbsp;&nbsp;•&nbsp;&nbsp; CAMPEÓN CLAUSURA 2025
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="container">
-        <div class="dashboard-grid">
+        <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 2rem;">
             
-            <!-- Proximo Partido Section -->
-            <div class="next-match-wrapper" style="display: flex; flex-direction: column;">
-                <div class="section-header">
-                    <h2 class="section-title">Próximo Encuentro</h2>
+            <!-- Último Resultado Section -->
+            <div class="last-match-wrapper" style="display: flex; flex-direction: column;">
+                <div class="section-header" style="justify-content:center;">
+                    <h2 class="section-title" style="font-size:1.1rem; letter-spacing:2px; text-transform:uppercase;">Último Partido</h2>
                 </div>
                 
-                <div class="match-card glass-panel" id="nextMatchCard" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem; padding: 2rem;">
+                <div class="match-card glass-panel" id="homeLatestMatches" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem; padding: 2rem; flex-grow:1; align-items:center;">
                     <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando...</div>
                 </div>
-                <button class="btn btn-secondary" onclick="openFixtureModal()" style="margin-top: 1rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                    <i class="ph-bold ph-calendar-check"></i> Ver Fixture Completo
-                </button>
             </div>
 
-            <!-- Últimos Resultados Section -->
-            <div class="last-matches-wrapper" style="display: flex; flex-direction: column;">
-                <div class="section-header">
-                    <h2 class="section-title">Últimos Resultados</h2>
+            <!-- Proximo Partido Section -->
+            <div class="next-match-wrapper" style="display: flex; flex-direction: column;">
+                <div class="section-header" style="justify-content:center;">
+                    <h2 class="section-title" style="font-size:1.1rem; letter-spacing:2px; text-transform:uppercase;">Próximo Partido</h2>
                 </div>
                 
-                <!-- This will be populated by JS -->
-                <div class="matches-list glass-panel" id="homeLatestMatches" style="display: flex; flex-grow: 1; flex-direction: column; justify-content: space-between;">
-                    <!-- Loading state inside -->
-                    <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando resultados...</div>
+                <div class="match-card glass-panel" id="nextMatchCard" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem; padding: 2rem; flex-grow:1; align-items:center;">
+                    <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando...</div>
                 </div>
             </div>
 
+        </div>
+        
+        <div style="display:flex; justify-content:center; margin-bottom: 4rem;">
+            <button class="btn btn-primary" onclick="openFixtureModal()" style="padding: 1rem 3rem; font-size:1.1rem;">
+                <i class="ph-bold ph-calendar-check"></i> CALENDARIO 2026
+            </button>
         </div>
 
         <!-- Efemérides -->
@@ -131,6 +124,6 @@
     </footer>
 
     <!-- App Logic -->
-    <script src="js/db.js?v=3.2"></script>
+    <script src="js/db.js?v=5.0"></script>
 </body>
 </html>

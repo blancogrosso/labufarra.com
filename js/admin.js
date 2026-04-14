@@ -19,6 +19,7 @@ let playersData = {};
 let upcomingData = [];
 let financesData = { cuotas:{}, costoFecha:0, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
 let editingMatchId = null;
+let currentTxFilter = 'all';
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', async () => {
@@ -318,6 +319,75 @@ async function loadRoster() {
     buildPlayersFormTable();
 }
 
+// ── Roster Management ──
+function showRosterManager() {
+    const listHtml = roster.map((name) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:10px; margin-bottom:5px; border-radius:8px;">
+            <span>${name}</span>
+            <button class="btn btn-icon btn-danger btn-sm" onclick="deleteRosterPlayer('${name}')">
+                <i class="ph-bold ph-trash"></i>
+            </button>
+        </div>
+    `).join('');
+
+    openModal('Gestionar Plantel Global', `
+        <div style="margin-bottom:1.5rem; max-height:40vh; overflow-y:auto; padding-right:5px;">
+            ${listHtml || '<div class="empty-state">No hay jugadores</div>'}
+        </div>
+        <div class="form-group" style="margin-top:10px">
+            <label>Agregar Nuevo Jugador</label>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="newRosterName" placeholder="Ej: Perez" style="margin-bottom:0">
+                <button class="btn btn-primary" onclick="addRosterPlayer()" style="width:auto; white-space:nowrap;">
+                    <i class="ph-bold ph-plus"></i> Añadir
+                </button>
+            </div>
+        </div>
+        <div class="form-actions" style="margin-top:20px;">
+            <button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+        </div>
+    `);
+}
+
+async function addRosterPlayer() {
+    const inp = document.getElementById('newRosterName');
+    const name = inp.value.trim();
+    if (!name) return;
+    
+    // Validar si existe
+    if (roster.some(r => r.toLowerCase() === name.toLowerCase())) {
+        toast('El jugador ya existe', 'error');
+        return;
+    }
+    
+    const newRoster = [...roster, name].sort();
+    
+    // Guardar en la DB
+    const res = await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
+    if (res) {
+        toast('Jugador agregado', 'success');
+        await loadRoster(); // recarga la memoria
+        buildPlayersFormTable(); // Actualiza planilla de partido
+        renderCuotas(); // Actualiza finanzas
+        showRosterManager(); // refresh el modal
+    }
+}
+
+async function deleteRosterPlayer(name) {
+    if (!confirm(`¿Eliminar a ${name} del plantel? (Esto no borra su historial de estadísticas previo)`)) return;
+    
+    const newRoster = roster.filter(r => r !== name);
+    
+    const res = await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
+    if (res) {
+        toast('Jugador eliminado', 'success');
+        await loadRoster();
+        buildPlayersFormTable();
+        renderCuotas();
+        showRosterManager();
+    }
+}
+
 function buildPlayersFormTable() {
     const tbody = document.getElementById('playersFormBody');
     tbody.innerHTML = '';
@@ -404,6 +474,36 @@ function renderFilteredMatches(year) {
     const container = document.getElementById('matchesList');
     if (!matchesData) return;
     
+    // Check for pending "Upcoming" matches that are past their date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const pendingMatches = upcomingData.filter(u => {
+        if (!u.fecha) return false;
+        const parts = u.fecha.split('/');
+        if (parts.length !== 3) return false;
+        const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+        return d <= today; // Include today
+    });
+    
+    let pendingAlertHTML = '';
+    if (pendingMatches.length > 0) {
+        pendingAlertHTML = pendingMatches.map(u => `
+            <div class="match-item" style="border: 2px solid var(--accent); background: rgba(0,255,136,0.05);" onclick="convertUpcoming('${u.id}')">
+                <div class="match-info">
+                    <div style="color:var(--accent); font-weight:bold; margin-bottom:5px;">⚠ PARTIDO PENDIENTE DE CARGA</div>
+                    <div class="date">${u.fecha || ''} · ${u.hora || ''}</div>
+                    <div class="teams">LA BUFARRA vs ${u.rival || '?'}</div>
+                    <div class="meta">${u.torneo || ''} ${u.instancia ? '- ' + u.instancia : ''}</div>
+                </div>
+                <div class="match-actions" onclick="event.stopPropagation()">
+                    <button class="btn btn-primary btn-sm" onclick="convertUpcoming('${u.id}')" title="Cargar a Estadísticas">
+                        <i class="ph-bold ph-note-pencil"></i> Cargar Datos
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
     // Robust date parser for sorting
     const parseDate = (s) => {
         if (!s) return 0;
@@ -421,14 +521,14 @@ function renderFilteredMatches(year) {
         ? sorted 
         : sorted.filter(m => String(m.fecha || '').includes(year) || String(m.año || '').includes(year));
     
-    if (filtered.length === 0) {
+    if (filtered.length === 0 && pendingMatches.length === 0) {
         container.innerHTML = '<div class="empty-state"><i class="ph-bold ph-soccer-ball"></i><p>No hay partidos cargados</p></div>';
         return;
     }
     
-    container.innerHTML = filtered.map(m => {
-        const resClass = m.resultado === 'V' ? 'win' : m.resultado === 'E' ? 'draw' : 'loss';
-        const resLetter = m.resultado === 'V' ? 'V' : m.resultado === 'E' ? 'E' : 'D';
+    container.innerHTML = pendingAlertHTML + filtered.map(m => {
+        const resClass = m.gf > m.gc ? 'win' : m.gf === m.gc ? 'draw' : 'loss';
+        const resLetter = m.gf > m.gc ? 'V' : m.gf === m.gc ? 'E' : 'D';
         const torneo = m.instancia ? `${m.torneo} - ${m.instancia}` : m.torneo;
         return `
             <div class="match-item" onclick="editMatch('${m.id}')">
@@ -616,7 +716,10 @@ function normalizeName(name) {
     let n = removeAccents(name.trim().toLowerCase());
     
     // Check if it matches or partially matches any roster member
-    const rosterMatch = roster.find(r => removeAccents(r.toLowerCase()) === n);
+    const rosterMatch = roster.find(r => {
+        const rNorm = removeAccents(r.toLowerCase());
+        return n === rNorm || n.includes(rNorm); // Match "guzman da silveira" with "da silveira"
+    });
     if (rosterMatch) return rosterMatch;
 
     // Historical mappings (all lowercase, no accents compared)
@@ -782,7 +885,7 @@ function renderUpcoming() {
             const parts = u.fecha.split('/');
             if (parts.length === 3) {
                 const matchDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-                isPast = matchDate < today;
+                isPast = matchDate <= today; // Include today
             }
         }
         
@@ -1257,9 +1360,20 @@ async function deleteMulta(id) {
 }
 
 // ── Transacciones ──
+function setTxFilter(f) {
+    currentTxFilter = f;
+    document.querySelectorAll('#txFilterBar .filter-pill').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    renderTransacciones();
+}
+
 function renderTransacciones() {
     const container = document.getElementById('transaccionesList');
-    const transacciones = financesData.transacciones || [];
+    let transacciones = financesData.transacciones || [];
+    
+    if (currentTxFilter !== 'all') {
+        transacciones = transacciones.filter(t => t.tipo === currentTxFilter);
+    }
     
     if (transacciones.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>No hay transacciones</p></div>';
