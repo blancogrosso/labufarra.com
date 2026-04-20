@@ -81,6 +81,7 @@ body {
 .login-card input {
     width: 100%;
     padding: 14px 18px;
+    padding-right: 45px !important; /* Espacio para los íconos */
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -88,8 +89,8 @@ body {
     font-family: var(--font);
     font-size: 1rem;
     outline: none;
-    transition: border-color 0.3s;
-    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    margin-bottom: 0 !important;
 }
 
 .login-card input:focus {
@@ -105,6 +106,34 @@ body {
     font-size: 0.85rem;
     margin-bottom: 1rem;
     display: none;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.password-toggle-btn:hover {
+    color: var(--accent);
+    background: rgba(255,255,255,0.05);
+}
+
+.password-toggle-btn:active {
+    transform: translateY(-50%) scale(0.85);
+    color: var(--accent);
 }
 
 /* ─── Buttons ─── */
@@ -414,6 +443,11 @@ body {
     justify-content: flex-end;
 }
 
+.table-container-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 /* ─── Player Table (Match Entry) ─── */
 .players-table {
     width: 100%;
@@ -432,6 +466,9 @@ body {
     font-weight: 700;
     text-align: center;
     border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .players-table th:first-child {
@@ -789,6 +826,67 @@ body {
 .transaction-amount.ingreso { color: var(--green); }
 .transaction-amount.egreso { color: var(--red); }
 
+/* ─── Clear Search Button ─── */
+.clear-search-btn {
+    position: absolute;
+    right: 2.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    z-index: 5;
+    transition: color 0.2s;
+}
+
+.clear-search-btn:hover {
+    color: var(--accent);
+}
+
+/* ─── Responsive Adjustments ─── */
+@media (max-width: 600px) {
+    .players-table th, .players-table td {
+        padding: 8px 4px;
+        font-size: 0.75rem;
+    }
+    .players-table input[type="number"] {
+        width: 35px;
+        padding: 4px 2px;
+        font-size: 0.75rem;
+    }
+    .players-table input[type="checkbox"],
+    .players-table input[type="radio"] {
+        width: 16px;
+        height: 16px;
+    }
+    
+    /* Make the players form table more compact */
+    #playersFormTable th:nth-child(n+4), 
+    #playersFormTable td:nth-child(n+4) {
+        /* Optional: Hide some columns on very small screens or make them narrower */
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .filter-bar {
+        gap: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+    
+    .filter-pill {
+        padding: 6px 12px;
+        font-size: 0.7rem;
+    }
+}
+
 /* ─── Modal ─── */
 .modal-overlay {
     display: none;
@@ -951,6 +1049,14 @@ body {
     
     .players-table input[type="number"] {
         width: 40px;
+    }
+
+    .table-container-scroll {
+        max-height: 60vh;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: rgba(0,0,0,0.2);
     }
 }
 

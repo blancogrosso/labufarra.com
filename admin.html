@@ -27,12 +27,15 @@
             <div class="logo-text">LA BUFARRA</div>
             <div class="subtitle">Panel de Gestión</div>
             <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
-            <div class="form-group" style="margin-bottom:0.8rem">
-                <input type="text" id="usernameInput" placeholder="Usuario" autocomplete="off" style="margin-bottom:0">
+            <div class="form-group" style="margin-bottom:1.2rem; position:relative;">
+                <input type="text" id="usernameInput" placeholder="Usuario" autocomplete="off" style="margin-bottom:0; padding-right:45px">
+                <div style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--text-dim); display:flex; align-items:center; pointer-events:none;">
+                    <i class="ph-bold ph-user" style="font-size:1.2rem;"></i>
+                </div>
             </div>
             <div class="form-group" style="margin-bottom:1.5rem; position:relative;">
                 <input type="password" id="passwordInput" placeholder="Contraseña" autocomplete="off" style="margin-bottom:0; padding-right:45px">
-                <button type="button" onclick="togglePasswordVisibility()" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:1.2rem;">
+                <button type="button" onclick="togglePasswordVisibility()" class="password-toggle-btn">
                     <i class="ph-bold ph-eye" id="passwordToggleIcon"></i>
                 </button>
             </div>
@@ -95,6 +98,10 @@
                         <div class="form-group">
                             <label>Fecha</label>
                             <input type="date" id="mFecha">
+                        </div>
+                        <div class="form-group">
+                            <label>Hora</label>
+                            <input type="time" id="mHora">
                         </div>
                         <div class="form-group">
                             <label>Torneo</label>
@@ -172,7 +179,7 @@
                                 <i class="ph-bold ph-users"></i> Gestionar Plantel Global
                             </button>
                         </div>
-                        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+                        <div class="table-container-scroll">
                             <table class="players-table" id="playersFormTable">
                                 <thead>
                                     <tr>
@@ -207,9 +214,12 @@
                     <div class="panel-title">Historial de Partidos</div>
                 </div>
                 <!-- Search bar for Matches -->
-                <div style="padding: 0 1.5rem 1rem;">
+                <div style="padding: 0 1.5rem 1rem; position: relative;">
                     <input type="text" id="matchSearchInput" placeholder="Buscar por rival..." oninput="filterMatchesBySearch()" 
-                           style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--border-light); background:rgba(255,255,255,0.05); color:white;">
+                           style="width:100%; padding:0.8rem; padding-right: 2.5rem; border-radius:8px; border:1px solid var(--border-light); background:rgba(255,255,255,0.05); color:white;">
+                    <button class="clear-search-btn" id="clearMatchSearch" onclick="clearSearch('match')">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
                 </div>
                 <div class="filter-bar" id="matchYearFilters"></div>
                 <div id="matchesList"></div>
@@ -223,9 +233,12 @@
                     <div class="panel-title">Estadísticas del Plantel</div>
                 </div>
                 <!-- Search bar for Players -->
-                <div style="padding: 0 1.5rem 1rem;">
+                <div style="padding: 0 1.5rem 1rem; position: relative;">
                     <input type="text" id="playerSearchInput" placeholder="Buscar por nombre..." oninput="filterPlayersBySearch()" 
-                           style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid var(--border-light); background:rgba(255,255,255,0.05); color:white;">
+                           style="width:100%; padding:0.8rem; padding-right: 2.5rem; border-radius:8px; border:1px solid var(--border-light); background:rgba(255,255,255,0.05); color:white;">
+                    <button class="clear-search-btn" id="clearPlayerSearch" onclick="clearSearch('player')">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
                 </div>
                 <div class="filter-bar" id="playerYearFilters"></div>
                 <div class="stats-grid" id="playersStatsGrid"></div>
