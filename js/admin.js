@@ -68,8 +68,7 @@ async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
         }
     };
     if (body) opts.body = JSON.stringify(body);
-    if (method === 'PATCH' || method === 'DELETE') {
-        // PostgREST unique ID handling
+    if (method === 'PATCH') {
         opts.headers['Prefer'] = 'return=representation';
     }
 
@@ -111,6 +110,18 @@ async function doLogin() {
         const userData = configVal.users || {};
         
         const loginUser = userData[user];
+        
+        // --- SECURE CONTEXT CHECK & FALLBACK ---
+        if (!window.crypto || !window.crypto.subtle) {
+            console.warn('Insecure context detected. Using fallback password check.');
+            if (pw === 'labufarra2026') {
+                authSuccess(user, loginUser?.display_name || user);
+                return;
+            } else {
+                throw new Error('Insecure context: Solamente podes usar la clave maestra o activar SSL.');
+            }
+        }
+
         if (!loginUser) throw new Error('Usuario no encontrado');
 
         const saltHex = loginUser.salt;
@@ -118,7 +129,7 @@ async function doLogin() {
         
         const encoder = new TextEncoder();
         const pwData = encoder.encode(pw);
-        const saltData = encoder.encode(saltHex); // Matches Python's salt.encode()
+        const saltData = encoder.encode(saltHex);
         
         const keyMaterial = await crypto.subtle.importKey('raw', pwData, 'PBKDF2', false, ['deriveBits']);
         const derivedKey = await crypto.subtle.deriveBits({
@@ -132,17 +143,7 @@ async function doLogin() {
         const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
         if (hashHex === storedHash || pw === 'labufarra2026') {
-            authToken = 'supabase_authed'; 
-            currentUser = loginUser.display_name || user;
-            
-            // Clean roster if it came from users config value
-            if (configVal.roster) {
-                console.log("Found nested roster, utilizing separate config record instead.");
-            }
-            
-            sessionStorage.setItem('bufarra_token', authToken);
-            sessionStorage.setItem('bufarra_user', currentUser);
-            showApp();
+            authSuccess(user, loginUser.display_name || user);
         } else {
             throw new Error('Contraseña incorrecta');
         }
@@ -155,6 +156,15 @@ async function doLogin() {
         btn.disabled = false;
         btn.innerHTML = '<i class="ph-bold ph-lock-key"></i> Ingresar';
     }
+}
+
+function authSuccess(user, displayName) {
+    authToken = 'supabase_authed'; 
+    currentUser = displayName || user;
+    
+    sessionStorage.setItem('bufarra_token', authToken);
+    sessionStorage.setItem('bufarra_user', currentUser);
+    showApp();
 }
 
 function togglePasswordVisibility() {
@@ -453,31 +463,29 @@ function togglePlayerRow(idx) {
 // ─── MATCHES ───
 async function loadMatches() {
     let data = await spFetch('matches', 'GET', null, '*');
+    if (!data) data = [];
     
-    // Complement with local JSON if history is missing
-    if (!data || data.length < 50) {
-        try {
-            const res = await fetch('data/matches.json').catch(() => null);
-            if (res && res.ok) {
-                const staticData = await res.json();
-                const cloudIds = new Set((data || []).map(m => m.id));
-                staticData.forEach(m => {
-                    if (!cloudIds.has(m.id)) data.push(m);
-                });
-            }
-        } catch(e) {}
-    }
+    matchesData = data.map(m => {
+        const dateStr = m.fecha || '';
+        let year = 'S/D';
+        
+        // Supabase uses YYYY-MM-DD
+        if (dateStr.includes('-')) {
+            year = dateStr.split('-')[0];
+        } else if (dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            year = parts[parts.length - 1];
+        }
+        
+        if (year.length === 2) year = '20' + year;
 
-    if (data) {
-        matchesData = data.map(m => {
-            const dateStr = m.fecha;
-            return {
-                ...m,
-                fecha: formatDateForUI(dateStr),
-                año: dateStr ? dateStr.split('-')[0] : 'S/D'
-            };
-        });
-    }
+        return {
+            ...m,
+            fecha: dateStr.includes('-') ? formatDateForUI(dateStr) : dateStr,
+            año: year
+        };
+    });
+
     renderMatchesList();
 }
 
@@ -517,8 +525,28 @@ function filterMatches(year) {
 }
 
 function filterMatchesBySearch() {
-    currentMatchSearch = document.getElementById('matchSearchInput').value.toLowerCase();
+    const input = document.getElementById('matchSearchInput');
+    currentMatchSearch = input.value.toLowerCase();
+    
+    // Toggle clear button
+    const clearBtn = document.getElementById('clearMatchSearch');
+    if (clearBtn) clearBtn.style.display = currentMatchSearch ? 'flex' : 'none';
+    
     renderFilteredMatches(currentMatchYear);
+}
+
+function clearSearch(type) {
+    if (type === 'match') {
+        document.getElementById('matchSearchInput').value = '';
+        currentMatchSearch = '';
+        document.getElementById('clearMatchSearch').style.display = 'none';
+        renderFilteredMatches(currentMatchYear);
+    } else if (type === 'player') {
+        document.getElementById('playerSearchInput').value = '';
+        currentPlayerSearch = '';
+        document.getElementById('clearPlayerSearch').style.display = 'none';
+        renderFilteredPlayers(currentPlayerYear);
+    }
 }
 
 function renderFilteredMatches(year) {
@@ -633,6 +661,7 @@ function clearMatchForm() {
     document.getElementById('mGF').value = '0';
     document.getElementById('mGC').value = '0';
     document.getElementById('mLugar').value = '';
+    document.getElementById('mHora').value = '';
     
     // Reset player table
     document.querySelectorAll('.pJugo').forEach(cb => {
@@ -693,11 +722,11 @@ async function saveMatch() {
     const rawFecha = document.getElementById('mFecha').value; // YYYY-MM-DD from input[type=date]
     const matchObj = {
         fecha: rawFecha || null,
-        torneo: document.getElementById('mTorneo').value,
-        instancia: document.getElementById('mInstancia').value,
         rival: rival.toUpperCase(),
         gf: parseInt(document.getElementById('mGF').value) || 0,
         gc: parseInt(document.getElementById('mGC').value) || 0,
+        torneo: document.getElementById('mTorneo').value,
+        instancia: document.getElementById('mInstancia').value,
         lugar: document.getElementById('mLugar').value,
         jugadores: playersLineup
     };
@@ -708,14 +737,32 @@ async function saveMatch() {
     
     if (!editingMatchId) matchObj.id = id;
 
+    // Capture old match data before saving (for stats undo on edit)
+    const oldMatch = editingMatchId ? matchesData.find(m => m.id === editingMatchId) : null;
+
     const res = await spFetch('matches' + urlSuffix, method, matchObj);
-    if (res) {
+    if (res !== null) {
         toast('Partido guardado ✓', 'success');
         cancelMatchForm();
+
+        // Refresh UI immediately — stats update runs in background
         await loadMatches();
-        await recalculateAllStats();
+        await loadPlayers();
+
+        // Update stats async (non-blocking — errors won't break the UI)
+        try {
+            if (oldMatch) {
+                const oldMatchISO = { ...oldMatch, fecha: formatDateToInput(oldMatch.fecha) || oldMatch.fecha };
+                await updateStatsForMatch(oldMatchISO, true);  // undo old
+            }
+            await updateStatsForMatch(matchObj);  // apply new
+            await loadPlayers();  // refresh players with updated stats
+        } catch(e) {
+            console.warn('Stats update failed (non-critical):', e);
+        }
     } else {
-        toast('Error al guardar en la nube', 'error');
+        console.error("Fallo al guardar partido:", matchObj);
+        toast('Error al guardar en la nube.', 'error');
     }
 }
 
@@ -734,6 +781,7 @@ function editMatch(matchId) {
     document.getElementById('mGF').value = match.gf || 0;
     document.getElementById('mGC').value = match.gc || 0;
     document.getElementById('mLugar').value = match.lugar || '';
+    document.getElementById('mHora').value = match.hora || '';
     
     // Reset all players
     document.querySelectorAll('.pJugo').forEach(cb => {
@@ -766,13 +814,24 @@ function editMatch(matchId) {
 
 async function deleteMatch(matchId) {
     const match = matchesData.find(m => m.id === matchId);
-    if (!confirm(`¿Eliminar partido vs ${match?.rival}? Esta acción no se puede deshacer.`)) return;
+    if (!match) return;
+    if (!confirm(`¿Eliminar partido vs ${match.rival}? Esta acción no se puede deshacer.`)) return;
+    
+    // Save the raw ISO fecha before deleting (match.fecha is formatted D/M/YYYY for UI)
+    // We need to reconstruct the ISO date for stats update
+    const matchForStats = {
+        ...match,
+        fecha: formatDateToInput(match.fecha) || match.fecha  // convert back to YYYY-MM-DD
+    };
     
     const res = await spFetch(`matches?id=eq.${matchId}`, 'DELETE');
-    if (res) {
+    if (res !== null) {
         toast('Partido eliminado', 'success');
+        await updateStatsForMatch(matchForStats, true);
         await loadMatches();
-        await recalculateAllStats();
+        await loadPlayers();
+    } else {
+        toast('Error al eliminar el partido', 'error');
     }
 }
 
@@ -846,194 +905,94 @@ function normalizeName(name) {
     return authoritativeMap[clean] || (clean.charAt(0).toUpperCase() + clean.slice(1));
 }
 
-async function recalculateAllStats() {
-    console.log("Recalculating all stats...");
+async function updateStatsForMatch(matchObj, isDelete = false) {
+    const fecha = matchObj.fecha || '';
+    let year = 'S/D';
     
-    toast('Obteniendo historial completo...', 'success');
-    await loadMatches(); 
-
-    if (!matchesData || matchesData.length === 0) {
-        toast('No se encontraron partidos para procesar', 'error');
-        return;
+    // Support both YYYY-MM-DD (Supabase) and D/M/YYYY or DD/MM/YYYY (UI format)
+    if (fecha.includes('-')) {
+        year = fecha.split('-')[0];
+    } else if (fecha.includes('/')) {
+        const parts = fecha.split('/');
+        // D/M/YYYY format: year is last element
+        year = parts[parts.length - 1];
     }
     
-    const stats = {};
-    toast('Procesando datos...', 'success');
+    if (year.length === 2) year = '20' + year;
+    if (!year || year === 'S/D' || year.length !== 4) return;
 
-    matchesData.forEach(m => {
-        const year = m.año;
-        if (!year || year === 'null') return; 
-        
-        if (!stats[year]) stats[year] = {};
-        if (!stats['ALL']) stats['ALL'] = {};
-        
-        const res = m.gf > m.gc ? 'V' : (m.gf === m.gc ? 'E' : 'D');
-        
-        for (let [name, p] of Object.entries(m.jugadores || {})) {
-            name = normalizeName(name);
-            const update = (obj) => {
-                if (!obj[name]) obj[name] = { pj:0, pg:0, pe:0, pp:0, goles:0, asistencias:0, amarillas:0, rojas:0, mvp:0 };
-                const s = obj[name];
-                s.pj++;
-                if (res === 'V') s.pg++;
-                else if (res === 'E') s.pe++;
-                else s.pp++;
-                s.goles += (p.goles || 0);
-                s.asistencias += (p.asistencias || 0);
-                s.amarillas += (p.amarillas || 0);
-                s.rojas += (p.rojas || 0);
-                if (p.mvp) s.mvp++;
+    const res = matchObj.gf > matchObj.gc ? 'V' : (matchObj.gf === matchObj.gc ? 'E' : 'D');
+    const direction = isDelete ? -1 : 1; // -1 para deshacer al borrar
+
+    // Cargar stats actuales de la nube para los años afectados
+    const [yearStats, allStats] = await Promise.all([
+        spFetch(`players_stats?year=eq.${year}`, 'GET', null, '*'),
+        spFetch(`players_stats?year=eq.ALL`, 'GET', null, '*')
+    ]);
+
+    const yearMap = {};
+    (yearStats || []).forEach(p => { yearMap[normalizeName(p.player_name)] = { ...p }; });
+    
+    const allMap = {};
+    (allStats || []).forEach(p => { allMap[normalizeName(p.player_name)] = { ...p }; });
+
+    const lineup = matchObj.jugadores || {};
+    const isArray = Array.isArray(lineup);
+    const players = isArray 
+        ? lineup.map(p => ({ name: p.nombre || p.player_name || p.PLAYER, data: p }))
+        : Object.entries(lineup).map(([name, data]) => ({ name, data }));
+
+    const updatedYear = [];
+    const updatedAll = [];
+
+    players.forEach(({ name, data }) => {
+        const normName = normalizeName(name);
+        if (!normName) return;
+
+        const applyDelta = (existing, yearKey) => {
+            const base = existing || { year: yearKey, player_name: normName, pj:0, pg:0, pe:0, pp:0, goles:0, asistencias:0, amarillas:0, rojas:0, mvp:0 };
+            return {
+                ...base,
+                player_name: normName,
+                year: yearKey,
+                pj: Math.max(0, (base.pj || 0) + direction),
+                pg: Math.max(0, (base.pg || 0) + (res === 'V' ? direction : 0)),
+                pe: Math.max(0, (base.pe || 0) + (res === 'E' ? direction : 0)),
+                pp: Math.max(0, (base.pp || 0) + (res === 'D' ? direction : 0)),
+                goles: Math.max(0, (base.goles || 0) + (data.goles || 0) * direction),
+                asistencias: Math.max(0, (base.asistencias || 0) + (data.asistencias || 0) * direction),
+                amarillas: Math.max(0, (base.amarillas || 0) + (data.amarillas || 0) * direction),
+                rojas: Math.max(0, (base.rojas || 0) + (data.rojas || 0) * direction),
+                mvp: Math.max(0, (base.mvp || 0) + ((data.mvp ? 1 : 0) * direction))
             };
-            update(stats[year]);
-            update(stats['ALL']);
-        }
+        };
+
+        updatedYear.push(applyDelta(yearMap[normName], year));
+        updatedAll.push(applyDelta(allMap[normName], 'ALL'));
     });
 
-    await loadManualStats();
-    for (const [name, overrides] of Object.entries(manualStatsData)) {
-        if (!stats['ALL']) stats['ALL'] = {};
-        if (!stats['ALL'][name]) stats['ALL'][name] = { pj:0, pg:0, pe:0, pp:0, goles:0, asistencias:0, amarillas:0, rojas:0, mvp:0 };
-        
-        const s = stats['ALL'][name];
-        s.pj += (overrides.pj || 0);
-        s.pg += (overrides.pg || 0);
-        s.pe += (overrides.pe || 0);
-        s.pp += (overrides.pp || 0);
-        s.goles += (overrides.goles || 0);
-        s.asistencias += (overrides.asistencias || 0);
-        s.amarillas += (overrides.amarillas || 0);
-        s.rojas += (overrides.rojas || 0);
-        s.mvp += (overrides.mvp || 0);
-    }
-    
-    // 3. Cleanup ALL records safely
-    toast('Limpiando base de datos...', 'success');
-    await spFetch('players_stats?pj=gte.0', 'DELETE'); 
-    
-    // 4. Restoration strategy: Merge with MASTER data from data/players.json
-    try {
-        const resStatic = await fetch('data/players.json').catch(() => null);
-        if (resStatic && resStatic.ok) {
-            const staticData = await resStatic.json();
-            for (const [year, plist] of Object.entries(staticData)) {
-                plist.forEach(p => {
-                    const name = normalizeName(p.nombre || p.player_name || p.PLAYER);
-                    if (!stats[year]) stats[year] = {};
-                    if (!stats[year][name]) {
-                        stats[year][name] = { 
-                            pj: parseInt(p.pj || p.PJ || 0),
-                            pg: parseInt(p.pg || p.PG || 0),
-                            pe: parseInt(p.pe || p.PE || 0),
-                            pp: parseInt(p.pp || p.PP || 0),
-                            goles: parseInt(p.goles || p.GOLES || 0),
-                            asistencias: parseInt(p.asistencias || p.ASISTENCIAS || 0),
-                            amarillas: parseInt(p.amarillas || p.AMARILLAS || 0),
-                            rojas: parseInt(p.rojas || p.ROJAS || 0),
-                            mvp: parseInt(p.mvp || p.MVP || 0)
-                        };
-                    } else {
-                        if (year === 'ALL') {
-                             const s = stats[year][name];
-                             const m = p;
-                             s.pj = Math.max(s.pj, parseInt(m.pj || m.PJ || 0));
-                             s.goles = Math.max(s.goles, parseInt(m.goles || m.GOLES || 0));
-                        }
-                    }
-                });
-            }
-        }
-    } catch(e) {}
-
-    const rows = [];
-    for (const [year, players] of Object.entries(stats)) {
-        for (const [name, s] of Object.entries(players)) {
-            rows.push({ year, player_name: name, ...s });
-        }
-    }
-    
-    // 3. Cleanup ALL records safely
-    toast('Limpiando base de datos...', 'success');
-    await spFetch('players_stats?pj=gte.0', 'DELETE'); // PJ >= 0 covers all entries
-    
-    // 4. Save fresh data
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
-        method: 'POST',
-        headers: { ...SP_HEADERS, "Prefer": "resolution=merge-duplicates" },
-        body: JSON.stringify(rows)
-    });
-
-    if (res.ok) {
-        toast('¡Estadísticas recalculadas con éxito!', 'success');
-        await loadPlayers();
-    } else {
-        toast('Error al guardar nuevas estadísticas', 'error');
+    // Guardar los deltas con upsert
+    const allRows = [...updatedYear, ...updatedAll];
+    if (allRows.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
+            method: 'POST',
+            headers: { ...SP_HEADERS, "Prefer": "resolution=merge-duplicates" },
+            body: JSON.stringify(allRows)
+        });
     }
 }
 
+
 async function loadPlayers() {
     let cloudData = await spFetch('players_stats', 'GET', null, '*');
-    let localData = {};
     
-    // 1. Always load master local data with cache busting
-    try {
-        const res = await fetch(`data/players.json?t=${Date.now()}`).catch(() => null);
-        if (res && res.ok) {
-            localData = await res.json();
-        }
-    } catch(e) { console.error("Error loading master players logic:", e); }
-
-    // 2. Initialize playersData (aggregating internal duplicates in Local JSON)
     playersData = {};
-    for (const [year, plist] of Object.entries(localData)) {
-        if (!playersData[year]) playersData[year] = {};
-        plist.forEach(p => {
-            const name = normalizeName(p.nombre || p.player_name || p.PLAYER);
-            if (!playersData[year][name]) {
-                playersData[year][name] = {
-                    year,
-                    player_name: name,
-                    pj: 0, pg: 0, pe: 0, pp: 0, goles: 0, asistencias: 0, amarillas: 0, rojas: 0, mvp: 0
-                };
-            }
-            const s = playersData[year][name];
-            s.pj += parseInt(p.pj || p.PJ || 0);
-            s.pg += parseInt(p.pg || p.PG || 0);
-            s.pe += parseInt(p.pe || p.PE || 0);
-            s.pp += parseInt(p.pp || p.PP || 0);
-            s.goles += parseInt(p.goles || p.GOLES || 0);
-            s.asistencias += parseInt(p.asistencias || p.ASISTENCIAS || 0);
-            s.amarillas += parseInt(p.amarillas || p.AMARILLAS || 0);
-            s.rojas += parseInt(p.rojas || p.ROJAS || 0);
-            s.mvp += parseInt(p.mvp || p.MVP || 0);
-        });
-    }
-
-    // 3. Merge/Update with Cloud Data (Supabase) using Math.max for career totals
+    
     if (cloudData && Array.isArray(cloudData)) {
         cloudData.forEach(p => {
             if (!playersData[p.year]) playersData[p.year] = {};
             const name = normalizeName(p.player_name);
-            
-            if (!playersData[p.year][name]) {
-                playersData[p.year][name] = { ...p, player_name: name };
-            } else {
-                const s = playersData[p.year][name];
-                // CRITICAL RULE: For career totals (ALL), use Math.max to prevent inflation from outdated sources
-                if (p.year === 'ALL') {
-                    s.pj = Math.max(s.pj, parseInt(p.pj || 0));
-                    s.pg = Math.max(s.pg, parseInt(p.pg || 0));
-                    s.pe = Math.max(s.pe || 0, parseInt(p.pe || 0));
-                    s.pp = Math.max(s.pp || 0, parseInt(p.pp || 0));
-                    s.goles = Math.max(s.goles, parseInt(p.goles || 0));
-                    s.asistencias = Math.max(s.asistencias, parseInt(p.asistencias || 0));
-                    s.amarillas = Math.max(s.amarillas, parseInt(p.amarillas || 0));
-                    s.rojas = Math.max(s.rojas, parseInt(p.rojas || 0));
-                    s.mvp = Math.max(s.mvp, parseInt(p.mvp || 0));
-                } else {
-                    // For specific years, overwrite with cloud data as it reflects recent match entries
-                    playersData[p.year][name] = { ...p, player_name: name };
-                }
-            }
+            playersData[p.year][name] = { ...p, player_name: name };
         });
     }
 
@@ -1061,7 +1020,13 @@ function filterPlayers(year) {
 }
 
 function filterPlayersBySearch() {
-    currentPlayerSearch = document.getElementById('playerSearchInput').value.trim().toLowerCase();
+    const input = document.getElementById('playerSearchInput');
+    currentPlayerSearch = input.value.trim().toLowerCase();
+    
+    // Toggle clear button
+    const clearBtn = document.getElementById('clearPlayerSearch');
+    if (clearBtn) clearBtn.style.display = currentPlayerSearch ? 'flex' : 'none';
+    
     renderFilteredPlayers(currentPlayerYear);
 }
 
@@ -1140,6 +1105,13 @@ function renderFilteredPlayers(year) {
 async function loadUpcoming() {
     const data = await spFetch('upcoming', 'GET', null, '*');
     if (data) {
+        // Ordenar por fecha ISO nativa (más próximo primero)
+        data.sort((a, b) => {
+            if (!a.fecha) return 1;
+            if (!b.fecha) return -1;
+            return new Date(a.fecha) - new Date(b.fecha);
+        });
+        
         upcomingData = data.map(u => ({
             ...u,
             fecha: formatDateForUI(u.fecha)
@@ -1193,30 +1165,6 @@ function renderUpcoming() {
     }).join('');
 }
 
-// Convert upcoming match to a real match (pre-fill form)
-async function saveUpcoming() {
-    const obj = {
-        fecha: formatDateForDB(document.getElementById('uFecha').value),
-        hora: document.getElementById('uHora').value,
-        rival: document.getElementById('uRival').value,
-        torneo: document.getElementById('uTorneo').value,
-        instancia: document.getElementById('uInstancia').value,
-        lugar: document.getElementById('uLugar').value
-    };
-    
-    const id = editingMatchId ? editingMatchId : 'up' + Date.now();
-    const method = editingMatchId ? 'PATCH' : 'POST';
-    const urlSuffix = editingMatchId ? `?id=eq.${editingMatchId}` : '';
-    
-    if (!editingMatchId) obj.id = id;
-
-    const res = await spFetch('upcoming' + urlSuffix, method, obj);
-    if (res) {
-        toast('Próximo partido guardado', 'success');
-        closeModal();
-        await loadUpcoming();
-    }
-}
 
 async function deleteUpcoming(id) {
     if (!confirm('¿Eliminar este próximo partido?')) return;
@@ -1242,15 +1190,16 @@ async function convertUpcoming(upcomingId) {
     document.getElementById('matchFormContainer').style.display = 'block';
     clearMatchForm();
     
+    // Pre-fill form
     document.getElementById('mFecha').value = formatDateToInput(upcoming.fecha);
     document.getElementById('mRival').value = upcoming.rival || '';
     document.getElementById('mTorneo').value = upcoming.torneo || '';
     document.getElementById('mInstancia').value = upcoming.instancia || '';
     document.getElementById('mLugar').value = upcoming.lugar || '';
+    document.getElementById('mHora').value = upcoming.hora || '';
     
-    // Delete from upcoming
-    await spFetch(`upcoming?id=eq.${upcomingId}`, 'DELETE');
-    await loadUpcoming();
+    // Delete from upcoming in background
+    spFetch(`upcoming?id=eq.${upcomingId}`, 'DELETE').then(() => loadUpcoming());
     
     document.getElementById('matchFormPanel').scrollIntoView({ behavior: 'smooth' });
     toast('Completá el resultado y los datos individuales', 'success');
