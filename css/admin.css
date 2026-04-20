@@ -113,7 +113,7 @@ body {
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
+    background: transparent;
     border: none;
     color: var(--text-dim);
     cursor: pointer;
@@ -121,8 +121,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
-    border-radius: 4px;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
     transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -133,7 +135,6 @@ body {
 
 .password-toggle-btn:active {
     transform: translateY(-50%) scale(0.85);
-    color: var(--accent);
 }
 
 /* ─── Buttons ─── */
@@ -829,20 +830,26 @@ body {
 /* ─── Clear Search Button ─── */
 .clear-search-btn {
     position: absolute;
-    right: 2.2rem;
-    top: 50%;
+    right: 1.8rem;
+    top: 38%; /* Adjusting for the vertical alignment in the search div */
     transform: translateY(-50%);
-    background: transparent;
-    border: none;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
     color: var(--text-muted);
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     cursor: pointer;
     display: none; /* Hidden by default */
     align-items: center;
     justify-content: center;
-    padding: 5px;
-    z-index: 5;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    z-index: 10;
     transition: color 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
 .clear-search-btn:hover {
@@ -852,24 +859,29 @@ body {
 /* ─── Responsive Adjustments ─── */
 @media (max-width: 600px) {
     .players-table th, .players-table td {
-        padding: 8px 4px;
-        font-size: 0.75rem;
+        padding: 8px 3px;
+        font-size: 0.65rem;
+        letter-spacing: 0;
     }
     .players-table input[type="number"] {
-        width: 35px;
-        padding: 4px 2px;
-        font-size: 0.75rem;
+        width: 30px;
+        padding: 4px 1px;
+        font-size: 0.7rem;
     }
     .players-table input[type="checkbox"],
     .players-table input[type="radio"] {
-        width: 16px;
-        height: 16px;
+        width: 15px;
+        height: 15px;
     }
     
-    /* Make the players form table more compact */
-    #playersFormTable th:nth-child(n+4), 
-    #playersFormTable td:nth-child(n+4) {
-        /* Optional: Hide some columns on very small screens or make them narrower */
+    /* Ensure the table columns take absolute minimum space */
+    #playersFormTable th:first-child, 
+    #playersFormTable td:first-child {
+        min-width: 80px;
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .form-grid {
@@ -877,13 +889,20 @@ body {
     }
     
     .filter-bar {
-        gap: 0.5rem;
+        gap: 0.3rem;
         padding-bottom: 0.5rem;
     }
     
     .filter-pill {
-        padding: 6px 12px;
-        font-size: 0.7rem;
+        padding: 5px 10px;
+        font-size: 0.65rem;
+    }
+
+    .table-container-scroll {
+        padding: 0;
+        margin: 0 -0.5rem; /* Negative margin to gain space on mobile */
+        width: calc(100% + 1rem);
+        overflow-x: hidden; /* Try to avoid horizontal scroll */
     }
 }
 

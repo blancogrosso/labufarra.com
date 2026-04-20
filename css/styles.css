@@ -28,6 +28,11 @@ button {
   box-sizing: border-box;
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   background-color: #ffffff;
   color: var(--text-main);
@@ -831,11 +836,16 @@ footer {
 /* Responsive Design */
 @media (max-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
 }
 
 @media (max-width: 768px) {
+  .hero h1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+    padding: 0 1rem;
+  }
+
   .nav-links {
     display: flex;
     overflow-x: auto;

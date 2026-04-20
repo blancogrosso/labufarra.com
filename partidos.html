@@ -153,6 +153,53 @@
         #totalMatchesCounter {
             font-family: var(--font-display);
         }
+
+        /* Responsive Partidos */
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 2.2rem;
+            }
+            .match-card-full {
+                flex-direction: column;
+            }
+            .match-date-badge {
+                flex-direction: row;
+                min-width: 100%;
+                gap: 1rem;
+                padding: 1rem;
+                border-right: none;
+                border-bottom: 1px solid var(--border-light);
+            }
+            .match-date-badge .day {
+                font-size: 1.5rem;
+            }
+            .match-teams {
+                font-size: 1.2rem;
+                flex-direction: column;
+                gap: 0.5rem;
+                text-align: center;
+            }
+            .team-home, .team-away {
+                text-align: center;
+            }
+            .match-score {
+                order: -1;
+                margin-bottom: 0.5rem;
+            }
+            .match-footer {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: center;
+            }
+            .filters-container > div {
+                flex-direction: column;
+                align-items: center;
+            }
+            .result-circles {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
     <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
 </head>
