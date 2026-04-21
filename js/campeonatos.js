@@ -249,9 +249,10 @@ function renderCampeonatos() {
         }
 
         const titleColor = (config.isMajor || isOverallChampion) ? 'white' : 'var(--text-muted)';
+        const anchorId = `trofeo-${config.year.trim()}-${config.title.toLowerCase().replace(/ /g, '-').replace('torneo-', '')}`;
 
         const html = `
-            <div class="${cardClass}" ${styleOverride}>
+            <div id="${anchorId}" class="${cardClass}" ${styleOverride}>
                 ${iconHtml}
                 <div class="trophy-year">${config.year}</div>
                 <div class="trophy-name">${config.title}</div>

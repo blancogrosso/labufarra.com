@@ -3,53 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Bufarra</title>
+    <title>La Bufarra | Oficial</title>
     
-    <!-- Evitar caché en desarrollo/producción para datos dinámicos -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <!-- Modern Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
     
-    <!-- Icons (Phosphor Icons - clean & minimal) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=3.2">
+    <link rel="stylesheet" href="css/styles.css?v=8.0">
     <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
 </head>
 <body class="page-index">
 
+    <!-- Efemérides Alert -->
+    <div id="efemerideAlert" class="efemeride-alert">
+        <button class="efemeride-close" onclick="closeEfemeride()"><i class="ph-bold ph-x"></i></button>
+        <div class="efemeride-header">Un día como hoy...</div>
+        <div id="efemerideText" class="efemeride-content">Cargando efemérides...</div>
+    </div>
+
     <!-- Header Navigation -->
-    <header>
+    <header id="mainHeader">
         <div class="nav-container">
-            <a href="index.html" class="logo">
-                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
+            <a href="#inicio" class="logo">
+                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 35px; width: auto;" onerror="this.style.display='none';">
             </a>
             <ul class="nav-links">
-                <li><a href="index.html" class="active">Inicio</a></li>
-                <li><a href="jugadores.html">Jugadores</a></li>
-                <li><a href="partidos.html">Partidos</a></li>
-                <li><a href="entrenadores.html">Entrenadores</a></li>
-                <li><a href="campeonatos.html">Campeonatos</a></li>
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#plantel">Plantel</a></li>
+                <li><a href="#logros">Logros</a></li>
                 <li><a href="historia.html">Historia</a></li>
-                
-                <li style="display:flex; align-items:center;"><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary); line-height: 1;"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
-                <li style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display);">
-                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-main);">ES</a>
-                    <span style="color:var(--text-muted); font-size:1rem;">/</span>
-                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-muted); cursor:not-allowed;" title="Soon...">EN</a>
-                </li>
+                <li style="display:flex; align-items:center;"><a href="https://instagram.com/labufarra" target="_blank" style="color: var(--accent-primary);"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
             </ul>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero container">
+    <!-- Hero Carousel Section -->
+    <section id="inicio" class="hero">
+        <div class="hero-slider" id="heroSlider">
+            <!-- Slide 2026 (Priority) -->
+            <div class="hero-slide active" id="slide-2026">
+                <picture>
+                    <source srcset="img/banners/mobile/banner2026.jpg" media="(max-width: 768px)">
+                    <img src="img/banners/desktop/banner2026.jpg" alt="Banner 2026" onerror="this.parentElement.parentElement.style.display='none'">
+                </picture>
+            </div>
+            <!-- Slide 24-25 -->
+            <div class="hero-slide" id="slide-24-25">
+                <picture>
+                    <source srcset="img/banners/mobile/banner24-25.jpg" media="(max-width: 768px)">
+                    <img src="img/banners/desktop/banner24-25.jpg" alt="Banner 24-25" onerror="this.parentElement.parentElement.style.display='none'">
+                </picture>
+            </div>
+            <!-- Slide 22-23 -->
+            <div class="hero-slide" id="slide-22-23">
+                <picture>
+                    <source srcset="img/banners/mobile/banner22-23.jpg" media="(max-width: 768px)">
+                    <img src="img/banners/desktop/banner22-23.jpg" alt="Banner 22-23" onerror="this.parentElement.parentElement.style.display='none'">
+                </picture>
+            </div>
+            <!-- Slide 2021 -->
+            <div class="hero-slide" id="slide-2021">
+                <picture>
+                    <source srcset="img/banners/mobile/banner2021.jpg" media="(max-width: 768px)">
+                    <img src="img/banners/desktop/banner2021.jpg" alt="Banner 2021" onerror="this.parentElement.parentElement.style.display='none'">
+                </picture>
+            </div>
+        </div>
     </section>
 
     <!-- Marquee -->
@@ -59,51 +83,89 @@
         </div>
     </div>
 
-    <!-- Main Content -->
-    <main class="container">
-        <div class="dashboard-grid" style="margin-bottom: 2rem;">
-            
-            <!-- Último Resultado Section -->
-            <div class="last-match-wrapper" style="display: flex; flex-direction: column;">
-                <div class="section-header" style="justify-content:center;">
-                    <h2 class="section-title" style="font-size:1.1rem; letter-spacing:2px; text-transform:uppercase;">Último Partido</h2>
-                </div>
-                
-                <div class="match-card glass-panel" id="homeLatestMatches" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem; padding: 2rem; flex-grow:1; align-items:center;">
-                    <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando...</div>
-                </div>
+    <!-- Actualidad Section (Unified Cards) -->
+    <section id="actualidad" class="container" style="padding: 2rem 0;">
+        <div class="dashboard-grid">
+            <div class="match-wrapper" id="homeLatestMatches">
+                <!-- Identical Card Style Filled by JS -->
             </div>
-
-            <!-- Proximo Partido Section -->
-            <div class="next-match-wrapper" style="display: flex; flex-direction: column;">
-                <div class="section-header" style="justify-content:center;">
-                    <h2 class="section-title" style="font-size:1.1rem; letter-spacing:2px; text-transform:uppercase;">Próximo Partido</h2>
-                </div>
-                
-                <div class="match-card glass-panel" id="nextMatchCard" style="display: flex; flex-direction: column; justify-content: flex-start; gap: 1rem; padding: 2rem; flex-grow:1; align-items:center;">
-                    <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando...</div>
-                </div>
+            <div class="match-wrapper" id="nextMatchCard">
+                <!-- Identical Card Style Filled by JS -->
             </div>
-
         </div>
         
-        <div style="display:flex; justify-content:center; margin-bottom: 4rem;">
-            <button class="btn btn-primary" onclick="openFixtureModal()" style="padding: 1rem 3rem; font-size:1.1rem;">
+        <div style="display:flex; justify-content:center; margin-top: 3rem;">
+            <button class="btn btn-primary" onclick="openFixtureModal()">
                 <i class="ph-bold ph-calendar-check"></i> CALENDARIO 2026
             </button>
         </div>
+    </section>
 
-        <!-- Efemérides -->
-        <a id="efemerideLink" href="#" style="text-decoration: none; display: block; color: inherit;">
-            <div class="history-section glass-panel">
-                <span class="history-date">Un día como hoy...</span>
-                <p class="history-text" id="efemerideText">
-                    Cargando efemérides...
-                </p>
+    <!-- Campaña Actual (League Table Snippet) -->
+    <section id="campana" class="container" style="padding: 4rem 0;">
+        <div id="leagueTableContainer">
+            <!-- Filled dynamically by db.js -->
+        </div>
+    </section>
+
+    <!-- Plantel Section -->
+    <section id="plantel" class="container" style="padding: 6rem 0;">
+        <h2 class="section-title" style="margin-bottom: 3.5rem; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 2.5rem; color: #fff;">PLANTEL 2026</h2>
+
+        <!-- Filter Pills -->
+        <div style="display:flex; justify-content:center; gap:0.5rem; margin-bottom: 3.5rem; flex-wrap: wrap;">
+            <button class="filter-btn active" data-stat="general" onclick="filterPlantel('general', this)">General</button>
+            <button class="filter-btn" data-stat="goles" onclick="filterPlantel('goles', this)">Goleadores</button>
+            <button class="filter-btn" data-stat="asistencias" onclick="filterPlantel('asistencias', this)">Asistidores</button>
+            <button class="filter-btn" data-stat="tarjetas" onclick="filterPlantel('tarjetas', this)">Tarjetas</button>
+        </div>
+
+        <div id="playersGrid" class="players-grid">
+            <!-- Filled by JS (Alphabetical + Staff last + View All) -->
+        </div>
+    </section>
+
+    <!-- Plantel Section -->
+
+    <!-- Logros Section -->
+    <section id="logros" class="container" style="padding: 6rem 0; margin-bottom: 2rem;">
+        <h2 class="section-title"><span>Palmarés</span>4 Títulos Oficiales</h2>
+        <div class="titulos-container" id="trophiesContainer">
+            <!-- Filled by JS -->
+        </div>
+        <div style="display:flex; justify-content:center; margin-top: 3rem;">
+            <a href="campeonatos.html" class="btn btn-secondary">
+                <i class="ph-bold ph-trophy"></i> VER TODOS LOS TORNEOS
+            </a>
+        </div>
+    </section>
+
+    <!-- Global Search Section -->
+    <section id="busqueda" class="container" style="padding: 4rem 0; margin-bottom: 4rem; position: relative; z-index: 100;">
+        <div class="glass-panel" style="max-width: 700px; margin: 0 auto; padding: 2rem; position: relative;">
+            <div style="display: flex; align-items: center; gap: 1rem; background: rgba(255,255,255,0.05); padding: 0.75rem 1.5rem; border-radius: 50px; border: 1px solid var(--border-light);">
+                <i class="ph-bold ph-magnifying-glass" style="color: var(--accent-primary); font-size: 1.5rem;"></i>
+                <input type="text" id="globalSearchInput" placeholder="Busca jugadores, rivales, fechas o torneos..." style="background: none; border: none; color: #fff; width: 100%; font-size: 1.1rem; outline: none;" oninput="handleGlobalSearch(this.value)">
             </div>
-        </a>
+            <!-- Search Results Dropdown -->
+            <div id="searchResultsDropdown" class="glass-panel" style="display: none; position: absolute; top: 110%; left: 0; right: 0; z-index: 1000; max-height: 400px; overflow-y: auto; padding: 1rem; margin-top: 5px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                <!-- Sugerencias dinámicas aparecerán aquí -->
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="partidos.html" style="color: var(--accent-primary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; text-decoration: none; border-bottom: 2px solid var(--accent-primary); padding-bottom: 5px;">
+                <i class="ph-bold ph-clock-counter-clockwise"></i> Ver historial completo de partidos
+            </a>
+        </div>
+    </section>
 
-    </main>
+    <footer>
+        <div class="footer-logo">LA BUFARRA</div>
+        <p>© 2026 Estadísticas Oficiales. Archivo histórico desde 2021.</p>
+        <div style="margin-top: 1rem;">
+            <a href="historia.html" style="color: var(--accent-primary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Ver Historia Completa</a>
+        </div>
+    </footer>
 
     <!-- Fixture Modal -->
     <div id="fixtureModal" class="modal-overlay" onclick="closeFixtureModal(event)" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; backdrop-filter: blur(5px); align-items: center; justify-content: center; padding: 1rem;">
@@ -111,19 +173,40 @@
             <button onclick="closeFixtureModal()" class="btn btn-icon btn-secondary" style="position: absolute; top: 1rem; right: 1rem;">
                 <i class="ph-bold ph-x"></i>
             </button>
-            <h2 class="section-title" style="margin-bottom: 1.5rem; color: var(--accent-primary); border-left: 3px solid var(--accent-primary); padding-left: 1rem;">Fixture: Apertura 2026</h2>
+            <h2 class="section-title" style="margin-bottom: 1.5rem; text-align: left; align-items: flex-start;"><span>Fixture</span>Apertura 2026</h2>
             <div id="fixtureListContainer" style="overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.5rem;">
                 <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando fixture...</div>
             </div>
         </div>
     </div>
 
-    <footer>
-        <div class="footer-logo">LA BUFARRA</div>
-        <p>© 2026 Estadísticas Oficiales. Archivo histórico desde 2021.</p>
-    </footer>
-
     <!-- App Logic -->
-    <script src="js/db.js?v=5.0"></script>
+    <script src="js/db.js?v=8.0"></script>
+    <script>
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('mainHeader');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Efemeride Close
+        function closeEfemeride() {
+            document.getElementById('efemerideAlert').classList.remove('show');
+        }
+    </script>
 </body>
 </html>
