@@ -314,27 +314,32 @@ function finishLoad(source) {
     
     const bell = document.getElementById('notiBell');
     if (bell) {
-        OneSignal.push(function() {
-            OneSignal.isPushNotificationsEnabled(function(isEnabled) {
-                if (isEnabled) {
-                    bell.classList.add('active');
-                    if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
-                }
-            });
+        OneSignal.push(async function() {
+            const isEnabled = OneSignal.Notifications.permission;
+            if (isEnabled) {
+                bell.classList.add('active');
+                if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
+            }
         });
 
-        bell.onclick = () => {
-            OneSignal.push(function() {
-                OneSignal.isPushNotificationsEnabled(function(isEnabled) {
-                    if (isEnabled) {
-                        // Opcional: Podrías desuscribir aquí, pero por ahora mostramos mensaje
-                        alert("Ya estás suscrito a las notificaciones oficiales.");
-                    } else {
-                        OneSignal.registerForPushNotifications();
-                        bell.classList.add('active');
-                        if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
+        bell.onclick = async () => {
+            OneSignal.push(async function() {
+                const isEnabled = OneSignal.Notifications.permission;
+                if (isEnabled) {
+                    toast("Ya estás suscrito a las notificaciones oficiales.");
+                } else {
+                    try {
+                        await OneSignal.Notifications.requestPermission();
+                        if (OneSignal.Notifications.permission) {
+                            bell.classList.add('active');
+                            if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
+                            toast("¡Notificaciones activadas!", "success");
+                        }
+                    } catch (err) {
+                        console.error("OneSignal Error:", err);
+                        toast("No se pudieron activar las notificaciones", "error");
                     }
-                });
+                }
             });
         };
     }
