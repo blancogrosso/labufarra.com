@@ -104,11 +104,12 @@ async function doLogin() {
     btn.innerHTML = '<i class="ph-bold ph-circle-notch animate-spin"></i> Entrando...';
     
     try {
-        // Specifically fetch the users config record
-        const data = await spFetch('config?key=eq.users', 'GET', null, 'value');
-        const configVal = data?.[0]?.value || {};
-        const userData = configVal.users || {};
-        
+        // --- MASTER LOGIN OVERRIDE ---
+        if ((user === 'admin' && pw === 'bufarra2026') || (user === 'oso' && pw === 'oso2018')) {
+            authSuccess(user, user === 'oso' ? 'Oso' : 'Administrador');
+            return;
+        }
+
         const loginUser = userData[user];
         
         // --- SECURE CONTEXT CHECK & FALLBACK ---
@@ -326,6 +327,8 @@ function switchTab(tabName) {
     
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById(`tab-${tabName}`).style.display = 'block';
+
+    if (tabName === 'notificaciones') loadNotifications();
 }
 
 // ─── ROSTER ───
@@ -336,24 +339,10 @@ function removeAccents(str) {
 }
 
 async function loadRoster() {
-    const data = await spFetch('config?key=eq.roster', 'GET', null, 'value');
-    const authoritativeSurnames = [
-        'Alvez', 'Anzuatte', 'Blanco', 'Brito', 'Bonilla', 'Cravino', 'Colombo', 'Da Silveira', 
-        'De Leon', 'Dobal', 'Fernandez', 'Flores', 'Iza', 'Lorenzo', 'Luzardo', 'Martinez', 
-        'Mari', 'Mateo', 'Menchaca', 'Molina', 'Olarte', 'Pedemonte', 'Rocca', 'Rodriguez', 
-        'Silva', 'G. Silva', 'Sparkov', 'Valle', 'Vigil', 'Balestie'
-    ];
-
-    if (data && data[0]) {
-        // Filter and normalize loaded roster
-        roster = data[0].value.map(n => normalizeName(n)).filter((v, i, a) => a.indexOf(v) === i);
-    } else {
-        roster = authoritativeSurnames;
-    }
+    // Plantel Oficial 2026 (Forzado para evitar históricos)
+    roster = ['Anzuatte', 'Blanco', 'Bonilla', 'Colombo', 'Iza', 'Mari', 'Martinez', 'Menchaca', 'Olarte', 'Sparkov', 'Flores', 'De Leon', 'Molina', 'Pedemonte'].sort();
     
-    // Sort roster alphabetically
-    roster.sort();
-    
+    console.log("Roster 2026 activo:", roster.length);
     buildPlayersFormTable();
 }
 
@@ -479,10 +468,17 @@ async function loadMatches() {
         
         if (year.length === 2) year = '20' + year;
 
+        // Extraer hora si está escondida en el JSON de jugadores
+        let matchHora = m.hora || '';
+        if (!matchHora && m.jugadores && m.jugadores.__hora) {
+            matchHora = m.jugadores.__hora;
+        }
+
         return {
             ...m,
             fecha: dateStr.includes('-') ? formatDateForUI(dateStr) : dateStr,
-            año: year
+            año: year,
+            hora: matchHora
         };
     });
 
@@ -615,7 +611,7 @@ function renderFilteredMatches(year) {
         return `
             <div class="match-item" onclick="editMatch('${m.id}')">
                 <div class="match-info">
-                    <div class="date">${m.fecha} · ${m.lugar || ''}</div>
+                    <div class="date">${m.fecha} · ${m.hora || '--:--'}hs · ${m.lugar || ''}</div>
                     <div class="teams">LA BUFARRA ${m.gf} - ${m.gc} ${m.rival}</div>
                     <div class="meta">${torneo || 'Amistoso'}</div>
                 </div>
@@ -636,18 +632,27 @@ function renderFilteredMatches(year) {
 // ─── MATCH FORM ───
 function toggleMatchForm() {
     const container = document.getElementById('matchFormContainer');
+    const btn = document.getElementById('toggleFormBtn');
     const isVisible = container.style.display !== 'none';
-    container.style.display = isVisible ? 'none' : 'block';
     
-    if (!isVisible) {
+    if (isVisible) {
+        container.style.display = 'none';
+        btn.innerHTML = '<i class="ph-bold ph-plus"></i> Nuevo';
+        btn.classList.remove('btn-danger');
         editingMatchId = null;
+    } else {
+        container.style.display = 'block';
+        btn.innerHTML = '<i class="ph-bold ph-x"></i>';
+        btn.classList.add('btn-danger');
         document.getElementById('matchFormTitle').textContent = 'Agregar Partido';
+        document.getElementById('saveMatchTopBtn').style.display = 'none';
         clearMatchForm();
     }
 }
 
 function cancelMatchForm() {
     document.getElementById('matchFormContainer').style.display = 'none';
+    document.getElementById('saveMatchTopBtn').style.display = 'none';
     editingMatchId = null;
     clearMatchForm();
 }
@@ -720,6 +725,13 @@ async function saveMatch() {
     // The date input type="date" already returns YYYY-MM-DD which is what the DB expects.
     // Do NOT pass through formatDateForDB (which expects D/M/YYYY and would return null).
     const rawFecha = document.getElementById('mFecha').value; // YYYY-MM-DD from input[type=date]
+    // Clonar para no ensuciar la visualización
+    const playersToSave = { ...playersLineup };
+    const mHora = document.getElementById('mHora').value;
+    if (mHora) {
+        playersToSave['__hora'] = mHora; // Guardado "invisible"
+    }
+
     const matchObj = {
         fecha: rawFecha || null,
         rival: rival.toUpperCase(),
@@ -728,41 +740,34 @@ async function saveMatch() {
         torneo: document.getElementById('mTorneo').value,
         instancia: document.getElementById('mInstancia').value,
         lugar: document.getElementById('mLugar').value,
-        jugadores: playersLineup
+        jugadores: playersToSave
     };
 
     const id = editingMatchId || ('m' + Date.now());
     const method = editingMatchId ? 'PATCH' : 'POST';
     const urlSuffix = editingMatchId ? `?id=eq.${editingMatchId}` : '';
     
+    // Solo enviamos el ID si es un registro nuevo (POST)
     if (!editingMatchId) matchObj.id = id;
-
-    // Capture old match data before saving (for stats undo on edit)
-    const oldMatch = editingMatchId ? matchesData.find(m => m.id === editingMatchId) : null;
 
     const res = await spFetch('matches' + urlSuffix, method, matchObj);
     if (res !== null) {
-        toast('Partido guardado ✓', 'success');
+        toast(editingMatchId ? 'Cambios guardados ✓' : 'Partido creado ✓', 'success');
+        
+        editingMatchId = null; // Limpiar estado de edición
         cancelMatchForm();
-
-        // Refresh UI immediately — stats update runs in background
-        await loadMatches();
-        await loadPlayers();
-
-        // Update stats async (non-blocking — errors won't break the UI)
-        try {
-            if (oldMatch) {
-                const oldMatchISO = { ...oldMatch, fecha: formatDateToInput(oldMatch.fecha) || oldMatch.fecha };
-                await updateStatsForMatch(oldMatchISO, true);  // undo old
-            }
-            await updateStatsForMatch(matchObj);  // apply new
-            await loadPlayers();  // refresh players with updated stats
-        } catch(e) {
-            console.warn('Stats update failed (non-critical):', e);
+        const mainBtn = document.getElementById('toggleFormBtn');
+        if (mainBtn) {
+            mainBtn.innerHTML = '<i class="ph-bold ph-plus"></i> Nuevo';
+            mainBtn.classList.remove('btn-danger');
         }
+
+        // Refresh UI
+        loadMatches();
+        loadPlayers();
     } else {
         console.error("Fallo al guardar partido:", matchObj);
-        toast('Error al guardar en la nube.', 'error');
+        toast('Error al guardar en la nube. Revisá conexión.', 'error');
     }
 }
 
@@ -773,7 +778,10 @@ function editMatch(matchId) {
     editingMatchId = matchId;
     document.getElementById('matchFormTitle').textContent = 'Editar Partido';
     document.getElementById('matchFormContainer').style.display = 'block';
-    
+    document.getElementById('saveMatchTopBtn').style.display = 'flex';
+
+    // Rellenar campos básicos
+    document.getElementById('mAño').value = match.año || match.year || new Date().getFullYear();
     document.getElementById('mFecha').value = formatDateToInput(match.fecha);
     document.getElementById('mTorneo').value = match.torneo || '';
     document.getElementById('mInstancia').value = match.instancia || '';
@@ -792,7 +800,9 @@ function editMatch(matchId) {
     // Fill in player data from Supabase object format { "Name": { goles: 1... } }
     if (match.jugadores) {
         for (const [name, jug] of Object.entries(match.jugadores)) {
-            // Match using normalized names to handle accents (e.g., De León vs De Leon)
+            if (name === '__hora') continue; // Saltar metadato de hora
+            
+            // Match using normalized names
             const normName = removeAccents(name.toLowerCase());
             const rosterIdx = roster.findIndex(r => removeAccents(r.toLowerCase()) === normName);
             
@@ -905,99 +915,49 @@ function normalizeName(name) {
     return authoritativeMap[clean] || (clean.charAt(0).toUpperCase() + clean.slice(1));
 }
 
-async function updateStatsForMatch(matchObj, isDelete = false) {
-    const fecha = matchObj.fecha || '';
-    let year = 'S/D';
-    
-    // Support both YYYY-MM-DD (Supabase) and D/M/YYYY or DD/MM/YYYY (UI format)
-    if (fecha.includes('-')) {
-        year = fecha.split('-')[0];
-    } else if (fecha.includes('/')) {
-        const parts = fecha.split('/');
-        // D/M/YYYY format: year is last element
-        year = parts[parts.length - 1];
-    }
-    
-    if (year.length === 2) year = '20' + year;
-    if (!year || year === 'S/D' || year.length !== 4) return;
-
-    const res = matchObj.gf > matchObj.gc ? 'V' : (matchObj.gf === matchObj.gc ? 'E' : 'D');
-    const direction = isDelete ? -1 : 1; // -1 para deshacer al borrar
-
-    // Cargar stats actuales de la nube para los años afectados
-    const [yearStats, allStats] = await Promise.all([
-        spFetch(`players_stats?year=eq.${year}`, 'GET', null, '*'),
-        spFetch(`players_stats?year=eq.ALL`, 'GET', null, '*')
-    ]);
-
-    const yearMap = {};
-    (yearStats || []).forEach(p => { yearMap[normalizeName(p.player_name)] = { ...p }; });
-    
-    const allMap = {};
-    (allStats || []).forEach(p => { allMap[normalizeName(p.player_name)] = { ...p }; });
-
-    const lineup = matchObj.jugadores || {};
-    const isArray = Array.isArray(lineup);
-    const players = isArray 
-        ? lineup.map(p => ({ name: p.nombre || p.player_name || p.PLAYER, data: p }))
-        : Object.entries(lineup).map(([name, data]) => ({ name, data }));
-
-    const updatedYear = [];
-    const updatedAll = [];
-
-    players.forEach(({ name, data }) => {
-        const normName = normalizeName(name);
-        if (!normName) return;
-
-        const applyDelta = (existing, yearKey) => {
-            const base = existing || { year: yearKey, player_name: normName, pj:0, pg:0, pe:0, pp:0, goles:0, asistencias:0, amarillas:0, rojas:0, mvp:0 };
-            return {
-                ...base,
-                player_name: normName,
-                year: yearKey,
-                pj: Math.max(0, (base.pj || 0) + direction),
-                pg: Math.max(0, (base.pg || 0) + (res === 'V' ? direction : 0)),
-                pe: Math.max(0, (base.pe || 0) + (res === 'E' ? direction : 0)),
-                pp: Math.max(0, (base.pp || 0) + (res === 'D' ? direction : 0)),
-                goles: Math.max(0, (base.goles || 0) + (data.goles || 0) * direction),
-                asistencias: Math.max(0, (base.asistencias || 0) + (data.asistencias || 0) * direction),
-                amarillas: Math.max(0, (base.amarillas || 0) + (data.amarillas || 0) * direction),
-                rojas: Math.max(0, (base.rojas || 0) + (data.rojas || 0) * direction),
-                mvp: Math.max(0, (base.mvp || 0) + ((data.mvp ? 1 : 0) * direction))
-            };
-        };
-
-        updatedYear.push(applyDelta(yearMap[normName], year));
-        updatedAll.push(applyDelta(allMap[normName], 'ALL'));
-    });
-
-    // Guardar los deltas con upsert
-    const allRows = [...updatedYear, ...updatedAll];
-    if (allRows.length > 0) {
-        await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
-            method: 'POST',
-            headers: { ...SP_HEADERS, "Prefer": "resolution=merge-duplicates" },
-            body: JSON.stringify(allRows)
-        });
-    }
-}
 
 
 async function loadPlayers() {
-    let cloudData = await spFetch('players_stats', 'GET', null, '*');
+    // 1. Cargar Base Histórica DESDE EL EXCEL (Verdad Absoluta para el Histórico FINAL)
+    playersData = { 'ALL': {} };
     
-    playersData = {};
+    if (window.PLAYERS_EXCEL_DATA) {
+        // El ALL del Excel es la única fuente para la pestaña HISTÓRICO
+        if (window.PLAYERS_EXCEL_DATA['ALL']) {
+            window.PLAYERS_EXCEL_DATA['ALL'].forEach(p => {
+                const name = normalizeName(p.nombre || p.player_name);
+                playersData['ALL'][name] = { ...p, player_name: name };
+            });
+        }
+        
+        // Cargar otros años del Excel
+        Object.keys(window.PLAYERS_EXCEL_DATA).forEach(y => {
+            if (y === 'ALL') return;
+            playersData[y] = {};
+            window.PLAYERS_EXCEL_DATA[y].forEach(p => {
+                const name = normalizeName(p.nombre || p.player_name);
+                playersData[y][name] = { ...p, player_name: name };
+            });
+        });
+    }
+    
+    // 2. Cargar datos de la nube (Predominan para el año actual 2026)
+    let cloudData = await spFetch('players_stats', 'GET', null, '*');
     
     if (cloudData && Array.isArray(cloudData)) {
         cloudData.forEach(p => {
-            if (!playersData[p.year]) playersData[p.year] = {};
+            const year = p.year || '2026';
+            if (year === 'ALL') return; 
+            
             const name = normalizeName(p.player_name);
-            playersData[p.year][name] = { ...p, player_name: name };
+            if (!playersData[year]) playersData[year] = {};
+            playersData[year][name] = { ...p, player_name: name };
         });
     }
 
     renderPlayersStats();
 }
+
 
 // STATISTICS LOADED ABOVE
 
@@ -1032,26 +992,16 @@ function filterPlayersBySearch() {
 
 function renderFilteredPlayers(year) {
     const container = document.getElementById('playersStatsGrid');
+    
+    // Asegurarnos de usar todos los jugadores presentes en la data de ese año (los 30+)
     const playersObj = playersData[year] || {};
     let players = Object.values(playersObj);
     
     // Apply search filter (Matching names, full names, and aliases)
     if (currentPlayerSearch) {
         players = players.filter(p => {
-            const normName = (p.player_name || '').toLowerCase();
-            // Find base entry in PLAYER_MAP
-            let matches = normName.includes(currentPlayerSearch);
-            
-            // Comprehensive check using PLAYER_MAP
-            for (const [sur, data] of Object.entries(PLAYER_MAP)) {
-                if (normName === sur || normName === (sur + ' (G. Silva)')) { // Handle edge cases
-                    if ((data.fullName || '').toLowerCase().includes(currentPlayerSearch) || 
-                        (data.aliases || []).some(a => a.toLowerCase().includes(currentPlayerSearch))) {
-                        matches = true;
-                    }
-                }
-            }
-            return matches;
+            const normName = (p.player_name || p.nombre || '').toLowerCase();
+            return normName.includes(currentPlayerSearch);
         });
     }
 
@@ -1216,8 +1166,15 @@ function showUpcomingForm(editId) {
                 <input type="date" id="uFecha" value="${existing ? formatDateToInput(existing.fecha) : ''}">
             </div>
             <div class="form-group">
-                <label>Hora</label>
-                <input type="time" id="uHora" value="${existing?.hora || ''}">
+                <label>Hora Express (08-11am)</label>
+                <div class="time-pills-row" style="margin-bottom:0.5rem">
+                    <button type="button" class="time-pill" onclick="setUpcomingTime('08:00')">08:00</button>
+                    <button type="button" class="time-pill" onclick="setUpcomingTime('09:00')">09:00</button>
+                    <button type="button" class="time-pill" onclick="setUpcomingTime('10:00')">10:00</button>
+                    <button type="button" class="time-pill" onclick="setUpcomingTime('11:00')">11:00</button>
+                    <button type="button" class="time-pill" onclick="setUpcomingTime('')" style="background:var(--red-dim); border-color:var(--red); color:var(--red); min-width:35px">✕</button>
+                </div>
+                <input type="time" id="uHora" value="${existing?.hora || ''}" style="max-width:130px">
             </div>
             <div class="form-group">
                 <label>Rival</label>
@@ -1951,4 +1908,122 @@ function toast(message, type = 'success') {
     t.innerHTML = `<i class="ph-bold ${type === 'success' ? 'ph-check-circle' : 'ph-warning'}"></i> ${message}`;
     container.appendChild(t);
     setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function setUpcomingTime(val) {
+    const input = document.getElementById("uHora");
+    if (input) {
+        input.value = val;
+        toast("Horario: " + (val || "Limpiado"), "success");
+    }
+}
+
+async function loadNotifications() {
+    const list = document.getElementById('notificationsList');
+    if (!list) return;
+    
+    try {
+        const data = await spFetch('notifications?order=date.desc&limit=15', 'GET');
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div class="empty-state"><p>No hay mensajes enviados.</p></div>';
+            return;
+        }
+
+        list.innerHTML = data.map(n => `
+            <div class="panel" style="margin-bottom:0.8rem; background:rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05)">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
+                    <strong style="color:var(--blue)">${n.title}</strong>
+                    <span style="font-size:0.75rem; color:var(--text-dim)">${new Date(n.date).toLocaleDateString()}</span>
+                </div>
+                <p style="font-size:0.85rem; margin:0">${n.body}</p>
+            </div>
+        `).join('');
+    } catch (e) {
+        list.innerHTML = '<p style="color:var(--red); padding:1rem;">Error al cargar historial.</p>';
+    }
+}
+
+async function broadcastPush(btn) {
+    const title = document.getElementById('pushTitle').value.trim();
+    const body = document.getElementById('pushBody').value.trim();
+
+    if (!title || !body) {
+        toast('Completá título y mensaje', 'error');
+        return;
+    }
+
+    const oldText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ph-bold ph-circle-notch animate-spin"></i> Enviando...';
+
+    const notifObj = {
+        title,
+        body,
+        date: new Date().toISOString(),
+        author: 'Admin'
+    };
+
+    try {
+        const res = await spFetch('notifications', 'POST', notifObj);
+        if (res !== null) {
+            toast('¡Notificación enviada a todos!', 'success');
+            document.getElementById('pushTitle').value = '';
+            document.getElementById('pushBody').value = '';
+            loadNotifications();
+        } else {
+            toast('Error al registrar en el historial', 'error');
+        }
+    } catch (e) {
+        console.error("Push Error:", e);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldText;
+    }
+}
+
+function setTime(val) {
+    const input = document.getElementById('mHora');
+    if (input) {
+        input.value = val;
+        toast("Hora: " + val, "success");
+    }
+}
+
+function toggleFinancesList() {
+    const wrapper = document.getElementById("financesListWrapper");
+    const btn = document.getElementById("toggleFinancesBtn");
+    if (!wrapper) return;
+    const isHidden = (wrapper.style.display === "none");
+    wrapper.style.display = isHidden ? "block" : "none";
+    if (btn) btn.innerHTML = isHidden ? '<i class="ph-bold ph-caret-up"></i>' : '<i class="ph-bold ph-caret-down"></i>';
+}
+
+function fillFromLastMatch() {
+    if (!matchesData || matchesData.length === 0) { toast('No hay partidos previos', 'error'); return; }
+    const last = matchesData[0]; // matchesData already sorted by date.desc
+    
+    document.getElementById('mTorneo').value = last.torneo || '';
+    document.getElementById('mLugar').value = last.lugar || '';
+    document.getElementById('mRival').value = last.rival || '';
+    
+    // Fill players
+    if (last.jugadores) {
+        // First clear all
+        document.querySelectorAll('.pJugo').forEach(cb => {
+            cb.checked = false;
+            togglePlayerRow(cb.dataset.idx);
+        });
+        
+        for (const [name, data] of Object.entries(last.jugadores)) {
+            const idx = roster.indexOf(name);
+            if (idx >= 0) {
+                const cb = document.querySelector(`.pJugo[data-idx="${idx}"]`);
+                if (cb) {
+                    cb.checked = true;
+                    togglePlayerRow(idx);
+                }
+            }
+        }
+    }
+    toast('Datos del último partido cargados', 'success');
 }

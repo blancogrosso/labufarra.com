@@ -1,0 +1,22 @@
+{
+  "name": "La Bufarra Oficial",
+  "short_name": "La Bufarra",
+  "description": "Estadísticas y Fixture Oficial de La Bufarra",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#ff6b81",
+  "icons": [
+    {
+      "src": "img/logo/ESCUDO_BUFARRA.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "img/logo/ESCUDO_BUFARRA.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

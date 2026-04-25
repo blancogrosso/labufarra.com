@@ -1,0 +1,14 @@
+[
+  { "pos": 1, "name": "La Costa FC", "pj": 2, "pg": 2, "pe": 0, "pp": 0, "gf": 8, "gc": 0, "dg": 8, "pts": 6, "highlighted": false },
+  { "pos": 2, "name": "Berges FC (Dom)", "pj": 2, "pg": 2, "pe": 0, "pp": 0, "gf": 8, "gc": 2, "dg": 6, "pts": 6, "highlighted": false },
+  { "pos": 3, "name": "FC Fernetbache ( Dom Pro)", "pj": 2, "pg": 2, "pe": 0, "pp": 0, "gf": 6, "gc": 3, "dg": 3, "pts": 6, "highlighted": false },
+  { "pos": 4, "name": "Porte FC (Domingo)", "pj": 2, "pg": 1, "pe": 0, "pp": 1, "gf": 9, "gc": 5, "dg": 4, "pts": 3, "highlighted": false },
+  { "pos": 5, "name": "Parque Guarani", "pj": 1, "pg": 1, "pe": 0, "pp": 0, "gf": 5, "gc": 2, "dg": 3, "pts": 3, "highlighted": false },
+  { "pos": 6, "name": "LA BUFARRA", "pj": 2, "pg": 1, "pe": 0, "pp": 1, "gf": 6, "gc": 4, "dg": 2, "pts": 3, "highlighted": true },
+  { "pos": 7, "name": "Safaera FC.", "pj": 2, "pg": 1, "pe": 0, "pp": 1, "gf": 5, "gc": 6, "dg": -1, "pts": 3, "highlighted": false },
+  { "pos": 8, "name": "C. A. Magna", "pj": 2, "pg": 1, "pe": 0, "pp": 1, "gf": 8, "gc": 10, "dg": -2, "pts": 3, "highlighted": false },
+  { "pos": 9, "name": "Alta Gama F.C", "pj": 1, "pg": 0, "pe": 0, "pp": 1, "gf": 1, "gc": 6, "dg": -5, "pts": 0, "highlighted": false },
+  { "pos": 10, "name": "Club Atletico Parenaese", "pj": 2, "pg": 0, "pe": 0, "pp": 2, "gf": 2, "gc": 8, "dg": -6, "pts": 0, "highlighted": false },
+  { "pos": 11, "name": "Prestcold FC", "pj": 2, "pg": 0, "pe": 0, "pp": 2, "gf": 2, "gc": 8, "dg": -6, "pts": 0, "highlighted": false },
+  { "pos": 12, "name": "ENFUGEIRA FC", "pj": 2, "pg": 0, "pe": 0, "pp": 2, "gf": 1, "gc": 7, "dg": -6, "pts": 0, "highlighted": false }
+]

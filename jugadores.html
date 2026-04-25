@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>La Bufarra</title>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignal.js" async=""></script>
     
     <!-- Evitar caché en desarrollo/producción para datos dinámicos -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -15,6 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
     
+    <link rel="manifest" href="manifest.json">
     <!-- Icons (Phosphor) -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
@@ -30,29 +32,41 @@
     </style>
     <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
 </head>
-<body>
+<body class="white-base">
 
     <!-- Header Navigation -->
     <header>
         <div class="nav-container">
-            <a href="index.html" class="logo">
-                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
-            </a>
-            <ul class="nav-links">
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="jugadores.html" class="active">Jugadores</a></li>
-                <li><a href="partidos.html">Partidos</a></li>
-                <li><a href="entrenadores.html">Entrenadores</a></li>
-                <li><a href="campeonatos.html">Campeonatos</a></li>
-                <li><a href="historia.html">Historia</a></li>
-                
-                <li style="display:flex; align-items:center;"><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary); line-height: 1;"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
-                <li style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display);">
-                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-main);">ES</a>
-                    <span style="color:var(--text-muted); font-size:1rem;">/</span>
-                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-muted); cursor:not-allowed;" title="Soon...">EN</a>
-                </li>
-            </ul>
+            <div class="nav-left">
+                <a href="index.html" class="logo">
+                    <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 40px; width: auto;" onerror="this.style.display='none';">
+                </a>
+            </div>
+            <div class="nav-center">
+                <ul class="nav-links">
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="jugadores.html" class="active">Jugadores</a></li>
+                    <li><a href="partidos.html">Partidos</a></li>
+                    <li><a href="entrenadores.html">Entrenadores</a></li>
+                    <li><a href="campeonatos.html">Campeonatos</a></li>
+                    <li><a href="historia.html">Historia</a></li>
+                </ul>
+            </div>
+            <div class="nav-right">
+                <div class="nav-actions">
+                    <a href="https://instagram.com/labufarra" target="_blank" style="color: var(--accent-primary); display:flex; align-items:center;">
+                        <i class="ph-bold ph-instagram-logo" style="font-size: 1.4rem;"></i>
+                    </a>
+                    <div style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display); font-size: 0.9rem;">
+                        <span style="font-weight:800; color:var(--text-main);">ES</span>
+                        <span style="color:var(--text-muted);">/</span>
+                        <span style="font-weight:800; color:var(--text-muted); opacity:0.5;">EN</span>
+                    </div>
+                    <div class="nav-toggle">
+                        <i class="ph-bold ph-list"></i>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -62,7 +76,7 @@
         <div class="page-header">
             <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-bottom: 2rem;">
                 <div style="text-align: right;">
-                    <span id="playerCountLarge" style="font-size: 4rem; font-weight: 800; color: var(--accent-primary); line-height: 1;">0</span>
+                    <span id="playerCountLarge" style="font-size: 4rem; font-weight: 900; color: var(--accent-primary); line-height: 1;">0</span>
                 </div>
                 <div style="text-align: left; border-left: 2px solid var(--border-light); padding-left: 1.5rem;">
                     <div style="font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Jugadores<br>Históricos</div>
@@ -74,9 +88,12 @@
         <div class="filters-container" style="display: flex; flex-direction: column; gap: 2rem; margin-bottom: 4rem;">
             <!-- Row 1: Search and Count/Sort -->
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1.5rem;">
-                <div class="search-box">
-                    <i class="ph-bold ph-magnifying-glass" style="color: var(--text-muted)"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar por nombre o apodo..." class="glass-panel">
+                <div class="search-box search-container" style="position:relative; flex:1; max-width: 400px;">
+                    <i class="ph-bold ph-magnifying-glass" style="color: var(--text-muted); position: absolute; left: 1rem;"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar por nombre o apodo..." class="glass-panel" style="width: 100%; padding-left: 3rem;" oninput="handleSearchInput(this, 'clearBtnPlayers')">
+                    <button id="clearBtnPlayers" class="clear-search-btn" onclick="clearSearch('searchInput', 'clearBtnPlayers')">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
                 </div>
                 
                 <div class="sort-selector" id="sortFilters" style="display: flex; gap: 0.5rem; align-items: center;">
@@ -118,8 +135,11 @@
         <p>© 2026 Estadísticas Oficiales. Archivo histórico desde 2021.</p>
     </footer>
 
-    <!-- Use shared DB logical module -->
-    <script src="js/db.js?v=5.0"></script>
-    <script src="js/jugadores.js?v=5.0"></script>
+    <!-- Scripts de Datos y Lógica -->
+    <script src="js/players_data.js?v=5.3"></script>
+    <script src="js/db.js?v=5.3"></script>
+    <script src="js/jugadores.js?v=5.3"></script>
+    <script src="js/rival.js?v=5.3"></script>
+    <script src="js/navigation.js"></script>
 </body>
 </html>

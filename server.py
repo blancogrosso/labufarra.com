@@ -13,6 +13,7 @@ import hashlib
 import secrets
 import time
 import re
+import csv
 from datetime import datetime
 
 PORT = int(os.environ.get('PORT', 8000))
@@ -474,117 +475,189 @@ class BufarraHandler(http.server.SimpleHTTPRequestHandler):
             return y * 10000 + m * 100 + d
         except:
             return 0
-    
-    def _recalculate_players(self, matches):
-        """Recalculate player stats from match data"""
+
+    def _get_coach(self, year, tournament):
+        y = str(year)
+        t = str(tournament).lower()
+        if y in ['2021', '2022']: return "Federico Dobal"
+        if y == '2023':
+            if 'apertura' in t: return "Federico Dobal"
+            if 'intermedio' in t: return "Sebastian Pedemonte / Justiniano Molina"
+            if 'campeones' in t: return "Santiago Mateo"
+            return "Federico Dobal"
+        if y == '2024': return "Guillermo Rodriguez"
+        if y == '2025': return "Emiliano Reyes"
+        if y == '2026': return "Santiago Mateo / Emiliano Reyes"
+        return ""
+
+    def _sync_to_csv(self, matches):
+        """Generates 3 CSV files in DATOS EXCEL for Google Sheets sync"""
+        excel_dir = os.path.join(BASE_DIR, 'DATOS EXCEL')
+        os.makedirs(excel_dir, exist_ok=True)
+        
+        # 1. BUFARRA ESTADISTICAS - PARTIDOS.csv
+        p_path = os.path.join(excel_dir, 'BUFARRA ESTADISTICAS - PARTIDOS.csv')
+        headers_p = ["Año", "Fecha", "Torneo", "Instancia", "Rival", "GF", "GC", "Resultado", "Lugar", "Director Técnico"]
+        with open(p_path, 'w', encoding='utf-8-sig', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(headers_p)
+            for m in matches:
+                writer.writerow([
+                    m.get('año', ''), m.get('fecha', ''), m.get('torneo', ''), m.get('instancia', ''),
+                    m.get('vs', m.get('rival', '')), m.get('gf', ''), m.get('gc', ''), m.get('resultado', ''),
+                    m.get('lugar', ''), self._get_coach(m.get('año', ''), m.get('torneo', ''))
+                ])
+
+        # 2. BUFARRA ESTADISTICAS - DETALLE.csv (Granular)
+        d_path = os.path.join(excel_dir, 'BUFARRA ESTADISTICAS - DETALLE.csv')
+        headers_d = ["MatchID", "Año", "Torneo", "Fecha", "Jugador", "Goles", "Asistencias", "Amarillas", "Rojas", "MVP", "Rival"]
+        with open(d_path, 'w', encoding='utf-8-sig', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(headers_d)
+            for m in matches:
+                for j in m.get('jugadores', []):
+                    if not j.get('jugo', False): continue
+                    writer.writerow([
+                        m.get('id', ''), m.get('año', ''), m.get('torneo', ''), m.get('fecha', ''),
+                        j['nombre'], j.get('goles', 0), j.get('asistencias', 0), j.get('amarillas', 0), j.get('rojas', 0),
+                        "SI" if j.get('mvp') else "NO", m.get('vs', m.get('rival', ''))
+                    ])
+
+        # 3. BUFARRA ESTADISTICAS - JUGADORES.csv (Aggregated by Year-Tournament)
         players = load_json('players.json')
+        s_path = os.path.join(excel_dir, 'BUFARRA ESTADISTICAS - JUGADORES.csv')
+        headers_s = ["Sección", "Año", "Torneo", "Director Técnico", "Jugador", "PJ", "PG", "PE", "PP", "Goles", "Asistencias", "Amarillas", "Rojas", "MVP"]
+        with open(s_path, 'w', encoding='utf-8-sig', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(headers_s)
+            
+            # Global Historical Block
+            for p in players.get('ALL', []):
+                writer.writerow([
+                    "HISTÓRICO", "TOTAL", "-", p.get('nombre', ''),
+                    p.get('pj', 0), p.get('pg', 0), p.get('pe', 0), p.get('pp', 0),
+                    p.get('goles', 0), p.get('asistencias', 0), p.get('amarillas', 0), p.get('rojas', 0), p.get('mvp', 0)
+                ])
+                
+            # Yearly Blocks
+            for year, tournaments in players.items():
+                if year == 'ALL': continue
+                if isinstance(tournaments, dict):
+                    for t_name, t_data in tournaments.items():
+                        dt = t_data.get('dt', self._get_coach(year, t_name))
+                        for p in t_data.get('jugadores', []):
+                            writer.writerow([
+                                year, t_name, dt, p.get('nombre', ''),
+                                p.get('pj', 0), p.get('pg', 0), p.get('pe', 0), p.get('pp', 0),
+                                p.get('goles', 0), p.get('asistencias', 0), p.get('amarillas', 0), p.get('rojas', 0), p.get('mvp', 0)
+                            ])
+    
+    def normalize_name(self, name):
+        """Standardize names to prevent duplicates due to accents/casing"""
+        import unicodedata
+        if not name: return ""
+        n = name.strip()
+        # Specific visual mappings for consistent grouping
+        mapping = {
+            "Martínez": "Martinez",
+            "Miqueas Martinez": "Martinez",
+            "Enzo De León": "De León",
+            "Rodríguez": "Rodriguez",
+            "Guillermo Rodriguez": "Rodriguez",
+            "Joaquin Valle": "Valle",
+            "Mateo": "Mateo",
+            "Santiago Mateo": "Mateo",
+            "da Silveira": "Da Silveira",
+            "Silva, Gastón": "Silva, Gaston"
+        }
+        if n in mapping: return mapping[n]
         
-        # We only recalculate if matches have player-level data
-        # Group matches by year
-        stats_by_year = {}
-        stats_all = {}
-        
+        # General accent stripping for safety
+        normalized = unicodedata.normalize('NFD', n)
+        return "".join(c for c in normalized if unicodedata.category(c) != 'Mn')
+
+    def _recalculate_players(self, matches):
+        """Recalculate player stats with complete Yearly Master, Year > Tournament granularity and Normalization"""
+        # Load the Yearly Master (2021-2025)
+        players_db = load_json('historical_master.json')
+        if not isinstance(players_db, dict): players_db = {}
+
+        # Add new matches to the database
         for match in matches:
             jugadores = match.get('jugadores', [])
-            if not jugadores:
-                continue
+            if not jugadores: continue
             
-            año = match.get('año', '')
+            año = str(match.get('año', ''))
+            torneo = match.get('torneo', 'Otros')
             resultado = match.get('resultado', '')
             
-            for jug in jugadores:
-                if not jug.get('jugo', False):
-                    continue
-                
-                nombre = jug['nombre']
-                
-                # Update yearly
-                if año:
-                    if año not in stats_by_year:
-                        stats_by_year[año] = {}
-                    if nombre not in stats_by_year[año]:
-                        stats_by_year[año][nombre] = {'nombre': nombre, 'pj':0,'pg':0,'pe':0,'pp':0,'goles':0,'asistencias':0,'amarillas':0,'rojas':0,'mvp':0}
-                    s = stats_by_year[año][nombre]
-                    s['pj'] += 1
-                    if resultado == 'V': s['pg'] += 1
-                    elif resultado == 'E': s['pe'] += 1
-                    elif resultado == 'D': s['pp'] += 1
-                    s['goles'] += int(jug.get('goles', 0))
-                    s['asistencias'] += int(jug.get('asistencias', 0))
-                    s['amarillas'] += int(jug.get('amarillas', 0))
-                    s['rojas'] += int(jug.get('rojas', 0))
-                    if jug.get('mvp', False):
-                        s['mvp'] += 1
-                
-                # Update global
-                if nombre not in stats_all:
-                    stats_all[nombre] = {'nombre': nombre, 'pj':0,'pg':0,'pe':0,'pp':0,'goles':0,'asistencias':0,'amarillas':0,'rojas':0,'mvp':0}
-                a = stats_all[nombre]
-                a['pj'] += 1
-                if resultado == 'V': a['pg'] += 1
-                elif resultado == 'E': a['pe'] += 1
-                elif resultado == 'D': a['pp'] += 1
-                a['goles'] += int(jug.get('goles', 0))
-                a['asistencias'] += int(jug.get('asistencias', 0))
-                a['amarillas'] += int(jug.get('amarillas', 0))
-                a['rojas'] += int(jug.get('rojas', 0))
-                if jug.get('mvp', False):
-                    a['mvp'] += 1
-        
-        # Only update if we actually have player-level data from matches
-        if stats_all:
-            # For yearly stats: only replace years where we computed from match data
-            for año, year_stats in stats_by_year.items():
-                players[año] = list(year_stats.values())
-            
-            # For ALL (histórico): MERGE computed stats with existing historical base
-            # Start from the existing historical data for players NOT in computed
-            existing_all = {p.get('nombre', p.get('PLAYER', '')): p for p in players.get('ALL', [])}
-            
-            # For each player in existing ALL, check if we have computed data
-            merged_all = {}
-            
-            # First: add all existing players with their historical stats
-            for name, existing in existing_all.items():
-                merged_all[name] = {
-                    'nombre': name,
-                    'pj': int(existing.get('pj', existing.get('PJ', 0))),
-                    'pg': int(existing.get('pg', existing.get('PG', 0))),
-                    'pe': int(existing.get('pe', existing.get('PE', 0))),
-                    'pp': int(existing.get('pp', existing.get('PP', 0))),
-                    'goles': int(existing.get('goles', existing.get('GOLES', 0))),
-                    'asistencias': int(existing.get('asistencias', existing.get('ASISTENCIAS', 0))),
-                    'amarillas': int(existing.get('amarillas', existing.get('AMARILLAS', 0))),
-                    'rojas': int(existing.get('rojas', existing.get('ROJAS', 0))),
-                    'mvp': int(existing.get('mvp', existing.get('MVP', 0)))
+            if año not in players_db: players_db[año] = {}
+            if torneo not in players_db[año]:
+                players_db[año][torneo] = {
+                    "dt": self._get_coach(año, torneo),
+                    "jugadores_map": {}
                 }
             
-            # Now rebuild ALL from yearly data (both historical and computed)
-            # Reset to recalculate from all yearly blocks
-            recalc_all = {}
-            for año_key, año_players in players.items():
-                if año_key == 'ALL':
-                    continue
-                for p in año_players:
-                    name = p.get('nombre', p.get('PLAYER', ''))
-                    if not name:
-                        continue
-                    if name not in recalc_all:
-                        recalc_all[name] = {'nombre': name, 'pj':0,'pg':0,'pe':0,'pp':0,'goles':0,'asistencias':0,'amarillas':0,'rojas':0,'mvp':0}
-                    r = recalc_all[name]
-                    r['pj'] += int(p.get('pj', p.get('PJ', 0)))
-                    r['pg'] += int(p.get('pg', p.get('PG', 0)))
-                    r['pe'] += int(p.get('pe', p.get('PE', 0)))
-                    r['pp'] += int(p.get('pp', p.get('PP', 0)))
-                    r['goles'] += int(p.get('goles', p.get('GOLES', 0)))
-                    r['asistencias'] += int(p.get('asistencias', p.get('ASISTENCIAS', 0)))
-                    r['amarillas'] += int(p.get('amarillas', p.get('AMARILLAS', 0)))
-                    r['rojas'] += int(p.get('rojas', p.get('ROJAS', 0)))
-                    r['mvp'] += int(p.get('mvp', p.get('MVP', 0)))
+            t_block = players_db[año][torneo]
+            if "jugadores" in t_block and "jugadores_map" not in t_block:
+                t_block["jugadores_map"] = { self.normalize_name(p['nombre']): p for p in t_block["jugadores"] }
+                del t_block["jugadores"]
             
-            players['ALL'] = list(recalc_all.values())
+            t_map = t_block["jugadores_map"]
+            
+            for jug in jugadores:
+                if not jug.get('jugo', False): continue
+                nombre_raw = jug['nombre']
+                nombre = self.normalize_name(nombre_raw)
+                
+                if nombre not in t_map:
+                    t_map[nombre] = {'nombre': nombre, 'pj':0,'pg':0,'pe':0,'pp':0,'goles':0,'asistencias':0,'amarillas':0,'rojas':0,'mvp':0}
+                
+                s = t_map[nombre]
+                s['pj'] += 1
+                if resultado == 'V': s['pg'] += 1
+                elif resultado == 'E': s['pe'] += 1
+                elif resultado == 'D': s['pp'] += 1
+                s['goles'] += int(jug.get('goles', 0))
+                s['asistencias'] += int(jug.get('asistencias', 0))
+                s['amarillas'] += int(jug.get('amarillas', 0))
+                s['rojas'] += int(jug.get('rojas', 0))
+                if jug.get('mvp', False): s['mvp'] += 1
+
+        # Flatten yearly data and calculate Global ALL
+        stats_all = {}
+        final_players = {"ALL": []}
         
-        save_json('players.json', players)
+        for year in sorted(players_db.keys()):
+            final_players[year] = {}
+            for t_name, t_data in players_db[year].items():
+                list_players = list(t_data.get("jugadores_map", {}).values()) if "jugadores_map" in t_data else t_data.get("jugadores", [])
+                
+                # Update ALL
+                for p in list_players:
+                    name = self.normalize_name(p['nombre'])
+                    if name not in stats_all:
+                        stats_all[name] = {'nombre': name, 'pj':0,'pg':0,'pe':0,'pp':0,'goles':0,'asistencias':0,'amarillas':0,'rojas':0,'mvp':0}
+                    
+                    target = stats_all[name]
+                    target['pj'] += p.get('pj', 0)
+                    target['pg'] += p.get('pg', 0)
+                    target['pe'] += p.get('pe', 0)
+                    target['pp'] += p.get('pp', 0)
+                    target['goles'] += p.get('goles', 0)
+                    target['asistencias'] += p.get('asistencias', 0)
+                    target['amarillas'] += p.get('amarillas', 0)
+                    target['rojas'] += p.get('rojas', 0)
+                    target['mvp'] += p.get('mvp', 0)
+
+                final_players[year][t_name] = {
+                    "dt": t_data.get("dt", self._get_coach(year, t_name)),
+                    "jugadores": list_players
+                }
+
+        final_players["ALL"] = list(stats_all.values())
+        save_json('players.json', final_players)
+        self._sync_to_csv(matches)
     
     def log_message(self, format, *args):
         # Cleaner logging — only show API requests

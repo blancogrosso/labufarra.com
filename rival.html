@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial vs Rival | La Bufarra</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="css/styles.css?v=8.1">
+    <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
+
+    <style>
+        body { background: #fff; color: #333; }
+        .page-header { background: #f8f9fa; padding: 8rem 5% 4rem; text-align: center; border-bottom: 1px solid #eee; }
+        .rival-shield-large { width: 150px; height: 150px; object-fit: contain; margin-bottom: 1.5rem; }
+        .rival-name { font-size: 2.5rem; font-family: var(--font-display); font-weight: 900; color: #111; text-transform: uppercase; }
+        
+        .stats-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; max-width: 900px; margin: -2rem auto 3rem; padding: 2rem; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        .stat-box { text-align: center; }
+        .stat-value { font-size: 2rem; font-weight: 800; font-family: var(--font-display); color: var(--accent-primary); }
+        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+        .matches-list { max-width: 900px; margin: 0 auto 5rem; display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem; }
+        .match-row { display: flex; align-items: center; justify-content: space-between; padding: 1.2rem 1.5rem; background: #fff; border: 1px solid #eee; border-radius: 12px; transition: transform 0.2s; }
+        .match-row:hover { transform: translateX(10px); border-color: var(--accent-primary); }
+        
+        .res-badge { padding: 4px 12px; border-radius: 6px; font-weight: 800; font-size: 0.8rem; font-family: var(--font-display); min-width: 40px; text-align: center; }
+        .res-v { background: #e6f7ef; color: #27ae60; }
+        .res-e { background: #fef9e7; color: #f1c40f; }
+        .res-d { background: #fdedec; color: #e74c3c; }
+
+        .nav-back { position: absolute; top: 2rem; left: 2rem; z-index: 100; color: #333; text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    </style>
+</head>
+<body class="white-base" class="page-rival">
+
+    <header id="mainHeader">
+        <div class="nav-container">
+            <div class="nav-left">
+                <a href="index.html" class="logo">
+                    <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 40px; width: auto;" onerror="this.style.display='none';">
+                </a>
+            </div>
+            <div class="nav-center">
+                <ul class="nav-links">
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="jugadores.html">Jugadores</a></li>
+                    <li><a href="partidos.html">Partidos</a></li>
+                    <li><a href="entrenadores.html">Entrenadores</a></li>
+                    <li><a href="campeonatos.html">Campeonatos</a></li>
+                    <li><a href="historia.html">Historia</a></li>
+                </ul>
+            </div>
+            <div class="nav-right">
+                <div class="nav-actions">
+                    <a href="https://instagram.com/labufarra" target="_blank" style="color: var(--accent-primary); display:flex; align-items:center;">
+                        <i class="ph-bold ph-instagram-logo" style="font-size: 1.4rem;"></i>
+                    </a>
+                    <div style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display); font-size: 0.9rem;">
+                        <span style="font-weight:800; color:var(--text-main);">ES</span>
+                        <span style="color:var(--text-muted);">/</span>
+                        <span style="font-weight:800; color:var(--text-muted); opacity:0.5;">EN</span>
+                    </div>
+                    <div class="nav-toggle">
+                        <i class="ph-bold ph-list"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-header" style="margin-top: 0;">
+        <img id="rivalShield" src="" alt="Escudo Rival" class="rival-shield-large" onerror="this.src='img/logo/placeholder_rival.png'; this.onerror=null;">
+        <h1 id="rivalNameDisplay" class="rival-name">Cargando...</h1>
+        <p style="color: #666; font-weight: 500;">Historial Histórico de Enfrentamientos</p>
+    </div>
+
+    <div class="stats-summary">
+        <div class="stat-box">
+            <div id="statPJ" class="stat-value">0</div>
+            <div class="stat-label">PJ</div>
+        </div>
+        <div class="stat-box">
+            <div id="statV" class="stat-value">0</div>
+            <div class="stat-label">Victorias</div>
+        </div>
+        <div class="stat-box">
+            <div id="statE" class="stat-value">0</div>
+            <div class="stat-label">Empates</div>
+        </div>
+        <div class="stat-box">
+            <div id="statD" class="stat-value">0</div>
+            <div class="stat-label">Derrotas</div>
+        </div>
+    </div>
+
+    <main class="matches-list" id="rivalMatchesContainer">
+        <!-- Partidos dinámicos -->
+    </main>
+
+    <script src="js/db.js?v=8.1"></script>
+    <script src="js/rival.js?v=1.0"></script>
+    <script src="js/navigation.js"></script>
+</body>
+</html>

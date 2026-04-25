@@ -1,6 +1,24 @@
 let currentSort = { column: 'PJ', direction: 'desc' };
+// Capture filter from URL
+const urlParams = new URLSearchParams(window.location.search);
+const filterQuery = urlParams.get('filter');
+if (filterQuery) {
+    const colMap = { 'goles': 'GOLES', 'asistencias': 'ASISTENCIAS', 'tarjetas': 'tarjetas' };
+    if (colMap[filterQuery]) {
+        currentSort = { column: colMap[filterQuery], direction: 'desc' };
+    }
+}
 let filteredPlayers = [];
 let selectedYears = ['ALL']; // Holds selected years e.g. ['2021', '2023']
+
+// Asegurar que al cargar la página se ejecute el renderizado inicial
+document.addEventListener('DOMContentLoaded', () => {
+    // Si la DB ya cargó (caso raro de cache), renderizar. 
+    // Si no, db.js llamará a window.renderAll al terminar.
+    if (window.allPlayers && Object.keys(window.allPlayers).length > 0) {
+        applyYearFilters();
+    }
+});
 
 const PLAYER_MAP = {
     'Alvez': { fullName: 'Lautaro Alvez', aliases: ['Pekeno'] },
@@ -11,10 +29,7 @@ const PLAYER_MAP = {
     'Cravino': { fullName: 'Agustin Cravino', aliases: ['Cravi'] },
     'Colombo': { fullName: 'Mateo Colombo', aliases: ['Pepo'] },
     'Da Silveira': { fullName: 'Guzman da Silveira', aliases: ['Guz'] },
-    'da Silveira': { fullName: 'Guzman da Silveira', aliases: ['Guz'] },
     'De Leon': { fullName: 'Enzo de Leon', aliases: ['Enzo'] },
-    'De León': { fullName: 'Enzo de Leon', aliases: ['Enzo'] },
-    'de León': { fullName: 'Enzo de Leon', aliases: ['Enzo'] },
     'Dobal': { fullName: 'Federico Dobal', aliases: ['Feche'] },
     'Fernandez': { fullName: 'Geronimo Fernandez', aliases: ['Gero'] },
     'Flores': { fullName: 'Antonio Flores', aliases: ['Antony'] },
@@ -22,28 +37,21 @@ const PLAYER_MAP = {
     'Lorenzo': { fullName: 'Martin Lorenzo', aliases: ['Tincho'] },
     'Luzardo': { fullName: 'Valentin Luzardo', aliases: ['Luza'] },
     'Martinez': { fullName: 'Miqueas Martinez', aliases: ['Mique', 'Quique'] },
-    'Martínez': { fullName: 'Miqueas Martinez', aliases: ['Mique', 'Quique'] },
     'Mari': { fullName: 'Pablo Mari', aliases: ['Pablito'] },
     'Mateo': { fullName: 'Santiago Mateo', aliases: ['Santi'] },
     'Menchaca': { fullName: 'Mateo Menchaca', aliases: ['Mencha'] },
     'Molina': { fullName: 'Justiniano Molina', aliases: ['Justi'] },
     'Olarte': { fullName: 'Juan Miguel Olarte', aliases: ['Juan'] },
     'Pedemonte': { fullName: 'Sebastian Pedemonte', aliases: ['Seba', 'Sebita'] },
-    'Rocca': { fullName: 'Diego Rocca', aliases: ['Harry'] },
-    'Rodríguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
+    'Diego Rocca': { fullName: 'Diego Rocca', aliases: ['Harry', 'Rocca'] },
+    'Rocca': { fullName: 'Diego Rocca', aliases: ['Harry', 'Rocca'] },
     'Rodriguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
-    'Guillermo Rodriguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
-    'Silva': { fullName: 'Bruno Silva', aliases: ['Bruno', 'Silva'] },
-    'Silva, Gaston': { fullName: 'Gaston Silva', aliases: ['Junior'] },
-    'Silva, Gastón': { fullName: 'Gaston Silva', aliases: ['Junior'] },
-    'Gaston Silva': { fullName: 'Gaston Silva', aliases: ['Junior'] },
+    'Bruno Silva': { fullName: 'Bruno Silva', aliases: ['Bruno', 'Silva'] },
+    'Gaston Silva': { fullName: 'Gaston Silva', aliases: ['Junior', 'G. Silva'] },
     'Sparkov': { fullName: 'Santiago Sparkov', aliases: ['Spark', 'Sparky'] },
     'Valle': { fullName: 'Joaquin Valle', aliases: ['Joaco'] },
-    'Joaquin Valle': { fullName: 'Joaquin Valle', aliases: ['Joaco'] },
     'Vigil': { fullName: 'Sebastian Vigil', aliases: ['Seba'] },
-    'Sebastian Vigil': { fullName: 'Sebastian Vigil', aliases: ['Seba'] },
-    'Balestie': { fullName: 'Kevin Balestie', aliases: ['Kevin'] },
-    'Kevin Balestie': { fullName: 'Kevin Balestie', aliases: ['Kevin'] }
+    'Balestie': { fullName: 'Kevin Balestie', aliases: ['Kevin'] }
 };
 
 function normalizePlayerName(name) {
@@ -59,8 +67,8 @@ function normalizePlayerName(name) {
         'Bonilla': 'Bonilla', 'Felipe Bonilla': 'Bonilla',
         'Cravino': 'Cravino', 'Agustin Cravino': 'Cravino',
         'Colombo': 'Colombo', 'Mateo Colombo': 'Colombo',
-        'Da Silveira': 'Da Silveira', 'da Silveira': 'Da Silveira', 'Guzman Da Silveira': 'Da Silveira', 'Guzman da Silveira': 'Da Silveira',
-        'De Leon': 'De Leon', 'De León': 'De Leon', 'Enzo De Leon': 'De Leon', 'Enzo de Leon': 'De Leon',
+        'Da Silveira': 'Da Silveira', 'da Silveira': 'Da Silveira', 'Guzman Da Silveira': 'Da Silveira',
+        'De Leon': 'De Leon', 'De León': 'De Leon', 'Enzo De Leon': 'De Leon',
         'Dobal': 'Dobal', 'Federico Dobal': 'Dobal',
         'Fernandez': 'Fernandez', 'Geronimo Fernandez': 'Fernandez',
         'Flores': 'Flores', 'Antonio Flores': 'Flores',
@@ -74,10 +82,10 @@ function normalizePlayerName(name) {
         'Molina': 'Molina', 'Justiniano Molina': 'Molina',
         'Olarte': 'Olarte', 'Juan Miguel Olarte': 'Olarte',
         'Pedemonte': 'Pedemonte', 'Sebastian Pedemonte': 'Pedemonte',
-        'Rocca': 'Rocca', 'Diego Rocca': 'Rocca',
-        'Rodriguez': 'Rodriguez', 'Guillermo Rodriguez': 'Rodriguez', 'Rodríguez': 'Rodriguez',
+        'Diego Rocca': 'Rocca', 'Rocca': 'Rocca',
+        'Rodriguez': 'Rodriguez', 'Guillermo Rodriguez': 'Rodriguez',
         'Silva': 'Silva', 'Bruno Silva': 'Silva',
-        'Gaston Silva': 'G. Silva', 'Silva, Gaston': 'G. Silva',
+        'Gaston Silva': 'G. Silva', 'G. Silva': 'G. Silva',
         'Sparkov': 'Sparkov', 'Santiago Sparkov': 'Sparkov',
         'Valle': 'Valle', 'Joaquin Valle': 'Valle',
         'Vigil': 'Vigil', 'Sebastian Vigil': 'Vigil',
@@ -85,31 +93,74 @@ function normalizePlayerName(name) {
     };
 
     if (visualMap[n]) return visualMap[n];
-    
-    // Capitalize first letter of each word as default if not mapped
-    return n.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    return n;
+}
+
+function normalize_p(p) {
+    return {
+        PLAYER: p.PLAYER || p.nombre || p.player_name || '',
+        PJ: parseInt(p.PJ || p.pj || 0),
+        PG: parseInt(p.PG || p.pg || 0),
+        PE: parseInt(p.PE || p.pe || 0),
+        PP: parseInt(p.PP || p.pp || 0),
+        GOLES: parseInt(p.GOLES || p.goles || 0),
+        ASISTENCIAS: parseInt(p.ASISTENCIAS || p.asistencias || 0),
+        AMARILLAS: parseInt(p.AMARILLAS || p.amarillas || 0),
+        ROJAS: parseInt(p.ROJAS || p.rojas || 0),
+        MVP: parseInt(p.MVP || p.mvp || 0)
+    };
 }
 
 // Initialized directly by db.js when data is ready via applyYearFilters()
 
 function applyYearFilters() {
+    if (!window.allPlayers || Object.keys(window.allPlayers).length === 0) return;
+    
     let basePlayers = [];
     
     // If 'ALL' is selected, we just use the pre-calculated 'ALL' table
     if (selectedYears.includes('ALL')) {
-        basePlayers = [...(allPlayers['ALL'] || [])].map(p => {
-            const normalizedName = normalizePlayerName(p.PLAYER);
-            const mapping = PLAYER_MAP[normalizedName];
-            return { ...p, PLAYER: normalizedName, DISPLAY_PLAYER: mapping ? mapping.fullName : normalizedName };
+        const sourceData = window.allPlayers['ALL'] || [];
+        basePlayers = sourceData.map(p => {
+            const norm = normalize_p(p);
+            
+            // Búsqueda insensible a mayúsculas
+            const mappingKey = Object.keys(PLAYER_MAP).find(k => k.toLowerCase() === norm.PLAYER.toLowerCase());
+            const mapping = mappingKey ? PLAYER_MAP[mappingKey] : null;
+            
+            // Calculate win percentage
+            let wins = parseInt(norm.PG || 0);
+            let total = parseInt(norm.PJ || 0);
+            let percent = total > 0 ? Math.round((wins / total) * 100) : 0;
+            
+            return {
+                ...norm,
+                DISPLAY_PLAYER: mapping ? mapping.fullName : norm.PLAYER,
+                '% PG': `${percent}%`
+            };
         });
     } else {
         // Aggregate stats from selected years
         let aggregated = {};
         
         selectedYears.forEach(year => {
-            const yearData = allPlayers[year] || [];
-            yearData.forEach(p => {
-                const name = p.PLAYER.trim(); // Trim name to avoid key mismatches
+            if (year === 'ALL') return;
+            const content = allPlayers[year];
+            if (!content) return;
+
+            let playersArray = [];
+            if (Array.isArray(content)) {
+                playersArray = content;
+            } else {
+                // Nested Year > Tournament > {jugadores: []}
+                Object.values(content).forEach(t => {
+                    if (t.jugadores) playersArray.push(...t.jugadores);
+                });
+            }
+
+            playersArray.forEach(p => {
+                const name = (p.PLAYER || "").trim();
+                if (!name) return;
                 if (!aggregated[name]) {
                     aggregated[name] = {
                         PLAYER: name,
@@ -169,12 +220,13 @@ function applyYearFilters() {
 
 function renderPlayersGrid() {
     const grid = document.getElementById('playersGrid');
-    const countSpan = document.getElementById('playerCount');
     if (!grid) return;
-    if (countSpan) countSpan.innerText = filteredPlayers.length;
     
     const largeCounter = document.getElementById('playerCountLarge');
-    if (largeCounter) {
+    if (largeCounter && !window.playerCounterAnimated) {
+        window.animateCounter('playerCountLarge', filteredPlayers.length);
+        window.playerCounterAnimated = true;
+    } else if (largeCounter) {
         largeCounter.innerText = filteredPlayers.length;
     }
 
@@ -219,31 +271,46 @@ function renderPlayersGrid() {
         if (currentSort.column === 'PJ' || currentSort.column === 'PLAYER') {
             subtitleText = `Efectividad de Victorias: ${p['% PG'] || '0%'}`;
             statsBlock = `
-                <div class="stat-box"><span class="stat-value">${pj}</span><span class="stat-label">PJ</span></div>
-                <div class="stat-box"><span class="stat-value">${goles}</span><span class="stat-label">Goles</span></div>
-                <div class="stat-box"><span class="stat-value">${p.ASISTENCIAS || 0}</span><span class="stat-label">Asist.</span></div>
-                <div class="stat-box"><span class="stat-value"><i class="ph-fill ph-trophy" style="color:var(--accent-primary)"></i></span><span class="stat-label">Títulos: ?</span></div>
+                <div class="stat-box" style="flex: 1; justify-content: center; flex-direction: column;">
+                    <span class="stat-value" style="font-size: 2.3rem; line-height: 1;">${pj}</span>
+                    <span class="stat-label">Partidos Jugados</span>
+                    <div style="display: flex; gap: 0.8rem; margin-top: 0.8rem; font-size: 0.9rem; font-weight: bold; justify-content: center; width: 100%; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 0.5rem;">
+                        <span style="color: #27ae60">V: ${p.PG || 0}</span>
+                        <span style="color: #f39c12">E: ${p.PE || 0}</span>
+                        <span style="color: #e74c3c">D: ${p.PP || 0}</span>
+                    </div>
+                </div>
             `;
         } else if (currentSort.column === 'GOLES') {
-            const prom = pj > 0 ? formatDecimal(goles / pj) : '0.00';
+            const prom = pj > 0 ? (parseInt(p.GOLES || 0) / pj).toFixed(2) : '0.00';
             subtitleText = `Promedio de gol: ${prom}`;
             statsBlock = `
-                <div class="stat-box" style="flex: 1; justify-content: center;"><span class="stat-value" style="font-size: 2rem;">${goles}</span><span class="stat-label">Goles Totales</span></div>
+                <div class="stat-box" style="flex: 1; justify-content: center; flex-direction: column;">
+                    <span class="stat-value" style="font-size: 3rem; line-height: 1;">${p.GOLES || 0}</span>
+                    <span class="stat-label">Goles Totales</span>
+                </div>
             `;
         } else if (currentSort.column === 'ASISTENCIAS') {
-            subtitleText = ``; // Blank
+            subtitleText = `Líder en pases gol`;
             statsBlock = `
-                <div class="stat-box" style="flex: 1; justify-content: center;"><span class="stat-value" style="font-size: 2rem;">${p.ASISTENCIAS || 0}</span><span class="stat-label">Asistencias</span></div>
+                <div class="stat-box" style="flex: 1; justify-content: center; flex-direction: column;">
+                    <span class="stat-value" style="font-size: 3rem; line-height: 1; color: #1a1a1a;">${p.ASISTENCIAS || 0}</span>
+                    <span class="stat-label">Asistencias</span>
+                </div>
             `;
-        } else if (currentSort.column === 'AMARILLAS') {
-            subtitleText = ``; // Blank
+        } else if (currentSort.column === 'AMARILLAS' || currentSort.column === 'ROJAS' || currentSort.column === 'tarjetas') {
+            subtitleText = `Disciplina en el campo`;
             statsBlock = `
-                <div class="stat-box" style="flex: 1; justify-content: center;"><span class="stat-value" style="color:#f1c40f; font-size: 2rem;">${p.AMARILLAS || 0}</span><span class="stat-label">Tarjetas Amarillas</span></div>
-            `;
-        } else if (currentSort.column === 'ROJAS') {
-            subtitleText = ``; // Blank
-            statsBlock = `
-                <div class="stat-box" style="flex: 1; justify-content: center;"><span class="stat-value" style="color:#e74c3c; font-size: 2rem;">${p.ROJAS || 0}</span><span class="stat-label">Tarjetas Rojas</span></div>
+                <div class="stat-box" style="flex: 1; display: flex; flex-direction: row; justify-content: space-around; align-items: center; width: 100%;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <span class="stat-value" style="font-size: 2.5rem; color:#f1c40f;">${p.AMARILLAS || 0}</span>
+                        <span class="stat-label">Amarillas</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <span class="stat-value" style="font-size: 2.5rem; color:#e74c3c;">${p.ROJAS || 0}</span>
+                        <span class="stat-label">Rojas</span>
+                    </div>
+                </div>
             `;
         }
 
@@ -314,11 +381,23 @@ document.addEventListener('dataLoaded', () => {
     applyYearFilters();
     initCounter();
 });
+window.renderAll = applyYearFilters;
 
 // Triple-check for late loading
 if (window.dataLoaded || (window.allPlayers && Object.keys(window.allPlayers).length > 0)) {
     applyYearFilters();
     initCounter();
+    
+    // Sync UI with URL filter
+    if (filterQuery) {
+        document.querySelectorAll('#sortFilters .filter-btn').forEach(b => {
+             if (b.innerText.toLowerCase().includes(filterQuery.replace('tarjetas', 'disciplina'))) {
+                 b.classList.add('active');
+             } else {
+                 b.classList.remove('active');
+             }
+        });
+    }
 }
 
 function initCounter() {

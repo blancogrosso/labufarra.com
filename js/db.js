@@ -13,147 +13,132 @@ const SUPABASE_URL = "https://hmaqdzkpjkxamggaiypo.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Vu_F-McwcDK4g2k8fU6w7A_p_Mva8-Y";
 const SP_HEADERS = { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` };
 
-async function loadMatches() {
-    console.log("%c DB: Iniciando carga de datos... ", "background: #e91e63; color: white; font-weight: bold;");
-    const cacheBuster = `?t=${Date.now()}`;
-    let matchesLoaded = [];
-    let playersLoaded = {};
-    let sourcesChecked = [];
+// Mapeo Maestro de Jugadores (Nombres Reales y Apodos)
+window.PLAYER_MAP = {
+    'Alvez': { fullName: 'Lautaro Alvez', aliases: ['Pekeno'] },
+    'Anzuatte': { fullName: 'Agustin Anzuatte', aliases: ['Anzu'] },
+    'Blanco': { fullName: 'Tomas Blanco', aliases: ['Oso'] },
+    'Brito': { fullName: 'Emiliano Brito', aliases: ['Emi'] },
+    'Bonilla': { fullName: 'Felipe Bonilla', aliases: ['Feli', 'Boni'] },
+    'Cravino': { fullName: 'Agustin Cravino', aliases: ['Cravi'] },
+    'Colombo': { fullName: 'Mateo Colombo', aliases: ['Pepo'] },
+    'Da Silveira': { fullName: 'Guzman da Silveira', aliases: ['Guz'] },
+    'De Leon': { fullName: 'Enzo de Leon', aliases: ['Enzo'] },
+    'Dobal': { fullName: 'Federico Dobal', aliases: ['Feche'] },
+    'Fernandez': { fullName: 'Geronimo Fernandez', aliases: ['Gero'] },
+    'Flores': { fullName: 'Antonio Flores', aliases: ['Antony'] },
+    'Iza': { fullName: 'Federico Iza', aliases: ['Fede', 'Iza'] },
+    'Lorenzo': { fullName: 'Martin Lorenzo', aliases: ['Tincho'] },
+    'Luzardo': { fullName: 'Valentin Luzardo', aliases: ['Luza'] },
+    'Martinez': { fullName: 'Miqueas Martinez', aliases: ['Mique', 'Quique'] },
+    'Mari': { fullName: 'Pablo Mari', aliases: ['Pablito'] },
+    'Mateo': { fullName: 'Santiago Mateo', aliases: ['Santi'] },
+    'Menchaca': { fullName: 'Mateo Menchaca', aliases: ['Mencha'] },
+    'Molina': { fullName: 'Justiniano Molina', aliases: ['Justi'] },
+    'Olarte': { fullName: 'Juan Miguel Olarte', aliases: ['Juan'] },
+    'Pedemonte': { fullName: 'Sebastian Pedemonte', aliases: ['Seba', 'Sebita'] },
+    'Rodriguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
+    'Bruno Silva': { fullName: 'Bruno Silva', aliases: ['Bruno', 'Silva'] },
+    'Gaston Silva': { fullName: 'Gaston Silva', aliases: ['Silva Gaston'] },
+    'Diego Rocca': { fullName: 'Diego Rocca', aliases: ['Rocca'] },
+    'Sparkov': { fullName: 'Santiago Sparkov', aliases: ['Spark', 'Sparky'] },
+    'Valle': { fullName: 'Joaquin Valle', aliases: ['Joaco'] },
+    'Vigil': { fullName: 'Sebastian Vigil', aliases: ['Seba'] },
+    'Balestie': { fullName: 'Kevin Balestie', aliases: ['Kevin'] }
+};
 
-    // Siempre intentamos cargar partidos próximos (upcoming) al inicio
-    const fetchUpcoming = async (baseUrl, isApi = false) => {
+async function loadMatches() {
+    console.log("%c DB: Iniciando carga de datos híbrida... ", "background: #e91e63; color: white; font-weight: bold;");
+    const cacheBuster = `?t=${Date.now()}`;
+    
+    const tryLocal = async () => {
         try {
-            const url = isApi ? `${baseUrl}/api/upcoming` : `${baseUrl}/rest/v1/upcoming?select=*`;
-            const headers = isApi ? {} : SP_HEADERS;
-            const res = await fetch(url + (isApi ? cacheBuster : ''), { headers }).catch(() => null);
-            if (res && res.ok) {
-                const data = await res.json();
-                // Sort by raw ISO date if possible before mapping
-                data.sort((a, b) => {
-                    const dA = a.fecha ? new Date(a.fecha).getTime() : 0;
-                    const dB = b.fecha ? new Date(b.fecha).getTime() : 0;
-                    return dA - dB;
-                });
-                window.allUpcoming = data.map(u => ({
-                    ...u,
-                    fecha: u.fecha && u.fecha.includes('-') ? formatDateISO(u.fecha) : (u.fecha || '')
-                }));
+            // PRIORIDAD 1: Datos inyectados desde el Excel directamente
+            if (window.PLAYERS_EXCEL_DATA) {
+                window.allPlayers = mapPlayers(window.PLAYERS_EXCEL_DATA);
             }
-        } catch(e) {}
+
+            const mRes = await fetch('data/matches.json' + cacheBuster).catch(() => null);
+            if (!mRes || !mRes.ok) return false;
+            window.allMatches = mapMatches(await mRes.json());
+            
+            // Si no hay datos inyectados, probar el JSON de siempre
+            if (!window.allPlayers) {
+                const pRes = await fetch('data/players.json' + cacheBuster).catch(() => null);
+                if (pRes && pRes.ok) window.allPlayers = mapPlayers(await pRes.json());
+            }
+            
+            const uRes = await fetch('data/upcoming.json' + cacheBuster).catch(() => null);
+            if (uRes && uRes.ok) window.allUpcoming = await uRes.json();
+            return true;
+        } catch (e) { return false; }
     };
 
-    // ─── PASO 1: Intentar API Local (server.py) ───
-    try {
-        const res = await fetch('/api/matches' + cacheBuster).catch(() => ({ok:false}));
-        if (res.ok) {
-            const data = await res.json();
-            if (data && data.length > 0) {
-                matchesLoaded = mapMatches(data);
-                sourcesChecked.push("API Local");
-                
-                const pRes = await fetch('/api/players' + cacheBuster).catch(() => null);
-                if (pRes && pRes.ok) playersLoaded = mapPlayers(await pRes.json());
-                
-                await fetchUpcoming('', true);
-            }
-        }
-    } catch(e) { console.warn("DB: Falló API Local."); }
-
-    // ─── PASO 2: Intentar Supabase (Nube) ───
-    if (matchesLoaded.length === 0) {
+    const trySupabase = async () => {
         try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/matches?select=*&order=fecha.desc`, { headers: SP_HEADERS });
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    matchesLoaded = mapMatches(data);
-                    sourcesChecked.push("Supabase Cloud");
-                    
-                    const pRes = await fetch(`${SUPABASE_URL}/rest/v1/players_stats?select=*`, { headers: SP_HEADERS });
-                    if (pRes.ok) playersLoaded = mapPlayers(await pRes.json());
-                    
-                    await fetchUpcoming(SUPABASE_URL, false);
-                }
-            }
-        } catch(e) { console.warn("DB: Falló Supabase."); }
-    }
-
-    // ─── PASO 3: Intentar JSON Estático (Archivo Histórico) ───
-    if (matchesLoaded.length < 50) {
-        try {
-            console.log("DB: Complementando con JSON Estático...");
-            const res = await fetch('data/matches.json' + cacheBuster).catch(() => ({ok:false}));
-            if (res.ok) {
-                const staticData = mapMatches(await res.json());
-                const existingIds = new Set(matchesLoaded.map(m => m.ID));
-                staticData.forEach(m => {
-                    if (!existingIds.has(m.ID)) {
-                        matchesLoaded.push(m);
-                    }
-                });
-                sourcesChecked.push("Static JSON");
-                
-                if (Object.keys(playersLoaded).length === 0) {
-                    const pRes = await fetch('data/players.json' + cacheBuster).catch(() => null);
-                    if (pRes && pRes.ok) playersLoaded = mapPlayers(await pRes.json());
-                }
-                
-                // Si aún no hay upcoming, intentar de un archivo local si existe
-                if (!window.allUpcoming || window.allUpcoming.length === 0) {
-                    const uRes = await fetch('data/upcoming.json' + cacheBuster).catch(() => null);
-                    if (uRes && uRes.ok) window.allUpcoming = await uRes.json();
-                }
-            }
-        } catch(e) { console.warn("DB: Falló JSON Estático."); }
-    }
-
-    // ─── FINALIZAR ───
-    if (matchesLoaded.length > 0) {
-        window.allMatches = matchesLoaded;
-        window.allPlayers = playersLoaded;
-        finishLoad(sourcesChecked.join(" + "));
-    } else {
-        try {
-            const res = await fetch('DATOS%20EXCEL/BUFARRA%20ESTADISTICAS%20-%20PARTIDOS.csv' + cacheBuster);
-            if (res.ok) {
-                window.allMatches = parseCSV(await res.text());
-                finishLoad("CSV Excel");
+            // No sobrescribir si ya tenemos los datos del Excel
+            if (window.allPlayers && window.PLAYERS_EXCEL_DATA) {
+                console.log("DB: Usando Excel inyectado, omitiendo carga de Supabase para Jugadores.");
             } else {
-                showFallbackWarning();
-                finishLoad("FAILED");
+                const pRes = await fetch(`${SUPABASE_URL}/rest/v1/players_stats?select=*`, { headers: SP_HEADERS }).catch(() => null);
+                if (pRes && pRes.ok) window.allPlayers = mapPlayers(await pRes.json());
             }
-        } catch(e) { 
-            showFallbackWarning();
-            finishLoad("FAILED");
-        }
-    }
+
+            const mRes = await fetch(`${SUPABASE_URL}/rest/v1/matches?select=*&order=fecha.desc`, { headers: SP_HEADERS }).catch(() => null);
+            if (!mRes || !mRes.ok) return false;
+            window.allMatches = mapMatches(await mRes.json());
+            
+            const uRes = await fetch(`${SUPABASE_URL}/rest/v1/upcoming?select=*&order=fecha.asc`, { headers: SP_HEADERS }).catch(() => null);
+            if (uRes && uRes.ok) window.allUpcoming = await uRes.json();
+            return true;
+        } catch (e) { return false; }
+    };
+
+    const tryCSV = async () => {
+        try {
+            const res = await fetch('DATOS%20EXCEL/BUFARRA%20ESTADISTICAS%20-%20PARTIDOS.csv' + cacheBuster).catch(() => null);
+            if (!res || !res.ok) return false;
+            window.allMatches = parseCSV(await res.text());
+            return true;
+        } catch (e) { return false; }
+    };
+
+    let source = "NONE";
+    if (await tryLocal()) source = "Local JSON";
+    else if (await trySupabase()) source = "Supabase Cloud";
+    else if (await tryCSV()) source = "CSV Fallback";
+    else source = "FAILED";
+
+    finishLoad(source);
 }
 
 
 
 function mapMatches(data) {
+    if (!Array.isArray(data)) return [];
     return data.map((m, i) => {
-        // Normalización de campos entre diferentes fuentes
-        const gf = m.gf ?? m.GF ?? '';
-        const gc = m.gc ?? m.GC ?? '';
-        const vs = m.rival ?? m.VS ?? m.rival_name ?? '';
-        const fecha = m.fecha ?? m.FECHA ?? '';
-        const torneo = m.torneo ?? m.TORNEO ?? '';
-        const instancia = m.instancia ?? m.INSTANCIA ?? '';
-        const año = m.año ?? m.AÑO ?? (fecha.includes('-') ? fecha.split('-')[0] : '');
+        // Normalización maestra de campos (Soporta múltiples fuentes)
+        const gf = (m.gf !== undefined && m.gf !== null) ? m.gf : (m.GF !== undefined ? m.GF : '');
+        const gc = (m.gc !== undefined && m.gc !== null) ? m.gc : (m.GC !== undefined ? m.GC : '');
+        const vs = m.rival || m.VS || m.rival_name || '';
+        const fecha = m.fecha || m.FECHA || '';
+        const torneo = m.torneo || m.TORNEO || '';
+        const instancia = m.instancia || m.INSTANCIA || '';
+        const año = m.año || m.AÑO || (fecha.includes('-') ? fecha.split('-')[0] : (fecha.includes('/') ? fecha.split('/').pop() : ''));
+        const res = m.resultado || m.RESULTADO || (gf !== '' && gc !== '' ? (parseInt(gf) > parseInt(gc) ? 'V' : parseInt(gf) < parseInt(gc) ? 'D' : 'E') : '');
 
         return {
             ...m,
             ID: m.id || m.ID || `m${i}`,
             FECHA: formatDateProperly(fecha),
             VS: vs,
+            RESULTADO: res,
+            GF: gf,
+            GC: gc,
             torneo: instancia ? `${torneo} - ${instancia}` : torneo,
             torneo_base: torneo,
             AÑO: año,
-            LUGAR: m.lugar || m.LUGAR || '',
-            GF: String(gf),
-            GC: String(gc),
-            RESULTADO: (gf !== '' && gc !== '') ? `${gf}x${gc}` : ''
+            LUGAR: m.lugar || m.LUGAR || ''
         };
     });
 }
@@ -182,48 +167,91 @@ function formatDateProperly(s) {
     return str;
 }
 
+function getPlayerImage(name) {
+    if (!name) return "img/jugadores/default.jpg";
+    // Mapeo básico para asegurar que usamos el nombre del archivo correcto
+    const filename = name.trim();
+    return `img/jugadores/${filename}.jpg`;
+}
+
 function mapPlayers(data) {
-    // Si data es un objeto (ej. del JSON local que está agrupado por años)
-    if (data && typeof data === 'object' && !Array.isArray(data)) {
-        let mapped = {};
-        for (const [year, players] of Object.entries(data)) {
-            mapped[year] = players.map(p => ({
-                PLAYER: p.player_name || p.nombre || p.PLAYER || '',
-                PJ: String(p.pj ?? p.PJ ?? 0),
-                PG: String(p.pg ?? p.PG ?? 0),
-                PE: String(p.pe ?? p.PE ?? 0),
-                PP: String(p.pp ?? p.PP ?? 0),
-                GOLES: String(p.goles ?? p.GOLES ?? 0),
-                ASISTENCIAS: String(p.asistencias ?? p.ASISTENCIAS ?? 0),
-                AMARILLAS: String(p.amarillas ?? p.AMARILLAS ?? 0),
-                ROJAS: String(p.rojas ?? p.ROJAS ?? 0),
-                MVP: String(p.mvp ?? p.MVP ?? 0)
-            }));
+    if (!data) return {};
+    window.rawPlayersData = data;
+    let mapped = {};
+
+    const normalize = (p) => {
+        let name = p.player_name || p.nombre || p.PLAYER || '';
+        name = name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (name.toLowerCase().includes('rocca')) name = 'Diego Rocca';
+        if (name.toLowerCase().includes('gaston silva')) name = 'Gaston Silva';
+        if (name.toLowerCase() === 'de leon') name = 'De Leon';
+        
+        return {
+            PLAYER: name,
+            PJ: parseInt(p.pj ?? p.PJ ?? 0),
+            PG: parseInt(p.pg ?? p.PG ?? 0),
+            PE: parseInt(p.pe ?? p.PE ?? 0),
+            PP: parseInt(p.pp ?? p.PP ?? 0),
+            GOLES: parseInt(p.goles ?? p.GOLES ?? 0),
+            ASISTENCIAS: parseInt(p.asistencias ?? p.ASISTENCIAS ?? 0),
+            AMARILLAS: parseInt(p.amarillas ?? p.AMARILLAS ?? 0),
+            ROJAS: parseInt(p.rojas ?? p.ROJAS ?? 0),
+            MVP: parseInt(p.mvp ?? p.MVP ?? 0)
+        };
+    };
+
+    // SI VIENE EL EXCEL DIRECTAMENTE (OBJETO CON ALL)
+    if (data.ALL && !Array.isArray(data)) {
+        for (const [key, content] of Object.entries(data)) {
+            if (Array.isArray(content)) {
+                mapped[key] = content.map(p => normalize(p));
+            } else if (typeof content === 'object') {
+                let yearPlayers = [];
+                for (const tData of Object.values(content)) {
+                    const nodes = tData.jugadores || tData;
+                    if (Array.isArray(nodes)) nodes.forEach(p => yearPlayers.push(normalize(p)));
+                }
+                mapped[key] = yearPlayers;
+            }
         }
         return mapped;
     }
 
-    // Si data es un array (ej. de Supabase o API local)
-    let playersByYear = {};
+    // SI ES UN ARRAY PLANO (Supabase)
     if (Array.isArray(data)) {
+        mapped.ALL = [];
         data.forEach(p => {
-            const year = p.year || 'ALL';
-            if (!playersByYear[year]) playersByYear[year] = [];
-            playersByYear[year].push({
-                PLAYER: p.player_name || p.nombre || p.PLAYER || '',
-                PJ: String(p.pj ?? p.PJ ?? 0),
-                PG: String(p.pg ?? p.PG ?? 0),
-                PE: String(p.pe ?? p.PE ?? 0),
-                PP: String(p.pp ?? p.PP ?? 0),
-                GOLES: String(p.goles ?? p.GOLES ?? 0),
-                ASISTENCIAS: String(p.asistencias ?? p.ASISTENCIAS ?? 0),
-                AMARILLAS: String(p.amarillas ?? p.AMARILLAS ?? 0),
-                ROJAS: String(p.rojas ?? p.ROJAS ?? 0),
-                MVP: String(p.mvp ?? p.MVP ?? 0)
-            });
+            const yr = String(p.year || p.YEAR || 'ALL');
+            if (!mapped[yr]) mapped[yr] = [];
+            const norm = normalize(p);
+            mapped[yr].push(norm);
+            
+            if (yr !== 'ALL') {
+                const existing = mapped.ALL.find(e => e.PLAYER.toUpperCase() === norm.PLAYER.toUpperCase());
+                if (existing) {
+                    existing.PJ += norm.PJ;
+                    existing.PG += norm.PG;
+                    existing.PE += norm.PE;
+                    existing.PP += norm.PP;
+                    existing.GOLES += norm.GOLES;
+                    existing.ASISTENCIAS += norm.ASISTENCIAS;
+                    existing.AMARILLAS += norm.AMARILLAS;
+                    existing.ROJAS += norm.ROJAS;
+                    existing.MVP += norm.MVP;
+                } else {
+                    mapped.ALL.push(JSON.parse(jsonStringifySafe(norm))); // Deep copy manual
+                }
+            }
         });
+        return mapped;
     }
-    return playersByYear;
+
+    return mapped;
+}
+
+// Helper para evitar problemas de referencia en el merge de ALL
+function jsonStringifySafe(obj) {
+    return JSON.stringify(obj);
 }
 
 function finishLoad(source) {
@@ -238,22 +266,117 @@ function finishLoad(source) {
     // Sort matches by date (descending)
     window.allMatches.sort((a,b) => parseDateForSort(b.FECHA) - parseDateForSort(a.FECHA));
 
-    // Execute renders
-    renderEfeméride();
-    renderLastMatches();
-    renderNextMatch();
-    renderLeagueTable();
-    renderPlantel2026('general');
-    renderLogros();
+    // Execute renders safely
+    const safeRender = (fn, name) => {
+        try {
+            fn();
+            console.log(`DB: Renderizado OK -> ${name}`);
+        } catch (e) {
+            console.error(`DB: Error en renderizado ${name}:`, e);
+        }
+    };
 
-    // Initial reveal for alert
+    safeRender(renderEfeméride, "Efeméride");
+    safeRender(renderLastMatches, "Ultimo Partido");
+    safeRender(renderNextMatch, "Proximo Partido");
+    safeRender(renderLeagueTable, "Tabla");
+    safeRender(() => renderPlantel2026('general'), "Plantel");
+    safeRender(renderLogros, "Palmarés");
+
+    // Detectar cambios en el próximo partido para notificar al usuario
+    const nextMatch = window.allUpcoming && window.allUpcoming.length > 0 ? window.allUpcoming[0] : null;
+    if (nextMatch) {
+        const matchID = nextMatch.id || nextMatch.ID || 'next';
+        const currentMatchStr = JSON.stringify({ 
+            id: matchID, 
+            fecha: nextMatch.fecha || nextMatch.FECHA, 
+            hora: nextMatch.hora || nextMatch.HORA,
+            lugar: nextMatch.lugar || nextMatch.LUGAR
+        });
+        const lastMatchStr = localStorage.getItem('bufarra_last_next_match');
+        if (lastMatchStr && lastMatchStr !== currentMatchStr) {
+            if (localStorage.getItem('bufarra_notifications') === 'true' && Notification.permission === "granted") {
+                new Notification("¡Actualización de Partido!", {
+                    body: `Hay cambios en el partido contra ${nextMatch.rival || nextMatch.VS}. ¡Revisá el fixture!`,
+                    icon: "img/logo/ESCUDO_BUFARRA.png"
+                });
+            }
+        }
+        localStorage.setItem('bufarra_last_next_match', currentMatchStr);
+    }
+
+    // Restore UI components
     setTimeout(() => {
         document.getElementById('efemerideAlert')?.classList.add('show');
     }, 1000);
 
-    // Intersection Observer for scroll highlighting
     initScrollObserver();
+    
+    const bell = document.getElementById('notiBell');
+    if (bell) {
+        OneSignal.push(function() {
+            OneSignal.isPushNotificationsEnabled(function(isEnabled) {
+                if (isEnabled) {
+                    bell.classList.add('active');
+                    if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
+                }
+            });
+        });
+
+        bell.onclick = () => {
+            OneSignal.push(function() {
+                OneSignal.isPushNotificationsEnabled(function(isEnabled) {
+                    if (isEnabled) {
+                        // Opcional: Podrías desuscribir aquí, pero por ahora mostramos mensaje
+                        alert("Ya estás suscrito a las notificaciones oficiales.");
+                    } else {
+                        OneSignal.registerForPushNotifications();
+                        bell.classList.add('active');
+                        if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
+                    }
+                });
+            });
+        };
+    }
+
+    // Disparar evento global para indicar que la data está lista en todas las páginas
+    document.dispatchEvent(new CustomEvent('dataLoaded'));
 }
+
+/**
+ * Función de animación para contadores numéricos de alto impacto
+ */
+function animateCounter(id, target) {
+    const el = document.getElementById(id);
+    if (!el || isNaN(target) || target === 0) {
+        if (el) el.innerText = target;
+        return;
+    }
+    
+    let current = 0;
+    const duration = 1500; // ms de animación fluida (1.5s)
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function (outQuart) para suavizado premium
+        const ease = 1 - Math.pow(1 - progress, 4);
+        current = Math.floor(ease * target);
+        
+        el.innerText = current;
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            el.innerText = target;
+        }
+    }
+    
+    requestAnimationFrame(update);
+}
+window.animateCounter = animateCounter;
 
 function formatDateISO(iso) {
     if(!iso) return '';
@@ -309,9 +432,11 @@ function showFallbackWarning() {
 }
 
 // ─── AUTO-START ───
-document.addEventListener('DOMContentLoaded', loadMatches);
-// Si por alguna razón el evento no dispara, reintentamos a los 2 segundos
-setTimeout(() => { if(!window.dataLoaded) loadMatches(); }, 2000);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadMatches);
+} else {
+    loadMatches();
+}
 
 // ─── COMPONENTES DE RENDERIZADO (RESTAURADOS) ───
 
@@ -319,74 +444,26 @@ function getRivalShield(name) {
     if (!name) return null;
     const n = name.toString().trim().toUpperCase();
     
-    const SHIELDS = {
-        'EL RETIRO': 'img/escudos/ESCUDO_EL_RETIRO.png',
-        'BOURBON ST.': 'img/escudos/ESCUDO_BOURBON_ST.png',
-        'LA VAGONETA': 'img/escudos/ESCUDO_LA_VAGONETA.png',
-        'LA RESAKA': 'img/escudos/ESCUDO_LA_RESAKA.png',
-        'FULL VEGANO': 'img/escudos/ESCUDO_FULL_VEGANO.png',
-        'PLAZA ATAHUALPA': 'img/escudos/ESCUDO_PLAZA_ATAHUALPA.png',
-        'REYES DE LAS ROJAS': 'img/escudos/ESCUDO_REYES_DE_LAS_ROJAS.png',
-        'VENTOLIN JRS.': 'img/escudos/ESCUDO_VENTOLIN_JRS.png',
-        'DALE TITO': 'img/escudos/ESCUDO_DALE_TITO.png',
-        'INSTITUTO JP': 'img/escudos/ESCUDO_INSTITUTO_JP.png',
-        'KRAKEN': 'img/escudos/ESCUDO_KRAKEN.png',
-        'PEPPERS': 'img/escudos/ESCUDO_PEPPERS.png',
-        'PLATENXE': 'img/escudos/ESCUDO_PLATENXE.png',
-        'SALUS': 'img/escudos/ESCUDO_SALUS.png',
-        'SIN CENSURA': 'img/escudos/ESCUDO_SIN_CENSURA.png',
-        'TANKENCH': 'img/escudos/ESCUDO_TANKENCH.png'
+    // Normalizar nombre de forma agresiva para encontrar el escudo
+    let fileName = n.toLowerCase()
+        .replace(/\./g, '')
+        .replace(/\b(fc|f\.c|ca|c\.a|deportiva|club|atletico|asociacion)\b/gi, '')
+        .replace(/\(.*\)/g, '') // Quitar (Dom), (Domingo), etc.
+        .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ú/g, 'u')
+        .trim();
+
+    // Casos especiales históricos persistentes
+    const SPECIAL_SHIELDS = {
+        'EL RETIRO': 'img/escudos/el-retiro.png',
+        'BOURBON ST': 'img/escudos/bourbon-st.png',
+        'PARQUE GUARANI': 'img/escudos/parque-guarani.png',
+        'ALTA GAMA': null 
     };
 
-    // Synonyms
-    if (n.includes('RETIRO')) return SHIELDS['EL RETIRO'];
-    if (n.includes('BOURBON')) return SHIELDS['BOURBON ST.'];
-    if (n.includes('VAGONETA')) return SHIELDS['LA VAGONETA'];
-    if (n.includes('RESAKA')) return SHIELDS['LA RESAKA'];
-    if (n.includes('VEGANO')) return SHIELDS['FULL VEGANO'];
+    if (SPECIAL_SHIELDS[n]) return SPECIAL_SHIELDS[n];
     
-    return SHIELDS[n] || null;
-}
-
-function renderNextMatch() {
-    const container = document.getElementById('nextMatchCard');
-    if (!container) return;
-    
-    const next = window.allUpcoming && window.allUpcoming.length > 0 ? window.allUpcoming[0] : null;
-    
-    if (!next) {
-        container.innerHTML = '<div style="color:var(--text-muted);">Próximo partido a confirmar</div>';
-        return;
-    }
-    
-    const shield = getRivalShield(next.rival);
-    const torneo = next.instancia ? `${next.torneo} - ${next.instancia}` : (next.torneo || 'Próximo Partido');
-
-    container.innerHTML = `
-        <div>
-            <div style="display: flex; justify-content: center; width: 100%;">
-                <span class="torneo-tag" style="background:#000; padding: 2px 10px; border-radius:4px;">${torneo}</span>
-            </div>
-            
-            <div class="teams-display" style="margin: 1.5rem 0;">
-                <div class="team">
-                    <img src="img/logo/ESCUDO_BUFARRA.png" style="width: 28px; height: auto;">
-                    <span class="team-name">BUFARRA</span>
-                </div>
-                <div class="vs-badge" style="font-size: 0.9rem; color: var(--text-muted); border: none;">VS</div>
-                <div class="team">
-                    ${shield ? `<img src="${shield}" style="width:28px;height:auto;">` : '<i class="ph ph-shield" style="font-size:28px;"></i>'}
-                    <span class="team-name">${next.rival || 'A confirmar'}</span>
-                </div>
-            </div>
-            
-            <div class="match-details" style="border-top: 1px solid var(--border-light); padding-top: 1rem;">
-                <div class="detail-item"><i class="ph ph-calendar-blank"></i> ${next.fecha || 'TBD'}</div>
-                <div class="detail-item"><i class="ph ph-clock"></i> ${next.hora || 'TBD'}</div>
-                <div class="detail-item"><i class="ph ph-map-pin"></i> ${next.lugar || next.LUGAR || 'TBD'}</div>
-            </div>
-        </div>
-    `;
+    const finalClean = fileName.replace(/\s+/g, '-');
+    return `img/escudos/${finalClean}.png`;
 }
 
 function renderEfeméride() {
@@ -462,16 +539,38 @@ function openFixtureModal() {
         fullFixture.forEach(m => {
             const rival = m.rival || m.VS || "Rival";
             const shield = getRivalShield(rival);
-            const score = m.type === 'played' ? `<span style="font-weight:800; color:var(--accent-primary); font-family:var(--font-display);">${m.RESULTADO || ''}</span>` : `<span style="font-size:0.65rem; color:var(--text-muted); font-weight:700; letter-spacing:1px;">PRÓXIMO</span>`;
+            
+            // Formatear Fecha para mostrar
+            const rawDate = m.displayDate || "";
+            let fechaStr = rawDate;
+            if (rawDate.includes('-')) {
+                const parts = rawDate.split('-');
+                if (parts.length === 3) fechaStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+
+            // Lógica de Score y Colores
+            let scoreHTML = '';
+            if (m.type === 'played') {
+                const gf = m.gf ?? m.GF ?? 0;
+                const gc = m.gc ?? m.GC ?? 0;
+                
+                let resultColor = '#f1c40f'; // Empate (Amarillo)
+                if (gf > gc) resultColor = '#2ecc71'; // Ganado (Verde)
+                if (gf < gc) resultColor = '#ff4757'; // Perdido (Rojo)
+
+                scoreHTML = `<span style="font-weight:900; color:${resultColor}; font-family:var(--font-display); font-size:1.1rem; text-shadow: 0 0 10px ${resultColor}44;">${gf} - ${gc}</span>`;
+            } else {
+                scoreHTML = `<span style="font-size:0.6rem; color:var(--text-muted); font-weight:800; letter-spacing:1.2px; opacity:0.7;">PRÓXIMO</span>`;
+            }
             
             html += `
                 <div class="glass-panel" style="padding:1rem 1.25rem; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border-light); border-radius:12px;">
-                    <div style="font-size:0.75rem; font-weight:bold; color:var(--text-muted); flex:0.8;">${m.displayDate}</div>
+                    <div style="font-size:0.75rem; font-weight:bold; color:var(--text-muted); flex:0.8;">${fechaStr}</div>
                     <div style="display:flex; align-items:center; gap:0.75rem; flex:2; justify-content:center;">
                         ${shield ? `<img src="${shield}" style="width:22px; height:22px; object-fit:contain;">` : '<i class="ph-bold ph-shield" style="font-size:22px; opacity:0.1;"></i>'}
-                        <span style="font-size:0.9rem; text-transform:uppercase; font-weight:700; font-family:var(--font-display);">${rival}</span>
+                        <span style="font-size:0.85rem; text-transform:uppercase; font-weight:700; font-family:var(--font-display); letter-spacing:0.5px;">${rival}</span>
                     </div>
-                    <div style="flex:0.8; text-align:right;">${score}</div>
+                    <div style="flex:0.8; text-align:right;">${scoreHTML}</div>
                 </div>
             `;
         });
@@ -479,22 +578,41 @@ function openFixtureModal() {
     
     container.innerHTML = html;
     modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
 }
 
 function closeFixtureModal(e) {
     // If called with an event (click on overlay), only close if clicking the overlay itself
     if (e && e.target && e.target.id !== 'fixtureModal') return;
     const modal = document.getElementById('fixtureModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+function openCalendarModal() {
+    const modal = document.getElementById('calendarModal');
+    if (modal) {
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeCalendarModal() {
+    const modal = document.getElementById('calendarModal');
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
 }
 
 function renderLastMatches() {
     const container = document.getElementById('homeLatestMatches');
-    if (!container || !window.allMatches.length) return;
+    if (!container || !window.allMatches || window.allMatches.length === 0) return;
 
-    // Get last matches from 2026
-    const matches2026 = window.allMatches.filter(m => m.AÑO == '2026' && m.RESULTADO);
-    const lastMatch = matches2026[0];
+    const played = window.allMatches.filter(m => m.VS && (m.RESULTADO || (m.GF !== '' && m.GC !== '')));
+    const lastMatch = played.length > 0 ? played[0] : null;
 
     if (lastMatch) {
         container.innerHTML = generateMatchCard(lastMatch, 'ÚLTIMO PARTIDO');
@@ -503,68 +621,70 @@ function renderLastMatches() {
 
 function renderNextMatch() {
     const container = document.getElementById('nextMatchCard');
-    if (!container || !window.allUpcoming) return;
+    if (!container) return;
 
-    const nextMatch = window.allUpcoming[0];
+    const nextMatch = window.allUpcoming && window.allUpcoming.length > 0 ? window.allUpcoming[0] : null;
     if (nextMatch) {
          container.innerHTML = generateMatchCard(nextMatch, 'PRÓXIMO PARTIDO');
+    } else {
+        container.innerHTML = '<div class="glass-panel" style="padding:2rem; color:var(--text-muted); text-align:center;">Próximo partido a confirmar</div>';
     }
 }
 
-function generateMatchCard(m, label) {
-    const isUpcoming = label.includes('PRÓXIMO');
-    const rivalName = m.VS || m.rival || 'Rival';
-    const shield = getRivalShield(rivalName);
+function generateMatchCard(m, title = "") {
+    const isUpcoming = title.includes('PRÓXIMO');
+    const gf = m.gf ?? m.GF ?? (isUpcoming ? '' : '?');
+    const gc = m.gc ?? m.GC ?? (isUpcoming ? '' : '?');
     
-    // Extract "Fecha X" if available
-    let fechaLabel = '';
-    const torneoFull = (m.torneo || m.TORNEO || '').toUpperCase();
-    const fechaMatch = torneoFull.match(/FECHA\s?(\d+)/i);
-    if (fechaMatch) {
-        fechaLabel = `FECHA ${fechaMatch[1]}`;
-    } else {
-        // Fallback or specific default for 2026
-        fechaLabel = "APERTURA 2026";
+    // Evitar duplicados (Ej: "Apertura - Fecha 2 - Fecha 2")
+    const rawTorneo = m.torneo || m.TORNEO || '';
+    const rawInstancia = m.instancia || m.INSTANCIA || '';
+    let torneoFull = rawTorneo;
+    if (rawInstancia && !rawTorneo.toUpperCase().includes(rawInstancia.toUpperCase())) {
+        torneoFull += ` - ${rawInstancia}`;
+    }
+    if (!torneoFull) torneoFull = isUpcoming ? "Campaña 2026" : "Campaña Histórica";
+    torneoFull = torneoFull.toUpperCase();
+
+    // Formatear Fecha (AAAA-MM-DD -> DD/MM/AAAA)
+    const rawFecha = m.fecha || m.FECHA || 'TBD';
+    let fechaFinal = rawFecha;
+    if (rawFecha.includes('-')) {
+        const parts = rawFecha.split('-');
+        if (parts.length === 3) fechaFinal = `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
-    const rawFecha = m.fecha || m.FECHA || 'TBD';
-    const formattedFecha = formatDateProperly(rawFecha);
+    const rivalShield = getRivalShield(m.rival || m.VS);
     
-    // Time handling
-    const hora = m.hora || m.HORA || '';
-    const timeDisplay = (hora && !hora.includes('TBD') && hora.trim() !== '') ? `<div style="font-size:0.9rem; margin-top:0.3rem;"><i class="ph-bold ph-clock"></i> ${hora} HS</div>` : '';
-
     return `
-        <div class="glass-panel match-card-unified" style="height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 2.5rem; text-align: center; position: relative; border: 1px solid var(--border-light); ${isUpcoming ? 'border-left: 4px solid var(--accent-primary);' : ''} min-height: 420px;">
-            <div style="font-family:var(--font-display); font-size:0.8rem; color:var(--accent-primary); letter-spacing:3px; font-weight:800; text-transform:uppercase; margin-bottom: 2rem;">${label}</div>
+        <div class="glass-panel" style="padding: 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--accent-primary); opacity: 0.8;"></div>
             
-            <div style="font-family:var(--font-display); font-size:1.1rem; font-weight:900; margin-bottom: 2rem; color:var(--text-muted); opacity: 0.8;">${fechaLabel}</div>
-
-            <div style="display:grid; grid-template-columns: 1fr 60px 1fr; align-items:center; gap: 1.5rem; margin-bottom: 2.5rem;">
-                <!-- La Bufarra -->
-                <div style="display:flex; flex-direction:column; align-items:center;">
-                    <img src="img/logo/ESCUDO_BUFARRA.png" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 1rem;">
-                    <div style="font-family:var(--font-display); font-size:1.1rem; font-weight:800; text-transform:uppercase;">La Bufarra</div>
+            <div style="text-align: center; margin-bottom: 0.5rem;">
+                <div style="font-size: 0.7rem; letter-spacing: 3px; color: var(--text-muted); font-weight: 800; margin-bottom: 0.8rem; opacity: 0.6;">${title.toUpperCase()}</div>
+                <div class="torneo-tag" style="font-size: 0.75rem; letter-spacing: 2px; color: var(--accent-primary); font-weight: 800;">${torneoFull}</div>
+            </div>
+            
+            <div class="teams-display" style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2rem; width: 100%;">
+                <div class="team" style="text-align: right;">
+                    <img src="img/logo/ESCUDO_BUFARRA.png" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 1rem; filter: drop-shadow(0 0 15px rgba(255,255,255,0.1));">
+                    <div class="team-name" style="font-size: 1rem; letter-spacing: 1px; font-weight: 700;">LA BUFARRA</div>
                 </div>
-
-                <!-- Resultado o VS -->
-                <div style="font-family:var(--font-display); font-size: 2.5rem; font-weight:900; color:var(--accent-primary);">
-                    ${isUpcoming ? 'VS' : m.RESULTADO.replace('x', '-')}
+                
+                <div class="vs-badge" style="padding: 1rem; font-size: 3rem; color: #fff; font-family: var(--font-display); font-weight: 900; letter-spacing: -2px; background: none; border: none;">
+                    ${isUpcoming ? 'VS' : `${gf} - ${gc}`}
                 </div>
-
-                <!-- Rival -->
-                <div style="display:flex; flex-direction:column; align-items:center;">
-                    <div style="width: 80px; height: 80px; background: rgba(255,255,255,0.05); border-radius: 50%; display:flex; align-items:center; justify-content:center; margin-bottom: 1rem; border: 1px solid var(--border-light);">
-                        ${shield ? `<img src="${shield}" style="width: 50px; height: 50px; object-fit: contain;">` : `<i class="ph-bold ph-shield" style="font-size: 2rem; opacity: 0.3;"></i>`}
-                    </div>
-                    <div style="font-family:var(--font-display); font-size:1.1rem; font-weight:800; text-transform:uppercase;">${rivalName}</div>
+                
+                <div class="team" style="text-align: left;">
+                    ${rivalShield ? `<img src="${rivalShield}" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 1rem; filter: drop-shadow(0 0 15px rgba(255,255,255,0.1));">` : '<i class="ph ph-shield" style="font-size: 80px; opacity: 0.1; margin-bottom: 1rem;"></i>'}
+                    <div class="team-name" style="font-size: 1rem; letter-spacing: 1px; font-weight: 700;">${(m.rival || m.VS || 'POR DEFINIR').toUpperCase()}</div>
                 </div>
             </div>
-
-            <div style="font-family:var(--font-display); font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;">
-                <div><i class="ph-bold ph-calendar"></i> ${formattedFecha}</div>
-                ${timeDisplay}
-                <div style="font-size:0.8rem; margin-top:0.5rem; opacity:0.6;"><i class="ph-bold ph-map-pin"></i> ${m.LUGAR || 'Lugar a confirmar'}</div>
+            
+            <div class="match-details" style="display: flex; gap: 2.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 2rem; width: 100%; justify-content: center;">
+                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600;"><i class="ph-bold ph-calendar" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.5rem;"></i> ${fechaFinal}</div>
+                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600;"><i class="ph-bold ph-clock" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.5rem;"></i> ${m.hora || m.HORA || 'TBD'} HS</div>
+                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600;"><i class="ph-bold ph-map-pin" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.5rem;"></i> ${m.lugar || m.LUGAR || 'TBD'}</div>
             </div>
         </div>
     `;
@@ -592,26 +712,39 @@ function renderStatsLeaders2026() {
     }
 }
 
-function renderLeagueTable(expanded = false) {
+async function renderLeagueTable(expanded = false) {
     const container = document.getElementById('leagueTableContainer');
     if (!container) return;
 
-    const teams = [
-        { pos: 1, name: "La Costa FC", pj: 1, pts: 3 },
-        { pos: 2, name: "Berges FC (Dom)", pj: 1, pts: 3 },
-        { pos: 3, name: "FC Fernetbache", pj: 1, pts: 3 },
-        { pos: 4, name: "Porte FC (Domingo)", pj: 1, pts: 3 },
-        { pos: 5, name: "Parque Guarani", pj: 1, pts: 3 },
-        { pos: 6, name: "LA BUFARRA", pj: 1, pts: 1, highlighted: true },
-        { pos: 7, name: "Safaera FC", pj: 1, pts: 0 },
-        { pos: 8, name: "C. A. Magna", pj: 1, pts: 0 },
-        { pos: 9, name: "Alta Gama F.C", pj: 1, pts: 0 },
-        { pos: 10, name: "C. A. Parenaese", pj: 1, pts: 0 },
-        { pos: 11, name: "Prestcold FC", pj: 1, pts: 0 },
-        { pos: 12, name: "ENFUGEIRA FC", pj: 1, pts: 0 }
-    ];
+    let teams = [];
+    try {
+        const res = await fetch('data/league_table.json?v=' + Date.now());
+        if (res.ok) teams = await res.json();
+    } catch(e) { console.warn("DB: Falló carga de tabla dinámica, usando fallback."); }
 
-    let displayTeams = expanded ? teams : teams.filter(t => t.highlighted);
+    if (!teams || teams.length === 0) {
+        teams = [
+            { pos: 1, name: "La Costa FC", pj: 2, pts: 6 },
+            { pos: 2, name: "Berges FC (Dom)", pj: 2, pts: 6 },
+            { pos: 3, name: "FC Fernetbache", pj: 2, pts: 6 },
+            { pos: 4, name: "Porte FC (Domingo)", pj: 2, pts: 3 },
+            { pos: 5, name: "Parque Guarani", pj: 1, pts: 3 },
+            { pos: 6, name: "LA BUFARRA", pj: 2, pts: 3, highlighted: true },
+            { pos: 7, name: "Safaera FC", pj: 2, pts: 3 },
+            { pos: 8, name: "C. A. Magna", pj: 2, pts: 3 },
+            { pos: 9, name: "Alta Gama F.C", pj: 1, pts: 0 },
+            { pos: 10, name: "C. A. Parenaese", pj: 2, pts: 0 },
+            { pos: 11, name: "Prestcold FC", pj: 2, pts: 0 },
+            { pos: 12, name: "ENFUGEIRA FC", pj: 2, pts: 0 }
+        ];
+    }
+
+    let displayTeams = expanded ? teams : teams.filter(t => t.highlighted || (t.name && t.name.toUpperCase().includes('BUFARRA')));
+    
+    // Si no hay resaltados, mostrar los primeros 5
+    if (!expanded && displayTeams.length === 0) {
+        displayTeams = teams.slice(0, 5);
+    }
 
     let html = `
         <div class="glass-panel" id="tableWidget" style="cursor:pointer; padding: 2.5rem; transition: all 0.5s ease; border: ${expanded ? '2px solid var(--accent-primary)' : '1px solid var(--border-light)'}; box-shadow: ${expanded ? '0 0 50px var(--accent-glow)' : 'none'}; overflow: hidden;">
@@ -623,12 +756,17 @@ function renderLeagueTable(expanded = false) {
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 ${displayTeams.map(t => {
                     const isBufarra = t.highlighted;
+                    const shield = isBufarra ? 'img/logo/ESCUDO_BUFARRA.png' : getRivalShield(t.name);
+                    
                     return `
-                        <div style="display:grid; grid-template-columns: 60px 1fr 80px 80px; align-items:center; transition: all 0.3s ease; padding: 1.2rem; background: ${isBufarra ? 'rgba(255,107,129,0.1)' : 'transparent'}; border-radius: 12px; border: ${isBufarra ? '1px solid var(--accent-primary)' : '1px solid transparent'};">
-                            <div style="font-family:var(--font-display); font-size:1.5rem; font-weight:900; color:${isBufarra ? 'var(--accent-primary)' : '#fff'};">${t.pos}º</div>
-                            <div style="font-family:var(--font-display); font-size: 1.1rem; font-weight:800; color:#fff; text-transform:uppercase;">${t.name}</div>
-                            <div style="text-align:center; font-weight:700; color:var(--text-muted); font-size:1rem;">${t.pj} <small style="display:block; font-size:0.6rem; opacity:0.6; text-transform:uppercase;">PJ</small></div>
-                            <div style="text-align:center; font-weight:900; color:var(--accent-primary); font-size:1.2rem;">${t.pts} <small style="display:block; font-size:0.6rem; opacity:0.6; text-transform:uppercase; color:var(--text-muted);">PTS</small></div>
+                        <div style="display:grid; grid-template-columns: 40px 40px 1fr 60px 60px; align-items:center; transition: all 0.3s ease; padding: 1.2rem; background: ${isBufarra ? 'rgba(255,107,129,0.1)' : 'transparent'}; border-radius: 12px; border: ${isBufarra ? '1px solid var(--accent-primary)' : '1px solid transparent'};">
+                            <div style="font-family:var(--font-display); font-size:1.2rem; font-weight:900; color:${isBufarra ? 'var(--accent-primary)' : '#fff'};">${t.pos}º</div>
+                            <div style="display:flex; align-items:center; justify-content:center;">
+                                ${shield ? `<img src="${shield}" style="width:24px; height:24px; object-fit:contain;">` : '<i class="ph ph-shield" style="font-size:24px; opacity:0.1;"></i>'}
+                            </div>
+                            <div style="font-family:var(--font-display); font-size: 1rem; font-weight:800; color:#fff; text-transform:uppercase;">${t.name}</div>
+                            <div style="text-align:center; font-weight:700; color:var(--text-muted); font-size:0.9rem;">${t.pj} <small style="display:block; font-size:0.5rem; opacity:0.5;">PJ</small></div>
+                            <div style="text-align:center; font-weight:900; color:var(--accent-primary); font-size:1.1rem;">${t.pts} <small style="display:block; font-size:0.5rem; opacity:0.5; color:var(--text-muted);">PTS</small></div>
                         </div>
                     `;
                 }).join('')}
@@ -647,6 +785,9 @@ function renderLeagueTable(expanded = false) {
     if (widgetElement) {
         widgetElement.onclick = function() {
             renderLeagueTable(!expanded);
+            if (expanded) {
+                document.getElementById('campana')?.scrollIntoView({ behavior: 'smooth' });
+            }
         };
     }
 }
@@ -656,114 +797,173 @@ function filterPlantel(type, btn) {
     if (btn) btn.classList.add('active');
     renderPlantel2026(type);
 }
-window.filterPlantel = filterPlantel; 
+window.filterPlantel = filterPlantel;
 
-function renderPlantel2026(statType = 'general') {
-    const container = document.getElementById('playersGrid');
-    if (!container) return;
-    container.innerHTML = '';
+function handleSearchInput(input, btnId) {
+    const btn = document.getElementById(btnId);
+    if (btn) btn.style.display = input.value.length > 0 ? 'block' : 'none';
+    if (input.id === 'globalSearchInput') handleGlobalSearch(input.value);
+}
 
-    // Get 2026 Players
-    let allPlayers2026 = [...(window.allPlayers['2026'] || [])];
+function clearSearch(inputId, btnId) {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    if (input) {
+        input.value = '';
+        input.focus();
+        if (input.id === 'globalSearchInput') handleGlobalSearch('');
+    }
+    if (btn) btn.style.display = 'none';
+}
+
+window.handleSearchInput = handleSearchInput;
+window.clearSearch = clearSearch;
+
+function renderPlantel2026(filter = 'general') {
+    const grid = document.getElementById('playersGrid');
+    if (!grid || !window.allPlayers) return;
+
+    // Reset scroll to top on first render if needed
+    if (!window.hasScrolledToTop) {
+        window.scrollTo(0, 0);
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+        window.hasScrolledToTop = true;
+    }
+
+    let players2026 = window.allPlayers['2026'] || [];
+    let explicitStaff = [];
+    const rawData = window.rawPlayersData ? window.rawPlayersData['2026'] : null;
     
-    // Split Players and Staff
-    const staffKeywords = ["DT", "Cpo", "Cuerpo", "Asistente", "Delegado", "Delegada"];
-    let players = allPlayers2026.filter(p => !staffKeywords.some(kw => p.PLAYER.includes(kw)));
-    let staff = allPlayers2026.filter(p => staffKeywords.some(kw => p.PLAYER.includes(kw)));
+    // MAPPING DE DORSALES OFICIALES
+    const JUGADOR_DORSAL = {
+        "ANZUATTE": "#4",
+        "BLANCO": "#5",
+        "BONILLA": "#21",
+        "COLOMBO": "#8",
+        "DE LEON": "#71",
+        "FLORES": "#3",
+        "IZA": "#19",
+        "MARI": "#11",
+        "MARTINEZ": "#1",
+        "MENCHACA": "#23",
+        "MOLINA": "#15",
+        "OLARTE": "#2",
+        "PEDEMONTE": "#10",
+        "SPARKOV": "#9"
+    };
 
-    // Filtering & Sorting
-    if (statType !== 'general') {
-        const statMap = { 'goles': 'GOLES', 'asistencias': 'ASISTENCIAS', 'tarjetas': 'tarjetas' }; // tarjetas will be handled below
-        
-        players = players.filter(p => {
-            if (statType === 'tarjetas') return (parseInt(p.AMARILLAS || 0) + parseInt(p.ROJAS || 0)) > 0;
-            const val = parseInt(p[statMap[statType]] || 0);
-            return val > 0;
-        });
+    const staffNamesToForce = ["Santiago Mateo", "Emiliano Reyes", "Mateo", "Reyes"];
 
-        players.sort((a, b) => {
-            if (statType === 'tarjetas') {
-                const totalA = parseInt(a.AMARILLAS || 0) + parseInt(a.ROJAS || 0);
-                const totalB = parseInt(b.AMARILLAS || 0) + parseInt(b.ROJAS || 0);
-                return totalB - totalA;
+    if (rawData) {
+        Object.keys(rawData).forEach(tk => {
+            const tData = rawData[tk];
+            if (tData && tData.dt) {
+                tData.dt.split(/[/,]/).forEach(name => {
+                    const n = name.trim();
+                    if (n && !explicitStaff.some(s => s.PLAYER.toUpperCase() === n.toUpperCase())) {
+                        explicitStaff.push({ PLAYER: n, PJ: '0', GOLES: '0', ASISTENCIAS: '0', AMARILLAS: '0', ROJAS: '0', isStaff: true });
+                    }
+                });
             }
-            return parseInt(b[statMap[statType]] || 0) - parseInt(a[statMap[statType]] || 0);
-        });
-        
-        // No staff in filtered views
-        staff = [];
-    } else {
-        // Alphabetical sort by Surname for General
-        players.sort((a, b) => {
-            const getLastName = (full) => {
-                const parts = full.trim().toUpperCase().split(' ');
-                if (parts.length > 1 && ["DE", "DEL", "DI"].includes(parts[parts.length - 2])) {
-                    return parts.slice(-2).join(' ');
-                }
-                return parts[parts.length - 1];
-            };
-            return getLastName(a.PLAYER).localeCompare(getLastName(b.PLAYER));
         });
     }
 
+    if (!players2026.some(p => p.PLAYER.toUpperCase().includes('PEDEMONTE'))) {
+        players2026.push({ PLAYER: 'Pedemonte', PJ: '0', GOLES: '0', ASISTENCIAS: '0', AMARILLAS: '0', ROJAS: '0' });
+    }
+
+    const statKeywords = ["DT", "Cuerpo", "Director", "Delegado", ...staffNamesToForce];
+    const statMap = { 'goles': 'GOLES', 'asistencias': 'ASISTENCIAS', 'tarjetas': 'tarjetas' };
+
+    let players = players2026.filter(p => !p.isStaff && !statKeywords.some(kw => (p.PLAYER || '').toUpperCase().includes(kw.toUpperCase())));
+    let staff = [...explicitStaff, ...players2026.filter(p => p.isStaff || statKeywords.some(kw => (p.PLAYER || '').toUpperCase().includes(kw.toUpperCase())))];
+    
+    const seenStaff = new Set();
+    staff = staff.filter(s => {
+        const name = (s.PLAYER || '').toUpperCase().trim();
+        if (seenStaff.has(name)) return false;
+        seenStaff.add(name);
+        return true;
+    });
+
+    if (filter !== 'general') {
+        // Solo mostrar si tienen al menos 1 en la estadística seleccionada
+        players = players.filter(p => {
+            if (filter === 'tarjetas') {
+                return (parseInt(p.AMARILLAS || 0) + parseInt(p.ROJAS || 0)) > 0;
+            }
+            return parseInt(p[statMap[filter]] || 0) > 0;
+        });
+
+        players.sort((a,b) => (filter==='tarjetas'? (parseInt(b.AMARILLAS||0)+parseInt(b.ROJAS||0))-(parseInt(a.AMARILLAS||0)+parseInt(a.ROJAS||0)) : parseInt(b[statMap[filter]]||0)-parseInt(a[statMap[filter]]||0)));
+        staff = [];
+    } else {
+        // En vista general, si el staff manual está vacío, forzamos a los técnicos mencionados
+        if (staff.length === 0) {
+            staff.push({ PLAYER: 'Santiago Mateo', PJ: '0', GOLES: '0', ASISTENCIAS: '0', AMARILLAS: '0', ROJAS: '0', isStaff: true });
+            staff.push({ PLAYER: 'Emiliano Reyes', PJ: '0', GOLES: '0', ASISTENCIAS: '0', AMARILLAS: '0', ROJAS: '0', isStaff: true });
+        }
+        players.sort((a,b) => (a.PLAYER||'').localeCompare(b.PLAYER||''));
+    }
+
     const drawCard = (p) => {
-        const isStaff = staffKeywords.some(kw => p.PLAYER.includes(kw));
+        const nameText = (p.PLAYER || "").toUpperCase().trim();
+        const isStaffItem = p.isStaff || statKeywords.some(kw => nameText.includes(kw.toUpperCase()));
         const img = getPlayerImage(p.PLAYER);
         
+        // Determinar Dorsal o Etiqueta
+        let subtitle = JUGADOR_DORSAL[nameText] || "N/A";
+        if (isStaffItem) subtitle = "CUERPO TÉCNICO";
+        
         let statDisplay = '';
-        if (statType === 'general' || isStaff) {
-            statDisplay = `
-                <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 100%; border-top:1px solid rgba(255,255,255,0.05); padding-top: 1rem; margin-top: 1rem;">
-                    <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">PJ</small><span style="font-weight:700;">${p.PJ}</span></div>
-                    <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">G</small><span style="font-weight:700; color:var(--accent-primary);">${p.GOLES}</span></div>
-                    <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">A</small><span style="font-weight:700;">${p.ASISTENCIAS}</span></div>
-                    <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">AM</small><span style="font-weight:700; color:#ffd700;">${p.AMARILLAS}</span></div>
-                    <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">RO</small><span style="font-weight:700; color:#ff4d4d;">${p.ROJAS}</span></div>
-                </div>
-            `;
-        } else if (statType === 'goles') {
-            statDisplay = `<div style="font-family:var(--font-display); font-size: 1.5rem; font-weight:900; color:var(--accent-primary); margin-top:1rem;">${p.GOLES} <small style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">GOLES</small></div>`;
-        } else if (statType === 'asistencias') {
-            statDisplay = `<div style="font-family:var(--font-display); font-size: 1.5rem; font-weight:900; color:var(--accent-primary); margin-top:1rem;">${p.ASISTENCIAS} <small style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">ASIST</small></div>`;
-        } else if (statType === 'tarjetas') {
-            const total = parseInt(p.AMARILLAS || 0) + parseInt(p.ROJAS || 0);
-            statDisplay = `
-                <div style="display:flex; gap:1.5rem; margin-top:1rem;">
-                    <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px; height:18px; background:#ffd700; border-radius:2px;"></div> <span style="font-weight:800;">${p.AMARILLAS}</span></div>
-                    <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px; height:18px; background:#ff4d4d; border-radius:2px;"></div> <span style="font-weight:800;">${p.ROJAS}</span></div>
-                </div>
-            `;
+        // Solo mostrar estadísticas si NO es staff
+        if (!isStaffItem) {
+            if (filter === 'general') {
+                statDisplay = `
+                    <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 100%; border-top:1px solid rgba(255,255,255,0.05); padding-top: 1rem; margin-top: 1rem;">
+                        <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">PJ</small><span style="font-weight:700;">${p.PJ || 0}</span></div>
+                        <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">G</small><span style="font-weight:700; color:var(--accent-primary);">${p.GOLES || 0}</span></div>
+                        <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">A</small><span style="font-weight:700;">${p.ASISTENCIAS || 0}</span></div>
+                        <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">AM</small><span style="font-weight:700; color:#ffd700;">${p.AMARILLAS || 0}</span></div>
+                        <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">RO</small><span style="font-weight:700; color:#ff4d4d;">${p.ROJAS || 0}</span></div>
+                    </div>
+                `;
+            } else {
+                const val = filter === 'tarjetas' ? (parseInt(p.AMARILLAS||0)+parseInt(p.ROJAS||0)) : p[statMap[filter]]||0;
+                const label = filter === 'tarjetas' ? 'TARJ' : filter.toUpperCase();
+                statDisplay = `<div style="font-family:var(--font-display); font-size: 1.5rem; font-weight:900; color:var(--accent-primary); margin-top:1rem;">${val} <small style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">${label}</small></div>`;
+            }
         }
 
         return `
-            <div class="glass-panel" style="display:flex; flex-direction:column; align-items:center; padding: 2rem; border-radius: 20px; transition: all 0.3s ease;">
-                <div style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; margin-bottom: 1.5rem; border: 2px solid ${isStaff ? 'var(--text-muted)' : 'var(--accent-primary)'};">
+            <div class="glass-panel" style="display:flex; flex-direction:column; align-items:center; padding: 2.2rem 1.5rem; border-radius: 20px; transition: all 0.3s ease;">
+                <div style="width: 110px; height: 110px; border-radius: 50%; overflow: hidden; margin-bottom: 1.2rem; border: 2px solid var(--accent-primary); box-shadow: 0 0 20px rgba(255,107,129,0.2);">
                     <img src="${img}" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 <div style="font-family:var(--font-display); font-weight: 800; font-size: 1rem; text-transform: uppercase; color: #fff; text-align:center;">${p.PLAYER}</div>
-                ${isStaff ? `<div style="font-size:0.7rem; color:var(--accent-primary); text-transform:uppercase; font-weight:700; margin-top:0.3rem;">Staff Técnico</div>` : ''}
+                <div style="font-size:0.75rem; color:var(--accent-primary); text-transform:uppercase; font-weight:900; margin-top:0.4rem; letter-spacing:2px;">${subtitle}</div>
                 ${statDisplay}
             </div>
         `;
     };
-
-    players.forEach(p => container.innerHTML += drawCard(p));
-    staff.forEach(s => container.innerHTML += drawCard(s));
-
-    // Custom "Ver más" Card
+    let html = players.map(drawCard).join('') + staff.map(drawCard).join('');
+    
+    // Links de navegación rápida
     const links = {
         'general': { text: 'Ver todos los planteles', url: 'jugadores.html' },
-        'goles': { text: 'Goleadores históricos', url: 'jugadores.html?filter=goles' },
-        'asistencias': { text: 'Asistidores históricos', url: 'jugadores.html?filter=asistencias' },
-        'tarjetas': { text: 'Disciplina histórica', url: 'jugadores.html?filter=tarjetas' }
+        'goles': { text: 'Ver goleadores históricos', url: 'jugadores.html?filter=goles' },
+        'asistencias': { text: 'Ver asistidores históricos', url: 'jugadores.html?filter=asistencias' },
+        'tarjetas': { text: 'Ver disciplina histórica', url: 'jugadores.html?filter=tarjetas' }
     };
-    
-    container.innerHTML += `
-        <a href="${links[statType].url}" class="glass-panel" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2rem; text-decoration:none; border:1px dashed var(--accent-primary); min-height: 250px;">
+    html += `
+        <a href="${links[filter].url}" class="glass-panel" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2rem; text-decoration:none; border:1px dashed var(--accent-primary); border-radius: 20px;">
             <i class="ph-bold ph-arrow-right" style="font-size:2.5rem; color:var(--accent-primary); margin-bottom:1rem;"></i>
-            <span style="color:#fff; font-weight:800; text-transform:uppercase; font-size:0.9rem; text-align:center;">${links[statType].text}</span>
+            <span style="color:#fff; font-weight:800; text-transform:uppercase; font-size:0.9rem; text-align:center;">${links[filter].text}</span>
         </a>
     `;
+    grid.innerHTML = html;
 }
 
 function renderPartidos2026() {
@@ -820,41 +1020,103 @@ function renderLogros() {
     });
 }
 
-function handleGlobalSearch(q) {
+function openRivalModal(rivalName) {
+    const modal = document.getElementById('rivalModal');
+    const header = document.getElementById('rivalHeader');
+    const container = document.getElementById('rivalMatchesContainer');
+    if (!modal || !header || !container) return;
+
+    const matches = window.allMatches.filter(m => 
+        (m.rival || m.VS || "").toUpperCase() === rivalName.toUpperCase()
+    ).sort((a,b) => parseDateForSort(b.FECHA || b.fecha) - parseDateForSort(a.FECHA || a.fecha));
+
+    const shield = getRivalShield(rivalName);
+    
+    header.innerHTML = `
+        <div style="margin-bottom: 1rem;">
+            ${shield ? `<img src="${shield}" style="width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1));">` : '<i class="ph ph-shield" style="font-size: 80px; opacity: 0.1;"></i>'}
+        </div>
+        <h2 class="section-title" style="margin:0;"><span>Historial vs</span>${rivalName.toUpperCase()}</h2>
+        <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem;">
+            <div style="text-align:center;"><div style="font-size:1.5rem; font-weight:900; color:#fff;">${matches.length}</div><div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">PJ</div></div>
+            <div style="text-align:center;"><div style="font-size:1.5rem; font-weight:900; color:#2ecc71;">${matches.filter(m => (m.gf||m.GF) > (m.gc||m.GC)).length}</div><div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">PG</div></div>
+            <div style="text-align:center;"><div style="font-size:1.5rem; font-weight:900; color:#f1c40f;">${matches.filter(m => (m.gf||m.GF) === (m.gc||m.GC)).length}</div><div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">PE</div></div>
+            <div style="text-align:center;"><div style="font-size:1.5rem; font-weight:900; color:#ff4757;">${matches.filter(m => (m.gf||m.GF) < (m.gc||m.GC)).length}</div><div style="font-size:0.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">PP</div></div>
+        </div>
+    `;
+
+    if (matches.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:3rem; color:var(--text-muted);">No hay partidos registrados contra este rival aún.</div>';
+    } else {
+        container.innerHTML = matches.map(m => {
+            const gf = m.gf || m.GF || 0;
+            const gc = m.gc || m.GC || 0;
+            const resColor = gf > gc ? '#2ecc71' : (gf === gc ? '#f1c40f' : '#ff4757');
+            const fechaLabel = m.FECHA || m.fecha || 'TBD';
+            const torneoStr = (m.torneo || "").toUpperCase();
+            
+            return `
+                <div class="glass-panel" style="padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-light); border-radius: 12px;">
+                    <div style="flex: 1.2;">
+                        <div style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 0.2rem;">${fechaLabel}</div>
+                        <div style="font-size: 0.65rem; color: var(--accent-primary); font-weight: 700; letter-spacing: 0.5px;">${torneoStr}</div>
+                    </div>
+                    <div style="flex: 1; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 1rem;">
+                        <div style="font-family: var(--font-display); font-size: 1.3rem; font-weight: 900; color: ${resColor}; text-shadow: 0 0 10px ${resColor}33;">${gf} - ${gc}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeRivalModal(e) {
+    if (e && e.target && e.target.id !== 'rivalModal' && !e.target.closest('.modal-close-btn')) return;
+    document.getElementById('rivalModal').style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+function getRivalFormHTML(rivalName) {
+    const matches = window.allMatches.filter(m => 
+        (m.rival || m.VS || "").toUpperCase() === rivalName.toUpperCase()
+    ).slice(0, 5);
+    if (matches.length === 0) return '';
+    return '<div style="display:flex; gap:4px; margin-top:2px;">' + matches.map(m => {
+        const gf = m.gf || m.GF || 0;
+        const gc = m.gc || m.GC || 0;
+        if (gf > gc) return '<span style="color:#2ecc71; font-weight:900; font-size:0.75rem;">G</span>';
+        if (gf === gc) return '<span style="color:#f1c40f; font-weight:900; font-size:0.75rem;">E</span>';
+        return '<span style="color:#ff4757; font-weight:900; font-size:0.75rem;">P</span>';
+    }).join('') + '</div>';
+}
+
+function handleGlobalSearch(query) {
     const dropdown = document.getElementById('searchResultsDropdown');
     if (!dropdown) return;
-    if (!q || q.trim().length < 2) {
+    if (!query || query.trim().length < 2) {
         dropdown.style.display = 'none';
         return;
     }
-
-    const query = q.toLowerCase().trim();
-    let results = [];
+    const q = query.toLowerCase().trim();
+    const results = [];
 
     // Search Players
-    Object.values(window.allPlayers).flat().forEach(p => {
-        if (p.PLAYER && p.PLAYER.toLowerCase().includes(query)) {
-            results.push({ type: 'player', label: p.PLAYER, sub: 'Jugador Histórico', icon: 'ph-user' });
+    Object.keys(PLAYER_MAP).forEach(p => {
+        if (p.toLowerCase().includes(q)) {
+            results.push({ type: 'player', label: p, sub: 'Jugador Oficial', icon: 'ph-user-focus' });
         }
     });
 
-    // Search Matches & Rivals
+    // Search Rivals
     window.allMatches.forEach(m => {
-        const rival = m.VS || m.rival || '';
-        if (rival.toLowerCase().includes(query)) {
-            results.push({ type: 'rival', label: rival, sub: `Rival - ${m.AÑO}`, icon: 'ph-shield' });
-        }
-        const torneo = m.torneo || '';
-        if (torneo.toLowerCase().includes(query)) {
-            results.push({ type: 'tournament', label: torneo, sub: `Torneo - ${m.AÑO}`, icon: 'ph-trophy' });
-        }
-        const fecha = m.FECHA || m.fecha || '';
-        if (fecha.includes(query)) {
-            results.push({ type: 'date', label: fecha, sub: `Partido vs ${rival}`, icon: 'ph-calendar' });
+        const rival = (m.VS || m.rival || '').trim();
+        if (rival.toLowerCase().includes(q)) {
+            results.push({ type: 'rival', label: rival, sub: 'Rival Histórico', icon: 'ph-shield', extra: getRivalFormHTML(rival) });
         }
     });
 
-    // De-duplicate results
     const seen = new Set();
     const finalResults = results.filter(r => {
         const key = `${r.type}-${r.label.toLowerCase()}`;
@@ -865,30 +1127,35 @@ function handleGlobalSearch(q) {
 
     if (finalResults.length > 0) {
         dropdown.innerHTML = finalResults.map(r => `
-            <div onclick="handleSearchClick('${r.type}', '${r.label}')" class="search-item-suggestion" style="display:flex; align-items:center; gap:1rem; padding:0.75rem 1rem; cursor:pointer; border-radius:10px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
-                <i class="ph-bold ${r.icon}" style="color:var(--accent-primary); font-size:1.2rem;"></i>
+            <div onclick="handleSearchClick('${r.type}', '${r.label}')" class="search-item-suggestion" style="display:flex; align-items:center; gap:1rem; padding:0.85rem 1.25rem; cursor:pointer; border-radius:12px; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                <i class="ph-bold ${r.icon}" style="color:var(--accent-primary); font-size:1.3rem;"></i>
                 <div style="flex:1;">
-                    <div style="font-weight:800; color:#fff; font-size:0.9rem; text-transform:uppercase;">${r.label}</div>
-                    <div style="font-size:0.7rem; color:var(--text-muted);">${r.sub}</div>
+                    <div style="font-weight:800; color:#fff; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.5px;">${r.label}</div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                        <div style="font-size:0.7rem; color:var(--text-muted); opacity:0.8;">${r.sub}</div>
+                        ${r.extra || ''}
+                    </div>
                 </div>
             </div>
         `).join('');
         dropdown.style.display = 'block';
     } else {
-        dropdown.innerHTML = '<div style="padding:1rem; color:var(--text-muted); text-align:center; font-size:0.8rem;">No se encontraron resultados.</div>';
+        dropdown.innerHTML = '<div style="padding:1.5rem; color:var(--text-muted); text-align:center; font-size:0.8rem; font-weight:700; letter-spacing:1px;">SIN RESULTADOS</div>';
         dropdown.style.display = 'block';
     }
 }
 
 function handleSearchClick(type, label) {
     if (type === 'player') window.location.href = `jugadores.html?search=${encodeURIComponent(label)}`;
-    else if (type === 'rival') window.location.href = `partidos.html?rival=${encodeURIComponent(label)}`;
+    else if (type === 'rival') openRivalModal(label);
     else if (type === 'tournament') window.location.href = `campeonatos.html?tournament=${encodeURIComponent(label)}`;
     else if (type === 'date') window.location.href = `partidos.html?date=${encodeURIComponent(label)}`;
 }
 
 window.handleGlobalSearch = handleGlobalSearch;
 window.handleSearchClick = handleSearchClick;
+window.openRivalModal = openRivalModal;
+window.closeRivalModal = closeRivalModal;
 
 function initScrollObserver() {
     const sections = document.querySelectorAll('section');
@@ -916,4 +1183,76 @@ function initScrollObserver() {
 
     sections.forEach(section => observer.observe(section));
 }
+
+// Configuración global de OneSignal
+window.OneSignal = window.OneSignal || [];
+OneSignal.push(function() {
+    OneSignal.init({
+        appId: "5216c0c7-ff86-439c-b82c-dc884915ce0c",
+        notifyButton: { enable: false }
+    });
+});
+
+// Lógica de invitación a notificaciones y PWA
+function initSmartPrompts() {
+    const status = localStorage.getItem('bufarra_notifications');
+    const closedDate = localStorage.getItem('bufarra_prompt_closed');
+    const today = new Date().toDateString();
+
+    if (status === 'true' || closedDate === today) return;
+
+    // Si ya estamos suscritos en OneSignal, no preguntar
+    OneSignal.push(function() {
+        OneSignal.isPushNotificationsEnabled(function(isEnabled) {
+            if (isEnabled) {
+                localStorage.setItem('bufarra_notifications', 'true');
+                return;
+            }
+            showTheBanner(today);
+        });
+    });
+}
+
+function showTheBanner(today) {
+    const banner = document.createElement('div');
+    banner.className = 'noti-prompt-banner';
+    banner.innerHTML = `
+        <div class="noti-prompt-header">
+            <img src="img/logo/ESCUDO_BUFARRA.png" style="width: 50px; height: 50px; object-fit: contain;">
+            <div class="noti-prompt-text">
+                <b>¡Sumate a La Bufarra!</b>
+                <p>Activá las notificaciones para recibir alertas de partidos, cambios de horario y resultados al instante.</p>
+            </div>
+        </div>
+        <div class="noti-prompt-btns">
+            <button class="noti-btn noti-btn-yes" id="btnNotiYes">ACTIVAR ALERTAS</button>
+            <button class="noti-btn noti-btn-no" id="btnNotiNo">LUEGO</button>
+        </div>
+    `;
+    document.body.appendChild(banner);
+    setTimeout(() => banner.classList.add('show'), 2000);
+
+    document.getElementById('btnNotiYes').onclick = () => {
+        OneSignal.push(function() {
+            OneSignal.registerForPushNotifications();
+            localStorage.setItem('bufarra_notifications', 'true');
+            banner.classList.remove('show');
+        });
+    };
+
+    document.getElementById('btnNotiNo').onclick = () => {
+        localStorage.setItem('bufarra_prompt_closed', today);
+        banner.classList.remove('show');
+    };
+}
+
+// Registro de Service Worker para PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error:', err));
+    });
+}
+
+// Lanzar prompts inteligentes al cargar
+window.addEventListener('dataLoaded', initSmartPrompts);
 

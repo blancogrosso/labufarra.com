@@ -1,6 +1,7 @@
 document.addEventListener('dataLoaded', () => {
     renderCampeonatos();
 });
+window.renderAll = renderCampeonatos;
 
 // Triple-check for race conditions
 if (window.dataLoaded || (typeof allMatches !== 'undefined' && allMatches.length > 0)) {

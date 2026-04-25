@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>La Bufarra</title>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignal.js" async=""></script>
     
     <!-- Evitar caché en desarrollo/producción para datos dinámicos -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -13,6 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="css/styles.css?v=3.2">
     
@@ -38,47 +40,58 @@
         }
 
         .match-card-full {
-            display: flex;
+            display: grid;
+            grid-template-columns: 120px 1fr;
             background: var(--bg-card);
+            backdrop-filter: blur(12px);
             border: 1px solid var(--border-light);
-            border-radius: 16px;
+            border-radius: 20px;
             overflow: hidden;
-            transition: transform 0.2s;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            margin-bottom: 0.5rem;
         }
 
         .match-card-full:hover {
-            transform: translateX(10px);
-            border-color: rgba(0,0,0,0.15);
+            transform: translateX(10px) scale(1.02);
+            border-color: var(--accent-primary);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px var(--accent-glow);
+            z-index: 10;
         }
 
         .match-date-badge {
-            background: rgba(0,0,0,0.5);
+            background: rgba(255,255,255,0.03);
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 120px;
             border-right: 1px solid var(--border-light);
+            transition: all 0.3s ease;
+        }
+        
+        .match-card-full:hover .match-date-badge {
+            background: rgba(255,107,129,0.05);
         }
 
         .match-date-badge .day {
             font-family: var(--font-display);
-            font-size: 2rem;
-            font-weight: 800;
+            font-size: 2.2rem;
+            font-weight: 900;
             line-height: 1;
+            color: #fff;
         }
         .match-date-badge .month {
             color: var(--accent-primary);
             text-transform: uppercase;
-            font-size: 0.85rem;
-            font-weight: 700;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 1px;
             margin-top: 0.25rem;
         }
 
         .match-content {
-            padding: 1.5rem;
-            flex-grow: 1;
+            padding: 1.5rem 2rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -88,59 +101,72 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .match-tournament {
-            font-size: 0.75rem;
-            color: var(--text-muted);
+            font-size: 0.7rem;
+            color: var(--accent-primary);
             text-transform: uppercase;
-            letter-spacing: 2px;
-            background: rgba(0,0,0,0.05);
-            padding: 0.2rem 0.8rem;
-            border-radius: 4px;
+            letter-spacing: 3px;
+            font-weight: 800;
+            opacity: 0.8;
         }
 
         .match-teams {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 100px 1fr;
             align-items: center;
             gap: 1.5rem;
-            font-family: var(--font-display);
-            font-size: 1.5rem;
-            font-weight: 700;
+            margin-bottom: 1.5rem;
         }
 
-        .match-teams span {
-            flex: 1;
+        .team-home, .team-away {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #fff;
+            letter-spacing: 0.5px;
         }
         
         .team-home { text-align: right; }
         .team-away { text-align: left; }
 
         .match-score {
-            background: rgba(252, 218, 217, 0.1);
-            color: var(--accent-primary);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-weight: 800;
-            min-width: 80px;
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 900;
             text-align: center;
+            padding: 0.4rem 0;
+            border-radius: 10px;
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            min-width: 90px;
         }
 
         .match-footer {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-light);
             display: flex;
-            gap: 2rem;
-            font-size: 0.85rem;
-            color: var(--text-muted);
+            align-items: center;
+            gap: 1.5rem;
+            border-top: 1px solid var(--border-light);
+            padding-top: 1rem;
+            margin-top: 0.5rem;
         }
 
         .match-detail {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+        }
+        
+        .match-detail i {
+            color: var(--accent-primary);
+            font-size: 1rem;
         }
         
         .goalscorers {
@@ -203,28 +229,40 @@
     </style>
     <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
 </head>
-<body>
+<body class="white-base">
 
-    <header>
+    <header id="mainHeader">
         <div class="nav-container">
-            <a href="index.html" class="logo">
-                <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 35px; width: auto; margin-right: 10px;" onerror="this.style.display='none';">
-            </a>
-            <ul class="nav-links">
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="jugadores.html">Jugadores</a></li>
-                <li><a href="partidos.html" class="active">Partidos</a></li>
-                <li><a href="entrenadores.html">Entrenadores</a></li>
-                <li><a href="campeonatos.html">Campeonatos</a></li>
-                <li><a href="historia.html">Historia</a></li>
-                
-                <li style="display:flex; align-items:center;"><a href="https://instagram.com/labufarra" target="_blank" style="display: flex; align-items: center; color: var(--accent-primary); line-height: 1;"><i class="ph-bold ph-instagram-logo" style="font-size: 1.2rem;"></i></a></li>
-                <li style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display);">
-                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-main);">ES</a>
-                    <span style="color:var(--text-muted); font-size:1rem;">/</span>
-                    <a href="#" style="font-size:1rem; font-weight:800; color:var(--text-muted); cursor:not-allowed;" title="Soon...">EN</a>
-                </li>
-            </ul>
+            <div class="nav-left">
+                <a href="index.html" class="logo">
+                    <img src="img/logo/ESCUDO_BUFARRA.png" alt="Escudo" style="height: 40px; width: auto;" onerror="this.style.display='none';">
+                </a>
+            </div>
+            <div class="nav-center">
+                <ul class="nav-links">
+                    <li><a href="index.html">Inicio</a></li>
+                    <li><a href="jugadores.html">Jugadores</a></li>
+                    <li><a href="partidos.html" class="active">Partidos</a></li>
+                    <li><a href="entrenadores.html">Entrenadores</a></li>
+                    <li><a href="campeonatos.html">Campeonatos</a></li>
+                    <li><a href="historia.html">Historia</a></li>
+                </ul>
+            </div>
+            <div class="nav-right">
+                <div class="nav-actions">
+                    <a href="https://instagram.com/labufarra" target="_blank" style="color: var(--accent-primary); display:flex; align-items:center;">
+                        <i class="ph-bold ph-instagram-logo" style="font-size: 1.4rem;"></i>
+                    </a>
+                    <div style="display:flex; gap:0.5rem; align-items:center; font-family: var(--font-display); font-size: 0.9rem;">
+                        <span style="font-weight:800; color:var(--text-main);">ES</span>
+                        <span style="color:var(--text-muted);">/</span>
+                        <span style="font-weight:800; color:var(--text-muted); opacity:0.5;">EN</span>
+                    </div>
+                    <div class="nav-toggle">
+                        <i class="ph-bold ph-list"></i>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -246,9 +284,12 @@
         <div class="filters-container" style="display: flex; flex-direction: column; gap: 2rem; margin-bottom: 4rem;">
             <!-- Row 1: Search and Result Circles -->
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 1.5rem;">
-                <div class="search-box">
-                    <i class="ph-bold ph-magnifying-glass" style="color: var(--text-muted)"></i>
-                    <input type="text" id="rivalSearchInput" placeholder="Buscar por rival..." class="glass-panel">
+                <div class="search-box search-container" style="position:relative; flex:1; max-width: 400px;">
+                    <i class="ph-bold ph-magnifying-glass" style="color: var(--text-muted); position: absolute; left: 1rem;"></i>
+                    <input type="text" id="rivalSearchInput" placeholder="Buscar por rival..." class="glass-panel" style="width: 100%; padding-left: 3rem;" oninput="handleSearchInput(this, 'clearBtnMatches')">
+                    <button id="clearBtnMatches" class="clear-search-btn" onclick="clearSearch('rivalSearchInput', 'clearBtnMatches')">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
                 </div>
                 
                 <div class="result-circles" id="resultFilters" style="display: flex; gap: 1rem; align-items: center;">
@@ -299,5 +340,6 @@
 
     <script src="js/db.js?v=5.0"></script>
     <script src="js/partidos.js?v=5.0"></script>
+    <script src="js/navigation.js"></script>
 </body>
 </html>

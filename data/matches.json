@@ -1,1892 +1,1821 @@
 [
   {
-    "año": "2026",
-    "fecha": "12/4/2026",
+    "id": "m1776657829255",
+    "fecha": "2026-04-19",
+    "torneo": "Apertura",
+    "instancia": "FECHA 2",
+    "rival": "ENFUGEIRA",
+    "gf": 5,
+    "gc": 1,
+    "lugar": "PRO",
+    "jugadores": {
+      "Iza": {
+        "mvp": false,
+        "goles": 1,
+        "rojas": 0,
+        "amarillas": 1,
+        "asistencias": 0
+      },
+      "Mari": {
+        "mvp": false,
+        "goles": 1,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 1
+      },
+      "Blanco": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 0
+      },
+      "Flores": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 0
+      },
+      "Olarte": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 0
+      },
+      "Bonilla": {
+        "mvp": true,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 1
+      },
+      "Colombo": {
+        "mvp": false,
+        "goles": 1,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 0
+      },
+      "Sparkov": {
+        "mvp": false,
+        "goles": 2,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 1
+      },
+      "Anzuatte": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 0
+      },
+      "Martinez": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 1
+      },
+      "Menchaca": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 0
+      }
+    },
+    "created_at": "2026-04-20T04:03:49.600496+00:00"
+  },
+  {
+    "id": "m1776188234801",
+    "fecha": "2026-04-12",
     "torneo": "Apertura",
     "instancia": "FECHA 1",
     "rival": "FERNETBACHE",
     "gf": 1,
     "gc": 3,
     "lugar": "PRO",
-    "jugadores": [
-      {
-        "nombre": "Anzuatte",
-        "jugo": true,
+    "jugadores": {
+      "Iza": {
+        "mvp": false,
         "goles": 0,
-        "asistencias": 0,
+        "rojas": 0,
         "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
+        "asistencias": 0
       },
-      {
-        "nombre": "Blanco",
-        "jugo": true,
+      "Mari": {
+        "mvp": false,
         "goles": 0,
-        "asistencias": 0,
+        "rojas": 0,
         "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
+        "asistencias": 0
       },
-      {
-        "nombre": "Bonilla",
-        "jugo": true,
+      "Blanco": {
+        "mvp": false,
         "goles": 0,
-        "asistencias": 0,
+        "rojas": 0,
         "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
+        "asistencias": 0
       },
-      {
-        "nombre": "Colombo",
-        "jugo": true,
+      "Molina": {
+        "mvp": false,
         "goles": 0,
-        "asistencias": 0,
+        "rojas": 0,
         "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
+        "asistencias": 0
       },
-      {
-        "nombre": "De León",
-        "jugo": true,
+      "Olarte": {
+        "mvp": false,
         "goles": 0,
-        "asistencias": 0,
+        "rojas": 0,
         "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
+        "asistencias": 0
       },
-      {
-        "nombre": "Iza",
-        "jugo": true,
+      "Bonilla": {
+        "mvp": false,
         "goles": 0,
-        "asistencias": 0,
+        "rojas": 0,
         "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
+        "asistencias": 0
       },
-      {
-        "nombre": "Martinez",
-        "jugo": true,
+      "Colombo": {
+        "mvp": false,
         "goles": 0,
-        "asistencias": 0,
+        "rojas": 0,
         "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
+        "asistencias": 0
       },
-      {
-        "nombre": "Mari",
-        "jugo": true,
+      "De Leon": {
+        "mvp": false,
         "goles": 0,
-        "asistencias": 0,
+        "rojas": 0,
         "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
+        "asistencias": 0
       },
-      {
-        "nombre": "Menchaca",
-        "jugo": true,
-        "goles": 0,
-        "asistencias": 0,
-        "amarillas": 1,
-        "rojas": 0,
-        "mvp": false
-      },
-      {
-        "nombre": "Molina",
-        "jugo": true,
-        "goles": 0,
-        "asistencias": 0,
-        "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
-      },
-      {
-        "nombre": "Olarte",
-        "jugo": true,
-        "goles": 0,
-        "asistencias": 0,
-        "amarillas": 0,
-        "rojas": 0,
-        "mvp": false
-      },
-      {
-        "nombre": "Sparkov",
-        "jugo": true,
+      "Sparkov": {
+        "mvp": true,
         "goles": 1,
-        "asistencias": 0,
-        "amarillas": 0,
         "rojas": 0,
-        "mvp": false
+        "amarillas": 0,
+        "asistencias": 0
+      },
+      "Anzuatte": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 0
+      },
+      "Martinez": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 0,
+        "asistencias": 0
+      },
+      "Menchaca": {
+        "mvp": false,
+        "goles": 0,
+        "rojas": 0,
+        "amarillas": 1,
+        "asistencias": 0
       }
-    ],
-    "id": "id_1776049492269_3f5129f2",
-    "resultado": "D"
+    },
+    "created_at": "2026-04-14T17:37:15.091978+00:00"
   },
   {
-    "año": "2026",
-    "fecha": "15/3/2026",
-    "torneo": "Pretemporada",
-    "instancia": "",
+    "id": "m136",
+    "fecha": "2026-03-15",
+    "torneo": null,
+    "instancia": null,
     "rival": "EDU SKOL",
     "gf": 3,
     "gc": 1,
-    "lugar": "PRO",
+    "lugar": null,
     "jugadores": [],
-    "id": "m136",
-    "resultado": "V"
+    "created_at": "2026-04-20T14:17:13.953068+00:00"
   },
   {
     "id": "m135",
-    "año": "2026",
-    "fecha": "4/03/2026",
-    "torneo": "Pretemporada",
-    "instancia": "",
+    "fecha": "2026-03-04",
+    "torneo": null,
+    "instancia": null,
     "rival": "REAL PACHUCASO",
     "gf": 6,
     "gc": 4,
-    "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "lugar": null,
+    "jugadores": [],
+    "created_at": "2026-04-20T14:17:13.953068+00:00"
   },
   {
     "id": "m134",
-    "año": "2025",
-    "fecha": "9/11/2025",
+    "fecha": "2025-11-09",
     "torneo": "Clausura",
     "instancia": "FINAL",
     "rival": "DEL VAMOS",
     "gf": 2,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m133",
-    "año": "2025",
-    "fecha": "2/11/2025",
+    "fecha": "2025-11-02",
     "torneo": "Clausura",
     "instancia": "SEMI FINAL",
     "rival": "EL COMBO",
     "gf": 3,
     "gc": 0,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m132",
-    "año": "2025",
-    "fecha": "12/10/2025",
+    "fecha": "2025-10-12",
     "torneo": "Clausura",
     "instancia": "FECHA 9",
     "rival": "MISTIK",
     "gf": 3,
     "gc": 0,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m131",
-    "año": "2025",
-    "fecha": "5/10/2025",
+    "fecha": "2025-10-05",
     "torneo": "Clausura",
     "instancia": "FECHA 8",
     "rival": "CALLEJEROS",
     "gf": 1,
     "gc": 4,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m130",
-    "año": "2025",
-    "fecha": "28/09/2025",
+    "fecha": "2025-09-28",
     "torneo": "Clausura",
     "instancia": "FECHA 7",
     "rival": "DEL VAMOS",
     "gf": 0,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m129",
-    "año": "2025",
-    "fecha": "21/09/2025",
+    "fecha": "2025-09-21",
     "torneo": "Clausura",
     "instancia": "FECHA 6",
     "rival": "FERNETBACHE",
     "gf": 0,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m128",
-    "año": "2025",
-    "fecha": "14/09/2025",
+    "fecha": "2025-09-14",
     "torneo": "Clausura",
     "instancia": "FECHA 5",
     "rival": "EL COMBO",
     "gf": 2,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m127",
-    "año": "2025",
-    "fecha": "7/09/2025",
+    "fecha": "2025-09-07",
     "torneo": "Clausura",
     "instancia": "FECHA 4",
     "rival": "EL VAPA",
     "gf": 3,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m126",
-    "año": "2025",
-    "fecha": "31/08/2025",
+    "fecha": "2025-08-31",
     "torneo": "Clausura",
     "instancia": "FECHA 3",
     "rival": "BALDO",
     "gf": 3,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m125",
-    "año": "2025",
-    "fecha": "24/08/2025",
+    "fecha": "2025-08-24",
     "torneo": "Clausura",
     "instancia": "FECHA 2",
     "rival": "LOS MAGICOS",
     "gf": 4,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m124",
-    "año": "2025",
-    "fecha": "17/08/2025",
+    "fecha": "2025-08-17",
     "torneo": "Clausura",
     "instancia": "FECHA 1",
     "rival": "LA COSTA",
     "gf": 2,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m123",
-    "año": "2025",
-    "fecha": "3/08/2025",
+    "fecha": "2025-08-03",
     "torneo": "Copa del Rey",
     "instancia": "SEMI FINAL",
     "rival": "LA COSTA",
     "gf": 4,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m122",
-    "año": "2025",
-    "fecha": "27/07/2025",
+    "fecha": "2025-07-27",
     "torneo": "Copa del Rey",
     "instancia": "CUARTOS DE FINAL",
     "rival": "BALDO",
     "gf": 4,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m121",
-    "año": "2025",
-    "fecha": "13/07/2025",
+    "fecha": "2025-07-13",
     "torneo": "Copa del Rey",
     "instancia": "FASE DE GRUPOS",
     "rival": "PORTE",
     "gf": 3,
     "gc": 0,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m120",
-    "año": "2025",
-    "fecha": "6/07/2025",
+    "fecha": "2025-07-06",
     "torneo": "Copa del Rey",
     "instancia": "FASE DE GRUPOS",
     "rival": "PARENAESE",
     "gf": 0,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m119",
-    "año": "2025",
-    "fecha": "29/06/2025",
+    "fecha": "2025-06-29",
     "torneo": "Copa del Rey",
     "instancia": "FASE DE GRUPOS",
     "rival": "LOS MAGICOS",
     "gf": 3,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m118",
-    "año": "2025",
-    "fecha": "25/05/2025",
+    "fecha": "2025-05-25",
     "torneo": "Apertura",
     "instancia": "FECHA 9",
     "rival": "FUNF",
     "gf": 1,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m117",
-    "año": "2025",
-    "fecha": "18/05/2025",
+    "fecha": "2025-05-18",
     "torneo": "Apertura",
     "instancia": "FECHA 8",
     "rival": "CONSTANTINOPLA",
     "gf": 3,
     "gc": 0,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m116",
-    "año": "2025",
-    "fecha": "11/05/2025",
+    "fecha": "2025-05-11",
     "torneo": "Apertura",
     "instancia": "FECHA 7",
     "rival": "DEL VAMOS",
     "gf": 2,
     "gc": 4,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m115",
-    "año": "2025",
-    "fecha": "4/05/2025",
+    "fecha": "2025-05-04",
     "torneo": "Apertura",
     "instancia": "FECHA 6",
     "rival": "CALLEJEROS",
     "gf": 2,
     "gc": 4,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m114",
-    "año": "2025",
-    "fecha": "27/04/2025",
+    "fecha": "2025-04-27",
     "torneo": "Apertura",
     "instancia": "FECHA 5",
     "rival": "FERNETBACHE",
     "gf": 0,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m113",
-    "año": "2025",
-    "fecha": "20/04/2025",
+    "fecha": "2025-04-20",
     "torneo": "Apertura",
     "instancia": "FECHA 4",
     "rival": "EL VAPA",
     "gf": 2,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m112",
-    "año": "2025",
-    "fecha": "13/04/2025",
+    "fecha": "2025-04-13",
     "torneo": "Apertura",
     "instancia": "FECHA 3",
     "rival": "EL COMBO",
     "gf": 4,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m111",
-    "año": "2025",
-    "fecha": "6/04/2025",
+    "fecha": "2025-04-06",
     "torneo": "Apertura",
     "instancia": "FECHA 2",
     "rival": "LOS MAGICOS",
     "gf": 2,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m110",
-    "año": "2025",
-    "fecha": "30/03/2025",
+    "fecha": "2025-03-30",
     "torneo": "Apertura",
     "instancia": "FECHA 1",
     "rival": "COSTANERO",
     "gf": 2,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m109",
-    "año": "2024",
-    "fecha": "15/12/2024",
+    "fecha": "2024-12-15",
     "torneo": "Clausura",
     "instancia": "FINAL",
     "rival": "CONSTANTINOPLA",
     "gf": 3,
     "gc": 4,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m108",
-    "año": "2024",
-    "fecha": "8/12/2024",
+    "fecha": "2024-12-08",
     "torneo": "Clausura",
     "instancia": "FINAL",
     "rival": "CONSTANTINOPLA",
     "gf": 2,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m107",
-    "año": "2024",
-    "fecha": "10/11/2024",
+    "fecha": "2024-11-10",
     "torneo": "Copa de Oro",
     "instancia": "SEMI FINAL",
     "rival": "CALLEJEROS",
     "gf": 3,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m106",
-    "año": "2024",
-    "fecha": "3/11/2024",
+    "fecha": "2024-11-03",
     "torneo": "Clausura",
     "instancia": "FECHA 11",
     "rival": "EL VAPA",
     "gf": 3,
     "gc": 0,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m105",
-    "año": "2024",
-    "fecha": "20/10/2024",
+    "fecha": "2024-10-20",
     "torneo": "Clausura",
     "instancia": "FECHA 10",
     "rival": "PARENAESE",
     "gf": 4,
     "gc": 0,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m104",
-    "año": "2024",
-    "fecha": "13/10/2024",
+    "fecha": "2024-10-13",
     "torneo": "Clausura",
     "instancia": "FECHA 9",
     "rival": "TANKENCH",
     "gf": 6,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m103",
-    "año": "2024",
-    "fecha": "7/10/2024",
+    "fecha": "2024-10-07",
     "torneo": "Amistosos",
     "instancia": "",
     "rival": "RAYO ROJO",
     "gf": 3,
     "gc": 1,
     "lugar": "",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m102",
-    "año": "2024",
-    "fecha": "29/09/2024",
+    "fecha": "2024-09-29",
     "torneo": "Clausura",
     "instancia": "FECHA 7",
     "rival": "EL COMBO",
     "gf": 4,
     "gc": 4,
     "lugar": "PRO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m101",
-    "año": "2024",
-    "fecha": "22/09/2024",
+    "fecha": "2024-09-22",
     "torneo": "Clausura",
     "instancia": "FECHA 6",
     "rival": "CONSTANTINOPLA",
     "gf": 4,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m100",
-    "año": "2024",
-    "fecha": "15/09/2024",
+    "fecha": "2024-09-15",
     "torneo": "Clausura",
     "instancia": "FECHA 5",
     "rival": "LA COSTA",
     "gf": 6,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m99",
-    "año": "2024",
-    "fecha": "8/09/2024",
+    "fecha": "2024-09-08",
     "torneo": "Clausura",
     "instancia": "FECHA 4",
     "rival": "SAFAERA",
     "gf": 9,
     "gc": 0,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m98",
-    "año": "2024",
-    "fecha": "18/08/2024",
+    "fecha": "2024-08-18",
     "torneo": "Clausura",
     "instancia": "FECHA 3",
     "rival": "MISTIK",
     "gf": 4,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m97",
-    "año": "2024",
-    "fecha": "11/08/2024",
+    "fecha": "2024-08-11",
     "torneo": "Clausura",
     "instancia": "FECHA 2",
     "rival": "CALLEJEROS",
     "gf": 3,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m96",
-    "año": "2024",
-    "fecha": "4/08/2024",
+    "fecha": "2024-08-04",
     "torneo": "Clausura",
     "instancia": "FECHA 1",
     "rival": "REAL PACHUCASO",
     "gf": 7,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m95",
-    "año": "2024",
-    "fecha": "7/07/2024",
+    "fecha": "2024-07-07",
     "torneo": "SuperCopa",
     "instancia": "CUARTOS DE FINAL",
     "rival": "LOS MAGICOS",
     "gf": 1,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m94",
-    "año": "2024",
-    "fecha": "23/06/2024",
+    "fecha": "2024-06-23",
     "torneo": "SuperCopa",
     "instancia": "FASE DE GRUPOS",
     "rival": "LA COSTA",
     "gf": 3,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m93",
-    "año": "2024",
-    "fecha": "16/06/2024",
+    "fecha": "2024-06-16",
     "torneo": "SuperCopa",
     "instancia": "FASE DE GRUPOS",
     "rival": "LOS MAGICOS",
     "gf": 2,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m92",
-    "año": "2024",
-    "fecha": "9/06/2024",
+    "fecha": "2024-06-09",
     "torneo": "SuperCopa",
     "instancia": "FASE DE GRUPOS",
     "rival": "REAL PACHUCASO",
     "gf": 6,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m91",
-    "año": "2024",
-    "fecha": "19/05/2024",
+    "fecha": "2024-05-19",
     "torneo": "Apertura",
     "instancia": "FECHA 9",
     "rival": "EL VAPA",
     "gf": 4,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m90",
-    "año": "2024",
-    "fecha": "5/05/2024",
+    "fecha": "2024-05-05",
     "torneo": "Apertura",
     "instancia": "FECHA 8",
     "rival": "RECREATIVO THC",
     "gf": 4,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m89",
-    "año": "2024",
-    "fecha": "28/04/2024",
+    "fecha": "2024-04-28",
     "torneo": "Apertura",
     "instancia": "FECHA 7",
     "rival": "TIBURON",
     "gf": 1,
     "gc": 2,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m88",
-    "año": "2024",
-    "fecha": "21/04/2024",
+    "fecha": "2024-04-21",
     "torneo": "Apertura",
     "instancia": "FECHA 6",
     "rival": "REAL PACHUCASO",
     "gf": 9,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m87",
-    "año": "2024",
-    "fecha": "14/04/2024",
+    "fecha": "2024-04-14",
     "torneo": "Apertura",
     "instancia": "FECHA 5",
     "rival": "BERGES",
     "gf": 3,
     "gc": 3,
     "lugar": "PRO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m86",
-    "año": "2024",
-    "fecha": "7/04/2024",
+    "fecha": "2024-04-07",
     "torneo": "Apertura",
     "instancia": "FECHA 4",
     "rival": "EL COMBO",
     "gf": 3,
     "gc": 4,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m85",
-    "año": "2024",
-    "fecha": "31/03/2024",
+    "fecha": "2024-03-31",
     "torneo": "Apertura",
     "instancia": "FECHA 3",
     "rival": "EL TRIPLE",
     "gf": 2,
     "gc": 6,
     "lugar": "PRO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m84",
-    "año": "2024",
-    "fecha": "24/03/2024",
+    "fecha": "2024-03-24",
     "torneo": "Apertura",
     "instancia": "FECHA 2",
     "rival": "AMIGOS CITY",
     "gf": 4,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m83",
-    "año": "2024",
-    "fecha": "17/03/2024",
+    "fecha": "2024-03-17",
     "torneo": "Apertura",
     "instancia": "FECHA 1",
     "rival": "LA JUVE",
     "gf": 1,
     "gc": 1,
     "lugar": "PRO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m82",
-    "año": "2023",
-    "fecha": "13/12/2023",
+    "fecha": "2023-12-13",
     "torneo": "Copa de Bronce",
     "instancia": "FINAL",
     "rival": "AMNEZIA",
     "gf": 3,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m81",
-    "año": "2023",
-    "fecha": "6/12/2023",
+    "fecha": "2023-12-06",
     "torneo": "Copa de Bronce",
     "instancia": "SEMI FINAL",
     "rival": "LA TERMINAL",
     "gf": 5,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m80",
-    "año": "2023",
-    "fecha": "4/12/2023",
+    "fecha": "2023-12-04",
     "torneo": "Copa de Bronce",
     "instancia": "CUARTOS DE FINAL",
     "rival": "ESPECULADORES",
     "gf": 3,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m79",
-    "año": "2023",
-    "fecha": "22/11/2023",
+    "fecha": "2023-11-22",
     "torneo": "Copa de Campeones",
     "instancia": "FASE DE GRUPOS",
     "rival": "BARBUDOS",
     "gf": 1,
     "gc": 2,
     "lugar": "CENTENARIO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m78",
-    "año": "2023",
-    "fecha": "13/11/2023",
+    "fecha": "2023-11-13",
     "torneo": "Copa de Campeones",
     "instancia": "FASE DE GRUPOS",
     "rival": "INTER MVD",
     "gf": 1,
     "gc": 4,
     "lugar": "CENTENARIO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m77",
-    "año": "2023",
-    "fecha": "8/11/2023",
+    "fecha": "2023-11-08",
     "torneo": "Copa de Campeones",
     "instancia": "FASE DE GRUPOS",
     "rival": "POCO",
     "gf": 2,
     "gc": 2,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m76",
-    "año": "2023",
-    "fecha": "15/10/2023",
+    "fecha": "2023-10-15",
     "torneo": "Clausura",
     "instancia": "FECHA 9",
     "rival": "RAYO ROJO",
     "gf": 0,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m75",
-    "año": "2023",
-    "fecha": "8/10/2023",
+    "fecha": "2023-10-08",
     "torneo": "Clausura",
     "instancia": "FECHA 8",
     "rival": "EL BUNKER",
     "gf": 2,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m74",
-    "año": "2023",
-    "fecha": "24/09/2023",
+    "fecha": "2023-09-24",
     "torneo": "Clausura",
     "instancia": "FECHA 6",
     "rival": "TIC TAC",
     "gf": 2,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m73",
-    "año": "2023",
-    "fecha": "17/09/2023",
+    "fecha": "2023-09-17",
     "torneo": "Clausura",
     "instancia": "FECHA 5",
     "rival": "ILUSTRADOS",
     "gf": 2,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m72",
-    "año": "2023",
-    "fecha": "10/09/2023",
+    "fecha": "2023-09-10",
     "torneo": "Clausura",
     "instancia": "FECHA 4",
     "rival": "PICHIKATA",
     "gf": 3,
     "gc": 2,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m71",
-    "año": "2023",
-    "fecha": "3/09/2023",
+    "fecha": "2023-09-03",
     "torneo": "Clausura",
     "instancia": "FECHA 3",
     "rival": "LOS PIBES",
     "gf": 3,
     "gc": 4,
     "lugar": "CENTENARIO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m70",
-    "año": "2023",
-    "fecha": "27/08/2023",
+    "fecha": "2023-08-27",
     "torneo": "Clausura",
     "instancia": "FECHA 2",
     "rival": "ALTA GAMA",
     "gf": 0,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m69",
-    "año": "2023",
-    "fecha": "20/08/2023",
+    "fecha": "2023-08-20",
     "torneo": "Clausura",
     "instancia": "FECHA 1",
     "rival": "BEBER",
     "gf": 0,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m68",
-    "año": "2023",
-    "fecha": "13/08/2023",
+    "fecha": "2023-08-13",
     "torneo": "Intermedio",
     "instancia": "FECHA 9",
     "rival": "MALA FAMA",
     "gf": 2,
     "gc": 2,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m67",
-    "año": "2023",
-    "fecha": "6/08/2023",
+    "fecha": "2023-08-06",
     "torneo": "Intermedio",
     "instancia": "FECHA 8",
     "rival": "ALTA GAMA",
     "gf": 3,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m66",
-    "año": "2023",
-    "fecha": "30/07/2023",
+    "fecha": "2023-07-30",
     "torneo": "Intermedio",
     "instancia": "FECHA 7",
     "rival": "STAR BLUE",
     "gf": 3,
     "gc": 3,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m65",
-    "año": "2023",
-    "fecha": "23/07/2023",
+    "fecha": "2023-07-23",
     "torneo": "Intermedio",
     "instancia": "FECHA 6",
     "rival": "BEBER",
     "gf": 6,
     "gc": 2,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m64",
-    "año": "2023",
-    "fecha": "9/07/2023",
+    "fecha": "2023-07-09",
     "torneo": "Intermedio",
     "instancia": "FECHA 5",
     "rival": "ILUSTRADOS",
     "gf": 1,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m63",
-    "año": "2023",
-    "fecha": "2/07/2023",
+    "fecha": "2023-07-02",
     "torneo": "Intermedio",
     "instancia": "FECHA 4",
     "rival": "TIC TAC",
     "gf": 1,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m62",
-    "año": "2023",
-    "fecha": "25/06/2023",
+    "fecha": "2023-06-25",
     "torneo": "Intermedio",
     "instancia": "FECHA 3",
     "rival": "RAYO ROJO",
     "gf": 0,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m61",
-    "año": "2023",
-    "fecha": "18/06/2023",
+    "fecha": "2023-06-18",
     "torneo": "Intermedio",
     "instancia": "FECHA 2",
     "rival": "RED BULL",
     "gf": 2,
     "gc": 2,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m60",
-    "año": "2023",
-    "fecha": "4/06/2023",
+    "fecha": "2023-06-04",
     "torneo": "Apertura",
     "instancia": "FECHA 9",
     "rival": "PICHIKATA",
     "gf": 0,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m59",
-    "año": "2023",
-    "fecha": "28/05/2023",
+    "fecha": "2023-05-28",
     "torneo": "Apertura",
     "instancia": "FECHA 8",
     "rival": "DE AFUERA",
     "gf": 4,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m58",
-    "año": "2023",
-    "fecha": "21/05/2023",
+    "fecha": "2023-05-21",
     "torneo": "Apertura",
     "instancia": "FECHA 7",
     "rival": "REDUCTO",
     "gf": 5,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m57",
-    "año": "2023",
-    "fecha": "14/05/2023",
+    "fecha": "2023-05-14",
     "torneo": "Apertura",
     "instancia": "FECHA 6",
     "rival": "LOS REYES",
     "gf": 3,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m56",
-    "año": "2023",
-    "fecha": "7/05/2023",
+    "fecha": "2023-05-07",
     "torneo": "Apertura",
     "instancia": "FECHA 5",
     "rival": "MALA FAMA",
     "gf": 2,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m55",
-    "año": "2023",
-    "fecha": "23/04/2023",
+    "fecha": "2023-04-23",
     "torneo": "Apertura",
     "instancia": "FECHA 4",
     "rival": "EL REJUNTE",
     "gf": 3,
     "gc": 0,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m54",
-    "año": "2023",
-    "fecha": "16/04/2023",
+    "fecha": "2023-04-16",
     "torneo": "Apertura",
     "instancia": "FECHA 3",
     "rival": "RINOCERONTES",
     "gf": 4,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m53",
-    "año": "2023",
-    "fecha": "2/04/2023",
+    "fecha": "2023-04-02",
     "torneo": "Apertura",
     "instancia": "FECHA 2",
     "rival": "LOS PIBES",
     "gf": 1,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "E",
-    "jugadores": []
-  },
-  {
-    "id": "m51",
-    "año": "2023",
-    "fecha": "12/02/2023",
-    "torneo": "Copa de Verano",
-    "instancia": "FECHA 2",
-    "rival": "ROCOLA",
-    "gf": 0,
-    "gc": 5,
-    "lugar": "CENTENARIO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m52",
-    "año": "2023",
-    "fecha": "12/02/2023",
+    "fecha": "2023-02-12",
     "torneo": "Copa de Verano",
     "instancia": "FECHA 3",
     "rival": "TA FEA",
     "gf": 0,
     "gc": 5,
     "lugar": "CENTENARIO",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
+  },
+  {
+    "id": "m51",
+    "fecha": "2023-02-12",
+    "torneo": "Copa de Verano",
+    "instancia": "FECHA 2",
+    "rival": "ROCOLA",
+    "gf": 0,
+    "gc": 5,
+    "lugar": "CENTENARIO",
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m50",
-    "año": "2023",
-    "fecha": "5/02/2023",
+    "fecha": "2023-02-05",
     "torneo": "Copa de Verano",
     "instancia": "FECHA 1",
     "rival": "LA JOYA",
     "gf": 7,
     "gc": 1,
     "lugar": "CENTENARIO",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m49",
-    "año": "2022",
-    "fecha": "2/10/2022",
+    "fecha": "2022-10-02",
     "torneo": "Clausura",
     "instancia": "FECHA 9",
     "rival": "ROMARIO",
     "gf": 1,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m48",
-    "año": "2022",
-    "fecha": "18/09/2022",
+    "fecha": "2022-09-18",
     "torneo": "Clausura",
     "instancia": "FECHA 8",
     "rival": "INSTITUTO JP",
     "gf": 1,
     "gc": 0,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m47",
-    "año": "2022",
-    "fecha": "11/09/2022",
+    "fecha": "2022-09-11",
     "torneo": "Clausura",
     "instancia": "FECHA 7",
     "rival": "CITY TORPE",
     "gf": 4,
     "gc": 6,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m46",
-    "año": "2022",
-    "fecha": "4/09/2022",
+    "fecha": "2022-09-04",
     "torneo": "Clausura",
     "instancia": "FECHA 6",
     "rival": "TREINTA Y TRES",
     "gf": 2,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m45",
-    "año": "2022",
-    "fecha": "28/08/2022",
+    "fecha": "2022-08-28",
     "torneo": "Clausura",
     "instancia": "FECHA 5",
     "rival": "INTER MVD",
     "gf": 3,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m44",
-    "año": "2022",
-    "fecha": "21/08/2022",
+    "fecha": "2022-08-21",
     "torneo": "Clausura",
     "instancia": "FECHA 4",
     "rival": "GARRA",
     "gf": 0,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m43",
-    "año": "2022",
-    "fecha": "14/08/2022",
+    "fecha": "2022-08-14",
     "torneo": "Clausura",
     "instancia": "FECHA 3",
     "rival": "PARENAESE",
     "gf": 1,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m42",
-    "año": "2022",
-    "fecha": "7/08/2022",
+    "fecha": "2022-08-07",
     "torneo": "Clausura",
     "instancia": "FECHA 2",
     "rival": "BEA SUELTA",
     "gf": 3,
     "gc": 5,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m41",
-    "año": "2022",
-    "fecha": "24/07/2022",
+    "fecha": "2022-07-24",
     "torneo": "Clausura",
     "instancia": "FECHA 1",
     "rival": "EL FARO",
     "gf": 0,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m40",
-    "año": "2022",
-    "fecha": "12/06/2022",
+    "fecha": "2022-06-12",
     "torneo": "Apertura",
     "instancia": "FECHA 9",
     "rival": "LA COSTA",
     "gf": 0,
     "gc": 3,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m39",
-    "año": "2022",
-    "fecha": "5/06/2022",
+    "fecha": "2022-06-05",
     "torneo": "Apertura",
     "instancia": "FECHA 8",
     "rival": "CITY TORPE",
     "gf": 2,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m38",
-    "año": "2022",
-    "fecha": "29/05/2022",
+    "fecha": "2022-05-29",
     "torneo": "Apertura",
     "instancia": "FECHA 7",
     "rival": "DE RABONA",
     "gf": 0,
     "gc": 7,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m37",
-    "año": "2022",
-    "fecha": "22/05/2022",
+    "fecha": "2022-05-22",
     "torneo": "Apertura",
     "instancia": "FECHA 6",
     "rival": "RETIRO",
     "gf": 1,
     "gc": 8,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m36",
-    "año": "2022",
-    "fecha": "15/05/2022",
+    "fecha": "2022-05-15",
     "torneo": "Apertura",
     "instancia": "FECHA 5",
     "rival": "TANKENCH",
     "gf": 3,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m35",
-    "año": "2022",
-    "fecha": "8/05/2022",
+    "fecha": "2022-05-08",
     "torneo": "Apertura",
     "instancia": "FECHA 4",
     "rival": "DEPORTIVO ROMARIO",
     "gf": 6,
     "gc": 3,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m34",
-    "año": "2022",
-    "fecha": "17/04/2022",
+    "fecha": "2022-04-17",
     "torneo": "Apertura",
     "instancia": "FECHA 3",
     "rival": "DEL VAMOS",
     "gf": 1,
     "gc": 3,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m33",
-    "año": "2022",
-    "fecha": "10/04/2022",
+    "fecha": "2022-04-10",
     "torneo": "Apertura",
     "instancia": "FECHA 2",
     "rival": "FUNEBREROS",
     "gf": 1,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m32",
-    "año": "2022",
-    "fecha": "3/04/2022",
+    "fecha": "2022-04-03",
     "torneo": "Apertura",
     "instancia": "FECHA 1",
     "rival": "PEPPERS",
     "gf": 1,
     "gc": 8,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m31",
-    "año": "2022",
-    "fecha": "19/02/2022",
+    "fecha": "2022-02-19",
     "torneo": "Copa de Campeones",
     "instancia": "FASE DE GRUPOS",
     "rival": "FULL HOUSE",
     "gf": 3,
     "gc": 5,
     "lugar": "ALCO BENDAS",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m30",
-    "año": "2022",
-    "fecha": "12/02/2022",
+    "fecha": "2022-02-12",
     "torneo": "Copa de Campeones",
     "instancia": "FASE DE GRUPOS",
     "rival": "LA COSTA",
     "gf": 2,
     "gc": 5,
     "lugar": "ALCO BENDAS",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m29",
-    "año": "2022",
-    "fecha": "6/02/2022",
+    "fecha": "2022-02-06",
     "torneo": "Copa de Campeones",
     "instancia": "FASE DE GRUPOS",
     "rival": "DE RABONA",
     "gf": 2,
     "gc": 6,
     "lugar": "ALCO BENDAS",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m27",
-    "año": "2021",
-    "fecha": "19/12/2021",
+    "fecha": "2021-12-19",
     "torneo": "Copa de Oro",
     "instancia": "SEMI FINAL",
     "rival": "PLATENXE",
     "gf": 4,
     "gc": 0,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m28",
-    "año": "2021",
-    "fecha": "19/12/2021",
+    "fecha": "2021-12-19",
     "torneo": "Copa de Oro",
     "instancia": "FINAL",
     "rival": "FULL HOUSE",
     "gf": 2,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m26",
-    "año": "2021",
-    "fecha": "12/12/2021",
+    "fecha": "2021-12-12",
     "torneo": "Copa de Oro",
     "instancia": "CUARTOS DE FINAL",
     "rival": "INSTITUTO JP",
     "gf": 3,
     "gc": 0,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m24",
-    "año": "2021",
-    "fecha": "5/12/2021",
+    "fecha": "2021-12-05",
     "torneo": "Clausura",
     "instancia": "FECHA 4",
     "rival": "FULL VEGANO",
     "gf": 5,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m25",
-    "año": "2021",
-    "fecha": "5/12/2021",
+    "fecha": "2021-12-05",
     "torneo": "Clausura",
     "instancia": "FECHA 5",
     "rival": "PLATENXE",
     "gf": 3,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m23",
-    "año": "2021",
-    "fecha": "21/11/2021",
+    "fecha": "2021-11-21",
     "torneo": "Clausura",
     "instancia": "FECHA 3",
     "rival": "LA RESACA",
     "gf": 8,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m22",
-    "año": "2021",
-    "fecha": "7/11/2021",
+    "fecha": "2021-11-07",
     "torneo": "Clausura",
     "instancia": "FECHA 1",
     "rival": "BOURBON ST",
     "gf": 2,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m21",
-    "año": "2021",
-    "fecha": "17/10/2021",
+    "fecha": "2021-10-17",
     "torneo": "Apertura",
     "instancia": "FECHA 14",
     "rival": "PLATENXE",
     "gf": 3,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m20",
-    "año": "2021",
-    "fecha": "10/10/2021",
+    "fecha": "2021-10-10",
     "torneo": "Apertura",
     "instancia": "FECHA 13",
     "rival": "LA GARRA",
     "gf": 3,
     "gc": 4,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m19",
-    "año": "2021",
-    "fecha": "3/10/2021",
+    "fecha": "2021-10-03",
     "torneo": "Apertura",
     "instancia": "FECHA 12",
     "rival": "LA PAPA CITY",
     "gf": 0,
     "gc": 8,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m18",
-    "año": "2021",
-    "fecha": "19/09/2021",
+    "fecha": "2021-09-19",
     "torneo": "Apertura",
     "instancia": "FECHA 11",
     "rival": "VENTOLIN JRS",
     "gf": 8,
     "gc": 0,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m17",
-    "año": "2021",
-    "fecha": "12/09/2021",
+    "fecha": "2021-09-12",
     "torneo": "Apertura",
     "instancia": "FECHA 10",
     "rival": "TANKENCH",
     "gf": 3,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m16",
-    "año": "2021",
-    "fecha": "5/09/2021",
+    "fecha": "2021-09-05",
     "torneo": "Apertura",
     "instancia": "FECHA 9",
     "rival": "SIN CENSURA",
     "gf": 4,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m15",
-    "año": "2021",
-    "fecha": "29/08/2021",
+    "fecha": "2021-08-29",
     "torneo": "Apertura",
     "instancia": "FECHA 8",
     "rival": "PLAZA ATAHUALPA",
     "gf": 5,
     "gc": 5,
     "lugar": "POLI",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m14",
-    "año": "2021",
-    "fecha": "22/08/2021",
+    "fecha": "2021-08-22",
     "torneo": "Apertura",
     "instancia": "FECHA 7",
     "rival": "DALE TITO JRS",
     "gf": 3,
     "gc": 4,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m13",
-    "año": "2021",
-    "fecha": "15/08/2021",
+    "fecha": "2021-08-15",
     "torneo": "Apertura",
     "instancia": "FECHA 6",
     "rival": "PEPPERS",
     "gf": 2,
     "gc": 8,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m12",
-    "año": "2021",
-    "fecha": "8/08/2021",
+    "fecha": "2021-08-08",
     "torneo": "Apertura",
     "instancia": "FECHA 5",
     "rival": "INSTITUTO JP",
     "gf": 5,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m11",
-    "año": "2021",
-    "fecha": "1/08/2021",
+    "fecha": "2021-08-01",
     "torneo": "Apertura",
     "instancia": "FECHA 4",
     "rival": "EL RETIRO",
     "gf": 0,
     "gc": 6,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m10",
-    "año": "2021",
-    "fecha": "18/07/2021",
+    "fecha": "2021-07-18",
     "torneo": "Apertura",
     "instancia": "FECHA 3",
     "rival": "REYES DE LAS ROJAS",
     "gf": 4,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m9",
-    "año": "2021",
-    "fecha": "11/07/2021",
+    "fecha": "2021-07-11",
     "torneo": "Apertura",
     "instancia": "FECHA 2",
     "rival": "BOURBON ST",
     "gf": 1,
     "gc": 4,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m8",
-    "año": "2021",
-    "fecha": "4/07/2021",
+    "fecha": "2021-07-04",
     "torneo": "Amistosos",
     "instancia": "",
     "rival": "KRAKEN",
     "gf": 4,
     "gc": 0,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m7",
-    "año": "2021",
-    "fecha": "27/06/2021",
+    "fecha": "2021-06-27",
     "torneo": "Amistosos",
     "instancia": "",
     "rival": "LA VAGONETA",
     "gf": 7,
     "gc": 4,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m6",
-    "año": "2021",
-    "fecha": "30/05/2021",
+    "fecha": "2021-05-30",
     "torneo": "Amistosos",
     "instancia": "",
     "rival": "EL RETIRO",
     "gf": 4,
     "gc": 5,
     "lugar": "POLI",
-    "resultado": "D",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m5",
-    "año": "2021",
-    "fecha": "14/03/2021",
+    "fecha": "2021-03-14",
     "torneo": "Apertura",
     "instancia": "FECHA 1",
     "rival": "FULL VEGANO",
     "gf": 2,
     "gc": 1,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m4",
-    "año": "2021",
-    "fecha": "10/03/2021",
+    "fecha": "2021-03-10",
     "torneo": "Pretemporada",
     "instancia": "",
     "rival": "FULL VEGANO",
     "gf": 3,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m3",
-    "año": "2021",
-    "fecha": "25/02/2021",
+    "fecha": "2021-02-25",
     "torneo": "Pretemporada",
     "instancia": "",
     "rival": "SIN CENSURA",
     "gf": 3,
     "gc": 1,
     "lugar": "RINCONADA",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m2",
-    "año": "2021",
-    "fecha": "19/02/2021",
+    "fecha": "2021-02-19",
     "torneo": "Pretemporada",
     "instancia": "",
     "rival": "SALUS",
     "gf": 3,
     "gc": 2,
     "lugar": "POLI",
-    "resultado": "V",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   },
   {
     "id": "m1",
-    "año": "2021",
-    "fecha": "12/02/2021",
+    "fecha": "2021-02-12",
     "torneo": "Pretemporada",
     "instancia": "",
     "rival": "TANKENCH",
     "gf": 3,
     "gc": 3,
     "lugar": "POLI",
-    "resultado": "E",
-    "jugadores": []
+    "jugadores": [],
+    "created_at": "2026-04-13T14:42:11.880032+00:00"
   }
 ]

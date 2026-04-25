@@ -77,6 +77,9 @@
             <button class="tab-btn" data-tab="finanzas" onclick="switchTab('finanzas')">
                 <i class="ph-bold ph-wallet"></i> Finanzas
             </button>
+            <button class="tab-btn" data-tab="notificaciones" onclick="switchTab('notificaciones')">
+                <i class="ph-bold ph-bell-ringing"></i> Notificaciones
+            </button>
         </div>
 
         <!-- ═══ TAB: PARTIDOS ═══ -->
@@ -89,7 +92,15 @@
                         <i class="ph-bold ph-plus"></i> Nuevo
                     </button>
                 </div>
-                <div id="matchFormContainer" style="display:none;">
+                <div id="matchFormContainer" style="display:none; padding-top: 1rem; border-top: 2px solid var(--blue);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; position: sticky; top:0; background: var(--bg); z-index:100; padding: 10px 0;">
+                        <button class="btn btn-danger btn-sm" onclick="cancelMatchForm()" style="width:auto">
+                            <i class="ph-bold ph-x"></i> Cancelar
+                        </button>
+                        <button id="saveMatchTopBtn" class="btn btn-primary" onclick="saveMatch()" style="display:none; width:auto; padding: 0.8rem 1.5rem; box-shadow: 0 4px 15px rgba(0, 102, 255, 0.4);">
+                            <i class="ph-bold ph-floppy-disk"></i> Guardar Cambios
+                        </button>
+                    </div>
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Año</label>
@@ -100,7 +111,17 @@
                             <input type="date" id="mFecha">
                         </div>
                         <div class="form-group">
-                            <label>Hora</label>
+                            
+                        <div class="form-group">
+                            <label>Hora Rápida (8-11am)</label>
+                            <div class="time-pills-row">
+                                <button type="button" class="time-pill" onclick="setTime('08:00')">08:00</button>
+                                <button type="button" class="time-pill" onclick="setTime('09:00')">09:00</button>
+                                <button type="button" class="time-pill" onclick="setTime('10:00')">10:00</button>
+                                <button type="button" class="time-pill" onclick="setTime('11:00')">11:00</button>
+                            </div>
+                        </div>
+<label>Hora</label>
                             <input type="time" id="mHora">
                         </div>
                         <div class="form-group">
@@ -280,7 +301,12 @@
             <!-- Transacciones (MOVED UP) -->
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title">Gastos e Ingresos</div>
+                    <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>Gastos e Ingresos</span>
+                        <button class="btn btn-icon btn-sm" id="toggleFinancesBtn" onclick="toggleFinancesList()" style="background:rgba(255,255,255,0.05)">
+                            <i class="ph-bold ph-caret-down"></i>
+                        </button>
+                    </div>
                     <button class="btn btn-secondary btn-sm" onclick="showTransaccionForm()">
                         <i class="ph-bold ph-plus"></i>
                     </button>
@@ -290,7 +316,9 @@
                     <button class="filter-pill" onclick="setTxFilter('ingreso')">Ingresos</button>
                     <button class="filter-pill" onclick="setTxFilter('egreso')">Egresos</button>
                 </div>
-                <div id="transaccionesList"></div>
+                <div id="financesListWrapper" style="display:none; margin-top:1rem; border-top:1px solid rgba(255,255,255,0.05); padding-top:1rem;">
+                    <div id="transaccionesList"></div>
+                </div>
             </div>
 
             <!-- Cuotas -->
@@ -345,6 +373,31 @@
             </div>
         </div>
     </div>
+    
+    <!-- ═══ TAB: NOTIFICACIONES ═══ -->
+    <section id="tab-notificaciones" class="tab-content">
+        <div class="panel-header">
+            <h2><i class="ph-bold ph-bell-ringing"></i> Historial de Notificaciones</h2>
+        </div>
+        
+        <div class="panel" style="margin-bottom: 2rem; border-left: 4px solid var(--blue);">
+            <h3><i class="ph-bold ph-paper-plane-tilt"></i> Enviar Nueva Notificación</h3>
+            <div class="form-group">
+                <label>Título</label>
+                <input type="text" id="pushTitle" placeholder="Ej: Próximo Partido Confirmado">
+            </div>
+            <div class="form-group">
+                <label>Mensaje</label>
+                <textarea id="pushBody" rows="3" placeholder="Escribí el mensaje para los jugadores..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="broadcastPush(this)">
+                <i class="ph-bold ph-paper-plane-right"></i> Enviar a Todos
+            </button>
+        </div>
+<div class="panel" id="notificationsList" style="min-height: 200px;">
+            <div class="empty-state"><p>Cargando historial...</p></div>
+        </div>
+    </section>
 
     <!-- ═══ Floating Action Button (FAB) ═══ -->
     <div class="fab-container" id="fabContainer" style="display: none;">
@@ -378,6 +431,10 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="js/admin.js?v=2.2"></script>
+    <script src="js/players_data.js?v=7.4"></script>
+    <script src="js/matches_data.js?v=7.4"></script>
+    <script src="js/upcoming_data.js?v=7.4"></script>
+    <script src="js/finances_data.js?v=7.4"></script>
+    <script src="js/admin.js?v=7.4"></script>
 </body>
 </html>

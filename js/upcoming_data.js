@@ -1,4 +1,4 @@
-[
+window.UPCOMING_DATA = [
   {
     "id": 3,
     "fecha": "2026-04-26",
@@ -80,4 +80,4 @@
     "instancia": "FECHA 11",
     "lugar": "PRO"
   }
-]
+];
