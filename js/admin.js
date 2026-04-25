@@ -1923,7 +1923,8 @@ async function loadNotifications() {
     if (!list) return;
     
     try {
-        const data = await spFetch('notifications?order=date.desc&limit=15', 'GET');
+        // Usar created_at que es el estándar de Supabase
+        const data = await spFetch('notifications?order=created_at.desc&limit=15', 'GET');
         if (!data || data.length === 0) {
             list.innerHTML = '<div class="empty-state"><p>No hay mensajes enviados.</p></div>';
             return;
@@ -1933,7 +1934,7 @@ async function loadNotifications() {
             <div class="panel" style="margin-bottom:0.8rem; background:rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05)">
                 <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
                     <strong style="color:var(--blue)">${n.title}</strong>
-                    <span style="font-size:0.75rem; color:var(--text-dim)">${new Date(n.date).toLocaleDateString()}</span>
+                    <span style="font-size:0.75rem; color:var(--text-dim)">${new Date(n.created_at || n.date).toLocaleDateString()}</span>
                 </div>
                 <p style="font-size:0.85rem; margin:0">${n.body}</p>
             </div>
@@ -1959,7 +1960,7 @@ async function broadcastPush(btn) {
     const notifObj = {
         title,
         body,
-        date: new Date().toISOString(),
+        created_at: new Date().toISOString(),
         author: 'Admin'
     };
 
