@@ -1923,8 +1923,7 @@ async function loadNotifications() {
     if (!list) return;
     
     try {
-        // Usar created_at que es el estándar de Supabase
-        const data = await spFetch('notificaciones?order=created_at.desc&limit=15', 'GET');
+        const data = await spFetch('notifications?order=created_at.desc&limit=15', 'GET');
         if (!data || data.length === 0) {
             list.innerHTML = '<div class="empty-state"><p>No hay mensajes enviados.</p></div>';
             return;
@@ -1965,16 +1964,18 @@ async function broadcastPush(btn) {
     };
 
     try {
-        const res = await spFetch('notificaciones', 'POST', notifObj);
+        console.log("Enviando a Supabase:", notifObj);
+        const res = await spFetch('notifications', 'POST', notifObj);
+        console.log("Respuesta de Supabase:", res);
+        
         if (res !== null) {
             toast('¡Notificación enviada a todos!', 'success');
             document.getElementById('pushTitle').value = '';
             document.getElementById('pushBody').value = '';
             loadNotifications();
         } else {
-            // Intentar obtener más info del error
-            console.error("Error al guardar en Supabase. Verificar tabla 'notificaciones' y columnas.");
-            toast('Error al registrar en el historial. Ver consola para detalles.', 'error');
+            console.error("Error: La tabla 'notifications' devolvió null. Verificar columnas en Supabase.");
+            toast('Error: No se pudo guardar en el historial.', 'error');
         }
     } catch (e) {
         console.error("Push Error Completo:", e);

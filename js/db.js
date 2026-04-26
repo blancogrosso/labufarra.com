@@ -314,37 +314,34 @@ function finishLoad(source) {
     
     const bell = document.getElementById('notiBell');
     if (bell) {
-        OneSignal.push(async function() {
-            const isEnabled = OneSignal.Notifications.permission;
-            if (isEnabled) {
+        // En móviles, a veces necesitamos forzar el estado inicial
+        OneSignal.push(() => {
+            if (OneSignal.Notifications.permission) {
                 bell.classList.add('active');
                 if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
             }
         });
 
-        bell.onclick = async () => {
-            OneSignal.push(async function() {
-                const isEnabled = OneSignal.Notifications.permission;
-                if (isEnabled) {
-                    toast("Ya estás suscrito a las notificaciones oficiales.");
+        bell.onclick = () => {
+            console.log("Bell clicked");
+            OneSignal.push(async () => {
+                if (OneSignal.Notifications.permission) {
+                    toast("Ya estás suscrito");
                 } else {
-                    try {
-                        await OneSignal.Notifications.requestPermission();
-                        if (OneSignal.Notifications.permission) {
-                            bell.classList.add('active');
-                            if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
-                            toast("¡Notificaciones activadas!", "success");
-                        }
-                    } catch (err) {
-                        console.error("OneSignal Error:", err);
-                        toast("No se pudieron activar las notificaciones", "error");
+                    toast("Solicitando permiso...");
+                    await OneSignal.Notifications.requestPermission();
+                    if (OneSignal.Notifications.permission) {
+                        bell.classList.add('active');
+                        toast("¡Activado!", "success");
                     }
                 }
             });
         };
     }
-
-    // Disparar evento global para indicar que la data está lista en todas las páginas
+    
+    // Reset temporal para pruebas (borrar si funciona)
+    localStorage.removeItem('bufarra_noti_dismissed'); 
+    
     document.dispatchEvent(new CustomEvent('dataLoaded'));
 }
 

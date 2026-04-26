@@ -305,13 +305,13 @@
 
         // --- LÓGICA DE NOTIFICACIONES ---
         window.addEventListener('DOMContentLoaded', () => {
-            // Mostrar alerta de bienvenida tras 2.5 segundos
-            if (!localStorage.getItem('bufarra_noti_dismissed')) {
-                setTimeout(() => {
-                    const alert = document.getElementById('welcomeAlert');
-                    if (alert) alert.classList.add('show');
-                }, 2500);
-            }
+            // FORZAR ALERTA PARA PRUEBAS
+            localStorage.removeItem('bufarra_noti_dismissed');
+            
+            setTimeout(() => {
+                const alert = document.getElementById('welcomeAlert');
+                if (alert) alert.classList.add('show');
+            }, 2500);
         });
 
         function closeWelcomeAlert() {
@@ -320,11 +320,13 @@
         }
 
         async function enableNotifications() {
+            console.log("OneSignal: Solicitando permiso...");
             closeWelcomeAlert();
             
             OneSignal.push(async function() {
                 try {
-                    await OneSignal.Notifications.requestPermission();
+                    const result = await OneSignal.Notifications.requestPermission();
+                    console.log("OneSignal result:", result);
                     if (OneSignal.Notifications.permission) {
                         document.getElementById('mainNotiBell').classList.remove('active');
                         toast('¡Notificaciones activadas!', 'success');
