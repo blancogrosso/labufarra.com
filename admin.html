@@ -300,16 +300,19 @@
 
             <!-- Transacciones (MOVED UP) -->
             <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>Gastos e Ingresos</span>
-                        <button class="btn btn-icon btn-sm" id="toggleFinancesBtn" onclick="toggleFinancesList()" style="background:rgba(255,255,255,0.05)">
+                <div class="panel-header" style="flex-direction:row; align-items:center; gap:1rem; flex-wrap:wrap;">
+                    <div class="panel-title" style="margin:0; flex-grow:1;">Gastos e Ingresos</div>
+                    <div style="display:flex; gap:0.4rem; align-items:center;">
+                        <button class="btn btn-icon btn-secondary" id="sortFinanceBtn" onclick="toggleFinanceOrder(event)" title="Ordenar por fecha">
+                            <i class="ph-bold ph-sort-ascending"></i>
+                        </button>
+                        <button class="btn btn-icon btn-secondary" id="toggleFinancesBtn" onclick="toggleFinancesList(event)">
                             <i class="ph-bold ph-caret-down"></i>
                         </button>
+                        <button class="btn btn-primary btn-sm" onclick="showTransaccionForm()" style="padding:0.6rem 0.8rem; height:38px;">
+                            <i class="ph-bold ph-plus"></i> NUEVO
+                        </button>
                     </div>
-                    <button class="btn btn-secondary btn-sm" onclick="showTransaccionForm()">
-                        <i class="ph-bold ph-plus"></i>
-                    </button>
                 </div>
                 <div class="filter-bar" style="margin-bottom: 1rem; border-bottom: none;" id="txFilterBar">
                     <button class="filter-pill active" onclick="setTxFilter('all')">Todas</button>
@@ -394,8 +397,16 @@
                 <i class="ph-bold ph-paper-plane-right"></i> Enviar a Todos
             </button>
         </div>
-<div class="panel" id="notificationsList" style="min-height: 200px;">
-            <div class="empty-state"><p>Cargando historial...</p></div>
+        <div class="panel">
+            <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+                <h3 style="margin:0"><i class="ph-bold ph-clock-counter-clockwise"></i> Historial Reciente</h3>
+                <button class="btn btn-icon btn-secondary" id="toggleNotificationsBtn" onclick="toggleNotificationsList()">
+                    <i class="ph-bold ph-caret-up"></i>
+                </button>
+            </div>
+            <div id="notificationsList" style="min-height: 100px;">
+                <div class="empty-state"><p>Cargando historial...</p></div>
+            </div>
         </div>
     </section>
 

@@ -18,6 +18,16 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="css/styles.css?v=8.0">
     <link rel="icon" type="image/png" href="img/logo/ESCUDO_BUFARRA.png">
+
+    <!-- PWA & iOS Appearance -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="La Bufarra">
+    <meta name="theme-color" content="#FF69B4">
+    <link rel="apple-touch-icon" href="img/logo/ESCUDO_BUFARRA.png">
+    
+    <!-- Splash Screen Color for iOS -->
+    <meta name="msapplication-TileColor" content="#FF69B4">
 </head>
 <body class="page-index">
 
@@ -56,6 +66,9 @@
                         <span style="color:var(--text-muted);">/</span>
                         <span style="font-weight:800; color:var(--text-muted); opacity:0.5;">EN</span>
                     </div>
+                    <button id="headerNotiBell" class="btn-icon" style="background:none; border:none; color:white; font-size:1.4rem; cursor:pointer;" title="Gestionar Notificaciones">
+                        <i class="ph-bold ph-bell"></i>
+                    </button>
                     <div class="nav-toggle" id="mobileMenuBtn">
                         <i class="ph-bold ph-list"></i>
                     </div>
@@ -305,13 +318,13 @@
 
         // --- LÓGICA DE NOTIFICACIONES ---
         window.addEventListener('DOMContentLoaded', () => {
-            // FORZAR ALERTA PARA PRUEBAS
-            localStorage.removeItem('bufarra_noti_dismissed');
-            
-            setTimeout(() => {
-                const alert = document.getElementById('welcomeAlert');
-                if (alert) alert.classList.add('show');
-            }, 2500);
+            // Ya no forzamos el reset. Si el usuario la cierra, se respeta.
+            if (!localStorage.getItem('bufarra_noti_dismissed')) {
+                setTimeout(() => {
+                    const alert = document.getElementById('welcomeAlert');
+                    if (alert) alert.classList.add('show');
+                }, 2500);
+            }
         });
 
         function closeWelcomeAlert() {
@@ -320,14 +333,24 @@
         }
 
         async function enableNotifications() {
-            console.log("OneSignal: Solicitando permiso...");
             closeWelcomeAlert();
             
             OneSignal.push(async function() {
                 try {
+                    if (OneSignal.Notifications.permission === 'granted') {
+                        // Confirmación de desuscripción
+                        if (confirm('Ya estás suscrito. ¿Seguro que querés dejar de recibir notificaciones de La Bufarra?')) {
+                            // OneSignal no permite "desuscribir" vía JS fácilmente en v16 sin opt-out manual
+                            // Pero podemos marcarlo en local para no molestarlo más
+                            localStorage.setItem('bufarra_noti_dismissed', 'true');
+                            toast('Preferencias actualizadas. Podés gestionarlo desde los ajustes de tu navegador.', 'info');
+                        }
+                        return;
+                    }
+                    
                     const result = await OneSignal.Notifications.requestPermission();
-                    console.log("OneSignal result:", result);
                     if (OneSignal.Notifications.permission) {
+                        localStorage.setItem('bufarra_noti_dismissed', 'true');
                         document.getElementById('mainNotiBell').classList.remove('active');
                         toast('¡Notificaciones activadas!', 'success');
                     }
@@ -338,10 +361,26 @@
             });
         }
 
+        // Click en la campanita del header
+        const headerBell = document.getElementById('headerNotiBell');
+        if (headerBell) {
+            headerBell.addEventListener('click', () => {
+                enableNotifications();
+            });
+        }
+
         // Click en la campanita flotante
         document.getElementById('mainNotiBell').addEventListener('click', () => {
             enableNotifications();
         });
+
+        // Click en la campanita del calendario
+        const calBell = document.getElementById('notiBell');
+        if (calBell) {
+            calBell.addEventListener('click', () => {
+                enableNotifications();
+            });
+        }
 
         function toast(msg, type = 'success') {
             const t = document.createElement('div');

@@ -312,36 +312,6 @@ function finishLoad(source) {
 
     initScrollObserver();
     
-    const bell = document.getElementById('notiBell');
-    if (bell) {
-        // En móviles, a veces necesitamos forzar el estado inicial
-        OneSignal.push(() => {
-            if (OneSignal.Notifications.permission) {
-                bell.classList.add('active');
-                if(document.getElementById('notiStatus')) document.getElementById('notiStatus').style.display = 'block';
-            }
-        });
-
-        bell.onclick = () => {
-            console.log("Bell clicked");
-            OneSignal.push(async () => {
-                if (OneSignal.Notifications.permission) {
-                    toast("Ya estás suscrito");
-                } else {
-                    toast("Solicitando permiso...");
-                    await OneSignal.Notifications.requestPermission();
-                    if (OneSignal.Notifications.permission) {
-                        bell.classList.add('active');
-                        toast("¡Activado!", "success");
-                    }
-                }
-            });
-        };
-    }
-    
-    // Reset temporal para pruebas (borrar si funciona)
-    localStorage.removeItem('bufarra_noti_dismissed'); 
-    
     document.dispatchEvent(new CustomEvent('dataLoaded'));
 }
 

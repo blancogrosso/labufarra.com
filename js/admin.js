@@ -1568,20 +1568,51 @@ function renderTransacciones() {
         return;
     }
     
-    container.innerHTML = transacciones.map(t => `
+    // Función ultra-robusta de parseo de fechas (Soporta DD/MM/YYYY, ISO, etc)
+    const parseDate = (d) => {
+        if (!d || d === 'null' || d === 'undefined') return 0;
+        let finalDate;
+        if (typeof d === 'string' && d.includes('/')) {
+            const parts = d.split('/');
+            if (parts.length === 3) {
+                const [day, month, year] = parts;
+                const fullYear = year.length === 2 ? '20' + year : year;
+                finalDate = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+            }
+        }
+        if (!finalDate) finalDate = new Date(d);
+        return finalDate.getTime() || 0;
+    };
+
+    // Clonar y ordenar
+    let toRender = [...transacciones];
+    toRender.sort((a, b) => {
+        const valA = parseDate(a.fecha);
+        const valB = parseDate(b.fecha);
+        return financeOrderAsc ? valA - valB : valB - valA;
+    });
+
+    container.innerHTML = toRender.map(t => {
+        const isIngreso = t.tipo?.toLowerCase() === 'ingreso';
+        return `
         <div class="transaction-item">
             <div class="transaction-info">
-                <div class="desc">${t.descripcion || 'Sin descripción'}</div>
+                <div class="desc">${t.detalle || t.descripcion || 'Sin descripción'} ${t.jugador ? '· ' + t.jugador : ''}</div>
                 <div class="cat">${t.categoria || ''} · ${t.fecha || ''}</div>
             </div>
-            <div class="transaction-amount ${t.tipo === 'ingreso' ? 'ingreso' : 'egreso'}">
-                ${t.tipo === 'ingreso' ? '+' : '-'}$${(parseFloat(t.monto) || 0).toLocaleString()}
+            <div class="transaction-amount ${isIngreso ? 'ingreso' : 'egreso'}">
+                ${isIngreso ? '+' : '-'}$${(parseFloat(t.monto) || 0).toLocaleString()}
             </div>
-            <button class="btn btn-icon btn-danger btn-sm" onclick="deleteTransaccion('${t.id}')">
-                <i class="ph-bold ph-trash"></i>
-            </button>
+            <div class="action-group" style="display:flex; gap:0.4rem;">
+                <button class="btn btn-icon btn-danger btn-sm" id="del-btn-${t.id}" onclick="confirmDeleteRow(event, '${t.id}', 'transaccion')">
+                    <i class="ph-bold ph-trash"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" id="conf-btn-${t.id}" style="display:none; font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="executeDeleteRow(event, '${t.id}', 'transaccion')">
+                    ¿BORRAR?
+                </button>
+            </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function showTransaccionForm() {
@@ -1930,12 +1961,22 @@ async function loadNotifications() {
         }
 
         list.innerHTML = data.map(n => `
-            <div class="panel" style="margin-bottom:0.8rem; background:rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05)">
-                <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
-                    <strong style="color:var(--blue)">${n.title}</strong>
-                    <span style="font-size:0.75rem; color:var(--text-dim)">${new Date(n.created_at || n.date).toLocaleDateString()}</span>
+            <div class="panel" style="margin-bottom:0.8rem; background:rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
+                <div style="flex:1">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
+                        <strong style="color:var(--blue)">${n.title}</strong>
+                        <span style="font-size:0.75rem; color:var(--text-dim)">${new Date(n.created_at || n.date).toLocaleDateString()}</span>
+                    </div>
+                    <p style="font-size:0.85rem; margin:0">${n.body}</p>
                 </div>
-                <p style="font-size:0.85rem; margin:0">${n.body}</p>
+                <div class="action-group" style="display:flex; gap:0.4rem;">
+                    <button class="btn btn-icon btn-danger btn-sm" id="del-notif-${n.id}" onclick="confirmDeleteRow(event, '${n.id}', 'notification')">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" id="conf-notif-${n.id}" style="display:none; font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="executeDeleteRow(event, '${n.id}', 'notification')">
+                        ¿BORRAR?
+                    </button>
+                </div>
             </div>
         `).join('');
     } catch (e) {
@@ -1994,9 +2035,68 @@ function setTime(val) {
     }
 }
 
-function toggleFinancesList() {
+function toggleFinancesList(e) {
+    if (e) e.stopPropagation();
     const wrapper = document.getElementById("financesListWrapper");
     const btn = document.getElementById("toggleFinancesBtn");
+    if (!wrapper) return;
+    const isHidden = (wrapper.style.display === "none");
+    wrapper.style.display = isHidden ? "block" : "none";
+    if (btn) btn.innerHTML = isHidden ? '<i class="ph-bold ph-caret-up"></i>' : '<i class="ph-bold ph-caret-down"></i>';
+}
+
+// --- Sistema de Borrado con Confirmación UI ---
+window.confirmDeleteRow = function(e, id, type) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const prefix = type === 'transaccion' ? 'del-btn-' : 'del-notif-';
+    const confPrefix = type === 'transaccion' ? 'conf-btn-' : 'conf-notif-';
+    
+    document.getElementById(prefix + id).style.display = 'none';
+    document.getElementById(confPrefix + id).style.display = 'inline-block';
+    
+    // Auto-reset después de 3 segundos si no confirma
+    setTimeout(() => {
+        const delBtn = document.getElementById(prefix + id);
+        const confBtn = document.getElementById(confPrefix + id);
+        if (delBtn && confBtn) {
+            delBtn.style.display = 'inline-block';
+            confBtn.style.display = 'none';
+        }
+    }, 3000);
+};
+
+window.executeDeleteRow = function(e, id, type) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (type === 'transaccion') {
+        deleteTransaccion(id);
+    } else {
+        deleteNotification(id);
+    }
+};
+
+async function deleteNotification(id) {
+    const res = await spFetch(`notifications?id=eq.${id}`, 'DELETE');
+    if (res !== null) {
+        toast('Mensaje eliminado', 'success');
+        loadNotifications();
+    }
+}
+
+let financeOrderAsc = false;
+function toggleFinanceOrder(e) {
+    if (e) e.stopPropagation();
+    financeOrderAsc = !financeOrderAsc;
+    const btn = document.getElementById('sortFinanceBtn');
+    if (btn) {
+        btn.innerHTML = financeOrderAsc ? '<i class="ph-bold ph-sort-descending"></i>' : '<i class="ph-bold ph-sort-ascending"></i>';
+    }
+    // IMPORTANTE: Llamamos a renderFinances() global, no a una versión local
+    renderFinances();
+}
+
+function toggleNotificationsList() {
+    const wrapper = document.getElementById("notificationsList");
+    const btn = document.getElementById("toggleNotificationsBtn");
     if (!wrapper) return;
     const isHidden = (wrapper.style.display === "none");
     wrapper.style.display = isHidden ? "block" : "none";
