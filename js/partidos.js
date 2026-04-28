@@ -90,14 +90,24 @@ function renderAllMatches() {
     // Sort matches
     const displayMatches = [...filteredMatches];
     if (currentSortOrder === 'newest') {
-        displayMatches.sort((a, b) => parseDateForSort(b.FECHA) - parseDateForSort(a.FECHA));
+        displayMatches.sort((a, b) => parseDateForSort(b.FECHA, b) - parseDateForSort(a.FECHA, a));
     } else {
-        displayMatches.sort((a, b) => parseDateForSort(a.FECHA) - parseDateForSort(b.FECHA));
+        displayMatches.sort((a, b) => parseDateForSort(a.FECHA, a) - parseDateForSort(b.FECHA, b));
     }
 
     displayMatches.forEach(match => {
         const resultInfo = getResultClass(match.RESULTADO);
-        const scoreFormatted = match.RESULTADO.replace('x', ' - ');
+        
+        // Formatear score: Priorizar GF - GC si existen, y agregar info extra del RESULTADO (como penales)
+        let scoreFormatted = "";
+        if (match.GF !== "" && match.GC !== "") {
+            scoreFormatted = `${match.GF} - ${match.GC}`;
+            // Si el resultado tiene algo entre paréntesis (ej: "V (2-0 P)"), lo agregamos
+            const extra = match.RESULTADO.match(/\((.*)\)/);
+            if (extra) scoreFormatted += ` (${extra[1]})`;
+        } else {
+            scoreFormatted = match.RESULTADO.replace('x', ' - ');
+        }
         
         // Try parsing date for the badge
         let day = '--';
@@ -200,7 +210,15 @@ function getBgScore(className) {
 
 function getResultClass(resultado) {
     if(!resultado) return { class: 'res-D', letter: '?' };
-    const scoreParts = resultado.toLowerCase().split('x');
+    const resLow = resultado.toString().toLowerCase();
+
+    // 1. Prioridad: Letras explícitas (para penales o W.O.)
+    if (resLow.startsWith('v')) return { class: 'res-W', letter: 'V' };
+    if (resLow.startsWith('d')) return { class: 'res-L', letter: 'D' };
+    if (resLow.startsWith('e')) return { class: 'res-D', letter: 'E' };
+
+    // 2. Fallback: Formato Goles x Goles
+    const scoreParts = resLow.split('x');
     if(scoreParts.length === 2) {
         const gf = parseInt(scoreParts[0]);
         const gc = parseInt(scoreParts[1]);
@@ -256,9 +274,12 @@ function updateTournamentPills(year) {
     // Get unique tournaments and their latest match date for sorting
     const tourneyMap = {};
     yearMatches.forEach(m => {
-        const name = m.torneo_base || m.torneo || 'Amistoso';
+        let name = m.torneo_base || m.torneo || 'Amistoso';
         if (name.toLowerCase().includes('amistoso')) return; // Skip Amistosos from here
         
+        // Normalización: Si incluye (N.P), lo agrupamos con el torneo base
+        name = name.replace(/\s*\(N\.P\)\s*/i, '').trim();
+
         const dateScore = parseDateForSort(m.FECHA);
         if (!tourneyMap[name] || dateScore > tourneyMap[name]) {
             tourneyMap[name] = dateScore;

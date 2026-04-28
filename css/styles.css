@@ -915,6 +915,9 @@ footer {
   color: var(--accent-primary);
   margin-bottom: 0.5rem;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .player-stats-mini {

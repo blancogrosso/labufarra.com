@@ -1,37 +1,38 @@
-# Memoria Técnica: Arquitectura y Flujo de Datos La Bufarra
+# Memoria Técnica: Arquitectura y Flujo de Datos La Bufarra (v6.5)
 
-Este documento documenta la arquitectura técnica vigente de **La Bufarra**, actualizada en abril de 2026. Sirve como guía de referencia para cualquier futuro desarrollador o administrador.
+Este documento detalla la arquitectura técnica vigente de **La Bufarra**, actualizada en abril de 2026.
 
-## 1. Arquitectura de Alta Disponibilidad (Híbrida)
-La web utiliza un modelo mixto para ser ultra-rápida y a la vez tener los datos "en vivo":
-1. **El Motor Local (Fallback y Base Histórica):** Los archivos en la carpeta `js/` (como `players_data.js` y `matches_data.js`) contienen el histórico puro. Le permiten a la web cargar al instante sin depender de una base de datos externa.
-2. **Supabase (El Motor en Vivo):** Se utiliza exclusivamente para ingestar los datos de **2026 en adelante**. 
-3. **Fusión Dinámica:** En `db.js`, la web **siempre** descarga los últimos partidos de Supabase y los "mezcla" dinámicamente con el archivo local. Esto asegura que al cargar un partido nuevo en el Admin, todos los usuarios lo vean inmediatamente en vivo sin recargar el servidor.
+## 1. Arquitectura de Alta Disponibilidad (Híbrida v2)
+La web utiliza un modelo mixto para máxima velocidad y datos en tiempo real:
+1. **Base Local (data/):** Los archivos `players.json` y `matches.json` en la carpeta `data/` son el motor principal. Son generados automáticamente por el script de Python a partir de los balances en Supabase y los Excels locales.
+2. **Supabase (Tiempo Real):** Se utiliza para ingestar partidos nuevos, gestionar partidos próximos (`upcoming`), finanzas y la tabla de posiciones de la liga.
+3. **Fusión Dinámica (db.js):** Al cargar, la web descarga los últimos partidos de Supabase y los mezcla con el JSON local. Si hay discrepancias, **Supabase tiene prioridad**.
 
-## 2. El Flujo de Carga de Partidos
-- Los Partidos se anuncian desde Supabase en la tabla `upcoming`.
-- Cuando la fecha de un partido "próximo" se cumple o se pasa, el Admin arroja una "Alerta de Carga Rápida".
-- **Automatización**: Si se borra la alerta con la 'x', el partido próximo se descarta (solo se elimina de `upcoming`). Si se completa el partido utilizando "Nuevo Partido", el sistema revisará silenciosamente la tabla `upcoming` y si hay un partido pendiente con ese rival y fecha, lo borrará automáticamente para evitar dobles avisos.
+## 2. Gestión de la Liga (Orden Manual y Tendencias)
+A diferencia de otros años, la tabla de posiciones es **manualmente gestionada** para permitir flexibilidad total (puntos, sanciones, etc.):
+- **Ordenación:** El administrador usa flechas para mover equipos arriba o abajo.
+- **Tendencias:** El sistema registra la `lastPos` (posición anterior). Si al guardar un equipo cambió de lugar, la web mostrará automáticamente una flecha verde (subió) o roja (bajó).
+- **DG (Diferencia de Goles):** Eliminada por solicitud del usuario para simplificar la carga; el orden es 100% criterio del administrador.
 
-## 3. Sincronización Maestra (El Script Python)
-Puesto que Javascript desde el navegador no puede re-escribir los `.csv` que están guardados en tu computadora localmente, se ha diseñado un script de consolidación: **`sincronizar_stats.py`** (ubicado en la raíz).
+## 3. Notificaciones Manuales (WhatsApp Ecosystem)
+Se han eliminado las notificaciones Push (OneSignal/PWA) por ser poco prácticas.
+- **Flujo:** Al cargar un resultado o confirmar un horario, el Admin ofrece un botón para "Avisar por WhatsApp".
+- **Plantillas:** El sistema genera un texto preformateado listo para pegar en el grupo de los jugadores.
 
-**Uso:** Una vez que se hayan cargado varios partidos en el Admin y se quiera re-armar el "Master Backup":
-- Abrir la terminal en la carpeta del proyecto.
-- Ejecutar: `python3 sincronizar_stats.py`
-- **¿Qué hace?** Se conecta a Supabase, descarga todos los partidos de 2026, los "masajea" en formato Excel, y reescribe completamente los bloques del 2026 de los 3 archivos base de `DATOS EXCEL/` (`DETALLE`, `PARTIDOS` y `JUGADORES`), manteniéndote la matemática en orden de forma perpetua.
+## 4. Sincronización Maestra y Motor de Estadísticas
+El sistema ha evolucionado de scripts manuales a un motor de cálculo integrado:
+- **Motor JS (`recalculateAllStats`):** Es el responsable de la integridad diaria. Cada vez que se toca un partido en el Admin, este motor suma el histórico (Excel 2021-2025) con lo nuevo (Supabase 2026) y genera un **UPSERT** masivo a la tabla `players_stats`.
+- **Script Python (`sincronizar_stats.py`):** Se mantiene como herramienta de respaldo y auditoría. Sirve para bajar los datos de la nube y re-escribir los archivos `.csv` y `.json` maestros para el control offline del usuario.
+- **Matemática Exacta:** La estadística "Histórico (ALL)" ya no es un acumulado ciego, sino una derivada exacta de la suma de todos los años, garantizando error cero.
 
-## 4. El "Truco Infranqueable" de la Hora
-La tabla `matches` en Supabase no tiene una columna `hora`. Para evitar errores de esquema:
-- **Guardado**: La hora se introduce maliciosamente dentro del campo `jugadores` (que es un JSON) bajo la clave secreta `__hora`.
-- **Carga**: Al leer, el script interroga al JSON. Si halla `__hora`, la asume como la hora oficial del partido. Ningún bucle debe intentar mapear a un jugador llamado "__hora".
+## 5. El "Truco Infranqueable" de la Hora
+La tabla `matches` en Supabase no posee columna `hora`.
+- Se guarda dentro del JSON de la columna `jugadores` bajo la clave secreta `__hora`.
+- El sistema de cargado la extrae y la formatea para la UI automáticamente.
 
-## 5. Accesos y Permisos Administrativos
-A falta de cuentas seguras, el archivo `admin.js` utiliza validación por Hashes de Contraseña (`config.json`), pero hay Override "Puertas Traseras" habilitadas en el código duro para que nunca pierdan el acceso los principales responsables:
-- Administrador general (`admin` : `bufarra2026`)
-- Oso (`oso` : `oso2018`)
-- Feli (`feli` : `feli2018`)
-- Justi (`justi` : `justi2018`)
-
-## 6. Notificaciones OneSignal
-*Nota: Este apartado está listo para ser re-evaluado en las próximas fases del proyecto.* La plataforma por defecto actual para alertas móviles, que usa su propio ServiceWorker inyectado en el `manifest.json`.
+## 6. Accesos de Emergencia
+Cuentas maestras habilitadas en `admin.js`:
+- `admin` / `bufarra2026`
+- `oso` / `oso2018`
+- `feli` / `feli2018`
+- `justi` / `justi2018`

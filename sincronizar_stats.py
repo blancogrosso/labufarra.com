@@ -48,28 +48,51 @@ matches_all = fetch_supabase("matches?order=fecha.asc")
 matches_2026 = [m for m in matches_all if str(m.get('fecha', '')).startswith('2026') or str(m.get('fecha', '')).endswith('2026')]
 print(f"Se encontraron {len(matches_2026)} partidos de 2026 (de {len(matches_all)} totales).")
 
-# 1. ACTUALIZAR PARTIDOS.CSV
+# --- 1. PROCESAR PARTIDOS (MAESTRO: CSV) ---
+print("Procesando PARTIDOS (Maestro: CSV)...")
 p_headers, p_rows = read_csv(CSV_PARTIDOS)
-p_rows_historico = [row for row in p_rows if len(row) > 0 and str(row[0]) != '2026']
 
-for m in matches_2026:
-    year = "2026"
+# Crear un mapa de partidos de Supabase para cruzar IDs y detalles de jugadores
+sb_map = {}
+for m in matches_all:
+    # Generar una clave única: "AÑO-FECHA-RIVAL"
     fecha = m.get('fecha', '')
     if '-' in fecha:
         parts = fecha.split('-')
         fecha = f"{int(parts[2])}/{int(parts[1])}/{parts[0]}"
-        
-    torneo = m.get('torneo', '')
-    instancia = m.get('instancia', '')
-    rival = str(m.get('rival', '')).upper()
-    gf = str(m.get('gf', '0'))
-    gc = str(m.get('gc', '0'))
-    res = 'V' if int(gf) > int(gc) else ('D' if int(gf) < int(gc) else 'E')
-    lugar = m.get('lugar', '')
-    p_rows_historico.insert(0, [year, fecha, torneo, instancia, rival, gf, gc, res, lugar])
+    key = f"{m.get('año') or m.get('AÑO')}-{fecha}-{str(m.get('rival') or m.get('VS')).upper()}"
+    sb_map[key] = m
 
-write_csv(CSV_PARTIDOS, p_headers, p_rows_historico)
-print("PARTIDOS.csv actualizado.")
+final_matches = []
+for row in p_rows:
+    if not row or len(row) < 8: continue
+    
+    year, fecha, torneo, instancia, rival, gf, gc, res, lugar = row[0:9]
+    rival_upper = str(rival).upper()
+    key = f"{year}-{fecha}-{rival_upper}"
+    
+    # Buscar en Supabase para no perder el ID ni los jugadores
+    sb_match = sb_map.get(key, {})
+    
+    match_obj = {
+        "id": sb_match.get('id') or sb_match.get('ID') or f"csv_{year}_{rival_upper.replace(' ','_')}",
+        "fecha": fecha,
+        "año": year,
+        "torneo": torneo,
+        "instancia": instancia,
+        "rival": rival,
+        "gf": gf,
+        "gc": gc,
+        "resultado": res,
+        "lugar": lugar,
+        "jugadores": sb_match.get('jugadores', {})
+    }
+    final_matches.append(match_obj)
+
+# Escribir el CSV de nuevo por si hubo algun cambio de 2026 en Supabase que queramos bajar 
+# (Opcional, pero lo mantenemos para consistencia)
+write_csv(CSV_PARTIDOS, p_headers, p_rows) 
+print(f"Se procesaron {len(final_matches)} partidos desde el CSV.")
 
 # 2. ACTUALIZAR DETALLE.CSV
 d_headers, d_rows = read_csv(CSV_DETALLE)
@@ -120,22 +143,20 @@ for row in j_rows:
             other_years_rows.append(row)
         continue
     
+    # IMPORTANTE: Preservar CUALQUIER fila de años anteriores
+    if "2026" not in (current_section or "") and "GLOBAL" not in (current_section or ""):
+        other_years_rows.append(row)
+        continue
+
     if "TORNEO:" in row[0] or "HISTÓRICO" == row[0] or "2026" == row[0] or row[0] == "":
-        if "2026" not in current_section and "GLOBAL" not in current_section:
-            other_years_rows.append(row)
-        # Procesar data real
+        # Procesar data real para el Álgebra
         if len(row) >= 11 and row[0] in ["HISTÓRICO", "2026"]:
-            # pj, pg, pe, pp, goles, asistencias, amarillas, rojas, mvp
             stats = [int(x) if str(x).isdigit() else 0 for x in row[2:11]]
             p_name = remove_accents(row[1])
             if row[0] == "HISTÓRICO":
                 base_global[p_name] = stats
             elif row[0] == "2026":
                 old_2026[p_name] = stats
-        else:
-            if "2026" not in current_section and "GLOBAL" not in current_section:
-                pass # Ya está agregado arriba
-            continue
 
 # Algebra: Restar el viejo 2026 de la BaseGlobal para quedarse solo con HISTÓRICO <2025 puro
 for p, s26 in old_2026.items():
@@ -207,9 +228,9 @@ print("JUGADORES.csv actualizado (Álgebra: Base Histórica pura + Datos Supabas
 # --- 4. EXPORTAR JSON PARA LA WEB (ULTRA IMPORTANTE PARA EL PLANTEL) ---
 print("Generando archivos JSON para la web...")
 
-# matches.json
+# matches.json (Usando la lista fusionada final_matches)
 with open('data/matches.json', 'w', encoding='utf-8') as f:
-    json.dump(matches_all, f, indent=2, ensure_ascii=False)
+    json.dump(final_matches, f, indent=2, ensure_ascii=False)
 
 # players.json (Mapeo por año)
 # Para simplificar, el web lee un objeto donde cada año es una lista.

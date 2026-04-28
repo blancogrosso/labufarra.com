@@ -76,13 +76,38 @@ async function loadMatches() {
             const mRes = await fetch(`${SUPABASE_URL}/rest/v1/matches?select=*&order=fecha.desc`, { headers: SP_HEADERS }).catch(() => null);
             if (mRes && mRes.ok) sbMatches = mapMatches(await mRes.json());
             
-            // Fusión de partidos: Supabase (nuevos) + Local (históricos y backup)
+            // Fusión de partidos: AHORA SUPABASE ES EL MAESTRO ÚNICO
             if (sbMatches.length > 0) {
-                // Combinar evitando duplicados por ID
                 const local = window.allMatches || [];
                 const mergedMap = new Map();
-                local.forEach(m => mergedMap.set(m.ID, m));
-                sbMatches.forEach(m => mergedMap.set(m.ID, m));
+                
+                // Función para generar una clave única de partido (Normalizada y Agresiva)
+                const getMatchKey = (m) => {
+                    const rRaw = (m.VS || m.rival || m.RIVAL || '').toString().trim().toUpperCase();
+                    const rClean = rRaw.replace(/\b(FC|F\.C|CA|C\.A|DEPORTIVA|CLUB|ATLETICO|ASOCIACION|JRS|JUNIORS)\b/gi, '')
+                                       .replace(/\(.*\)/g, '')
+                                       .replace(/[^A-Z0-9]/g, '')
+                                       .trim();
+                    const fRaw = (m.FECHA || m.fecha || '').trim();
+                    const a = (m.AÑO || m.año || '').toString().trim();
+                    let fNorm = fRaw;
+                    if (fRaw.includes('/')) {
+                        const p = fRaw.split('/');
+                        if (p.length === 3) fNorm = `${parseInt(p[0])}/${parseInt(p[1])}/${p[2]}`;
+                    } else if (fRaw.includes('-')) {
+                        const p = fRaw.split('-');
+                        if (p.length === 3) fNorm = `${parseInt(p[2])}/${parseInt(p[1])}/${p[0]}`;
+                    }
+                    return `${a}-${fNorm}-${rClean}`;
+                };
+
+                // 1. Cargamos lo Local (JSON de backup)
+                local.forEach(m => mergedMap.set(getMatchKey(m), m));
+                
+                // 2. SUPABASE TIENE PRIORIDAD (Pisa lo local). 
+                // Como acabamos de migrar el Excel a Supabase, la nube tiene la verdad.
+                sbMatches.forEach(m => mergedMap.set(getMatchKey(m), m));
+                
                 window.allMatches = Array.from(mergedMap.values());
             }
             
@@ -96,13 +121,22 @@ async function loadMatches() {
     };
 
     try {
-        // 1. Cargar base local de todo el histórico
+        // 1. Cargar base local de todo el histórico (Failsafe)
         await loadLocal();
         
-        // 2. Cargar Supabase y fusionar lo nuevo en tiempo real
-        const sbSuccess = await loadSupabase();
+        // 2. PRIORIDAD ESPECIAL: Si tenemos datos inyectados del Excel, usarlos como base maestra
+        if (window.PLAYERS_EXCEL_DATA) {
+            console.log("DB: Usando datos maestros del Excel (Respaldo JS)");
+            window.allPlayers = mapPlayers(window.PLAYERS_EXCEL_DATA);
+        }
 
-        // 3. CALCULO DINÁMICO DE ESTADÍSTICAS 2026 (Para que el plantel se vea siempre en vivo)
+        // 3. Cargar Supabase (PARTIDOS)
+        const sbMatchesSuccess = await loadSupabase();
+
+        // 4. Cargar Supabase (JUGADORES/ESTADISTICAS) para actualizaciones en tiempo real
+        const sbPlayersSuccess = await loadPlayersSupabase();
+
+        // 4. CALCULO DINÁMICO DE ESTADÍSTICAS 2026 (Para que el plantel se vea siempre en vivo)
         const matches2026 = (window.allMatches || []).filter(m => {
             const yr = String(m.AÑO || m.año || '');
             const fe = String(m.FECHA || m.fecha || '');
@@ -126,10 +160,61 @@ async function loadMatches() {
             window.allPlayers['2026'] = merged;
         }
 
-        finishLoad(sbSuccess ? "Híbrido (Local + Supabase)" : "Local JSON Fallback");
+        const success = sbMatchesSuccess && sbPlayersSuccess;
+        finishLoad(success ? "Híbrido (Local + Supabase)" : "Local JSON Fallback");
     } catch (e) {
         console.error("DB: Error fatal en loadMatches:", e);
         finishLoad("Error Fallback");
+    }
+}
+
+async function loadPlayersSupabase() {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/players_stats?select=*`, { headers: SP_HEADERS }).catch(() => null);
+        if (!res || !res.ok) return false;
+        
+        const data = await res.json();
+        if (!data || data.length === 0) return false;
+
+        // Agrupar por año (como espera el resto de la web)
+        const cloudPlayers = {};
+        data.forEach(p => {
+            const yr = p.year || 'ALL';
+            if (!cloudPlayers[yr]) cloudPlayers[yr] = [];
+            
+            cloudPlayers[yr].push({
+                PLAYER: p.player_name,
+                PJ: parseInt(p.pj || 0),
+                PG: parseInt(p.pg || 0),
+                PE: parseInt(p.pe || 0),
+                PP: parseInt(p.pp || 0),
+                GOLES: parseInt(p.goles || 0),
+                ASISTENCIAS: parseInt(p.asistencias || 0),
+                AMARILLAS: parseInt(p.amarillas || 0),
+                ROJAS: parseInt(p.rojas || 0),
+                MVP: parseInt(p.mvp || 0)
+            });
+        });
+
+        // Fusionar con window.allPlayers (Dándole prioridad a la Nube si tiene datos)
+        for (const [yr, players] of Object.entries(cloudPlayers)) {
+            if (players.length === 0) continue; // Ignorar años vacíos en la nube
+            
+            if (!window.allPlayers[yr]) {
+                window.allPlayers[yr] = players;
+            } else {
+                // Merge inteligente por nombre: La nube manda si existe el jugador
+                players.forEach(cp => {
+                    const idx = window.allPlayers[yr].findIndex(lp => lp.PLAYER.toUpperCase() === cp.PLAYER.toUpperCase());
+                    if (idx >= 0) window.allPlayers[yr][idx] = cp;
+                    else window.allPlayers[yr].push(cp);
+                });
+            }
+        }
+        return true;
+    } catch(e) {
+        console.warn("DB: Falló carga de jugadores de Supabase:", e);
+        return false;
     }
 }
 
@@ -145,14 +230,21 @@ function calculateLiveStats(matches) {
                 if (name.startsWith('__')) return;
                 
                 let n = name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const low = n.toLowerCase();
-                if (low.includes('rocca')) n = 'Diego Rocca';
-                else if (low.includes('gaston silva')) n = 'Gaston Silva';
-                else if (low === 'de leon' || low === 'deleón') n = 'De Leon';
-                else {
-                    // Capitalización estándar
-                    n = n.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                const upperName = n.toUpperCase();
+                
+                // Buscar el nombre oficial (apellido) en el PLAYER_MAP
+                let officialName = n;
+                for (const [surname, info] of Object.entries(window.PLAYER_MAP)) {
+                    const upperSurname = surname.toUpperCase();
+                    const upperFullName = (info.fullName || "").toUpperCase();
+                    const aliases = (info.aliases || []).map(a => a.toUpperCase());
+                    
+                    if (upperName === upperSurname || upperName === upperFullName || aliases.includes(upperName)) {
+                        officialName = surname;
+                        break;
+                    }
                 }
+                n = officialName;
 
                 if (!stats[n]) {
                     stats[n] = { PLAYER: n, PJ: 0, PG: 0, PE: 0, PP: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0, MVP: 0 };
@@ -188,7 +280,10 @@ function mapMatches(data) {
         const torneo = m.torneo || m.TORNEO || '';
         const instancia = m.instancia || m.INSTANCIA || '';
         const año = m.año || m.AÑO || (fecha.includes('-') ? fecha.split('-')[0] : (fecha.includes('/') ? fecha.split('/').pop() : ''));
-        const res = m.resultado || m.RESULTADO || (gf !== '' && gc !== '' ? (parseInt(gf) > parseInt(gc) ? 'V' : parseInt(gf) < parseInt(gc) ? 'D' : 'E') : '');
+        
+        // PRIORIDAD: Resultado manual guardado en el JSON de jugadores (para penales/correciones)
+        const manualRes = m.jugadores ? (m.jugadores.__resultado_manual || m.jugadores.__resultado) : null;
+        const res = manualRes || m.resultado || m.RESULTADO || (gf !== '' && gc !== '' ? (parseInt(gf) > parseInt(gc) ? 'V' : parseInt(gf) < parseInt(gc) ? 'D' : 'E') : '');
 
         return {
             ...m,
@@ -243,23 +338,31 @@ function mapPlayers(data) {
     let mapped = {};
 
     const normalize = (p) => {
-        let name = p.player_name || p.nombre || p.PLAYER || '';
+        let name = p.PLAYER || p.nombre || p.player_name || '';
         name = name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        if (name.toLowerCase().includes('rocca')) name = 'Diego Rocca';
-        if (name.toLowerCase().includes('gaston silva')) name = 'Gaston Silva';
-        if (name.toLowerCase() === 'de leon') name = 'De Leon';
         
+        // Unificación de nombres usando el PLAYER_MAP si existe
+        let officialName = name;
+        const upperName = name.toUpperCase();
+        for (const [surname, info] of Object.entries(window.PLAYER_MAP || {})) {
+            if (upperName === surname.toUpperCase() || upperName === (info.fullName || "").toUpperCase()) {
+                officialName = surname;
+                break;
+            }
+        }
+
         return {
-            PLAYER: name,
-            PJ: parseInt(p.pj ?? p.PJ ?? 0),
-            PG: parseInt(p.pg ?? p.PG ?? 0),
-            PE: parseInt(p.pe ?? p.PE ?? 0),
-            PP: parseInt(p.pp ?? p.PP ?? 0),
-            GOLES: parseInt(p.goles ?? p.GOLES ?? 0),
-            ASISTENCIAS: parseInt(p.asistencias ?? p.ASISTENCIAS ?? 0),
-            AMARILLAS: parseInt(p.amarillas ?? p.AMARILLAS ?? 0),
-            ROJAS: parseInt(p.rojas ?? p.ROJAS ?? 0),
-            MVP: parseInt(p.mvp ?? p.MVP ?? 0)
+            PLAYER: officialName,
+            YEAR: p.YEAR || p.year || p.año || '',
+            PJ: parseInt(p.PJ ?? p.pj ?? 0),
+            PG: parseInt(p.PG ?? p.pg ?? 0),
+            PE: parseInt(p.PE ?? p.pe ?? 0),
+            PP: parseInt(p.PP ?? p.pp ?? 0),
+            GOLES: parseInt(p.GOLES ?? p.goles ?? 0),
+            ASISTENCIAS: parseInt(p.ASISTENCIAS ?? p.asistencias ?? 0),
+            AMARILLAS: parseInt(p.AMARILLAS ?? p.amarillas ?? 0),
+            ROJAS: parseInt(p.ROJAS ?? p.rojas ?? 0),
+            MVP: parseInt(p.MVP ?? p.mvp ?? 0)
         };
     };
 
@@ -267,12 +370,20 @@ function mapPlayers(data) {
     if (data.ALL && !Array.isArray(data)) {
         for (const [key, content] of Object.entries(data)) {
             if (Array.isArray(content)) {
-                mapped[key] = content.map(p => normalize(p));
+                mapped[key] = content.map(p => {
+                    const n = normalize(p);
+                    if (!n.YEAR) n.YEAR = key;
+                    return n;
+                });
             } else if (typeof content === 'object') {
                 let yearPlayers = [];
                 for (const tData of Object.values(content)) {
                     const nodes = tData.jugadores || tData;
-                    if (Array.isArray(nodes)) nodes.forEach(p => yearPlayers.push(normalize(p)));
+                    if (Array.isArray(nodes)) nodes.forEach(p => {
+                        const n = normalize(p);
+                        if (!n.YEAR) n.YEAR = key;
+                        yearPlayers.push(n);
+                    });
                 }
                 mapped[key] = yearPlayers;
             }
@@ -326,8 +437,8 @@ function finishLoad(source) {
         if(m.FECHA) m.FECHA = formatDateProperly(m.FECHA);
     });
 
-    // Sort matches by date (descending)
-    window.allMatches.sort((a,b) => parseDateForSort(b.FECHA) - parseDateForSort(a.FECHA));
+    // Sort matches by date (descending) and instance priority
+    window.allMatches.sort((a,b) => parseDateForSort(b.FECHA, b) - parseDateForSort(a.FECHA, a));
 
     // Execute renders safely
     const safeRender = (fn, name) => {
@@ -423,16 +534,33 @@ function formatDateISO(iso) {
     return `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`;
 }
 
-function parseDateForSort(dateStr) {
+function parseDateForSort(dateStr, matchObj = null) {
     if(!dateStr || typeof dateStr !== 'string') return 0;
     const parts = dateStr.trim().split('/');
     if(parts.length < 2) return 0;
+    
     let d = parseInt(parts[0], 10);
     let m = parseInt(parts[1], 10);
     let yStr = parts[2] ? parts[2].trim() : "2026";
     if (yStr.length === 2) yStr = '20' + yStr;
     const y = parseInt(yStr, 10);
-    return new Date(y, m - 1, d).getTime() || 0;
+    
+    let time = new Date(y, m - 1, d).getTime() || 0;
+
+    // Si tenemos el objeto del partido, añadimos un pequeño offset según la instancia
+    // para que Final > Semi > Cuartos > Fecha en orden descendente.
+    if (matchObj) {
+        const inst = String(matchObj.instancia || matchObj.INSTANCIA || '').toUpperCase();
+        if (inst.includes('FINAL') && !inst.includes('SEMI')) time += 1000;
+        else if (inst.includes('SEMI')) time += 500;
+        else if (inst.includes('CUARTOS')) time += 250;
+        else if (inst.includes('FECHA')) {
+            const num = parseInt(inst.replace(/[^0-9]/g, '')) || 0;
+            time += num;
+        }
+    }
+
+    return time;
 }
 
 // ─── CSV PARSER ORIGINAL (Mantenido por seguridad) ───
@@ -527,6 +655,8 @@ function renderEfeméride() {
         let resStr = match.RESULTADO || '';
         if (gf !== '' && gc !== '') {
             resStr = `${gf} - ${gc}`;
+            const extra = String(match.RESULTADO).match(/\((.*)\)/);
+            if (extra) resStr += ` (${extra[1]})`;
         }
         textEl.innerHTML = `Un ${match.FECHA}, La Bufarra jugó contra ${match.VS}. Resultado: <strong>${resStr}</strong>.`;
     } else {
@@ -723,7 +853,12 @@ function generateMatchCard(m, title = "") {
                 </div>
                 
                 <div class="vs-badge" style="padding: 1rem; font-size: 3rem; color: #fff; font-family: var(--font-display); font-weight: 900; letter-spacing: -2px; background: none; border: none;">
-                    ${isUpcoming ? 'VS' : `${gf} - ${gc}`}
+                    ${isUpcoming ? 'VS' : (function(){
+                        let score = `${gf} - ${gc}`;
+                        const extra = String(m.RESULTADO || '').match(/\((.*)\)/);
+                        if (extra) return `<div style="display:flex; flex-direction:column; align-items:center;"><span style="line-height:1;">${score}</span><span style="font-size:1rem; letter-spacing:0; margin-top:0.5rem; opacity:0.8;">(${extra[1]})</span></div>`;
+                        return score;
+                    })()}
                 </div>
                 
                 <div class="team" style="text-align: left;">
@@ -1160,12 +1295,21 @@ function openRivalModal(rivalName) {
         container.innerHTML = '<div style="text-align:center; padding:3rem; color:var(--text-muted);">No hay partidos registrados contra este rival aún.</div>';
     } else {
         container.innerHTML = matches.map(m => {
-            const gf = m.gf || m.GF || 0;
-            const gc = m.gc || m.GC || 0;
-            const resColor = gf > gc ? '#2ecc71' : (gf === gc ? '#f1c40f' : '#ff4757');
+            const res = (m.RESULTADO || m.resultado || "").toString().toUpperCase();
+            const resType = res.startsWith('V') ? 'V' : (res.startsWith('E') ? 'E' : 'D');
+            const resColor = resType === 'V' ? '#2ecc71' : (resType === 'E' ? '#f1c40f' : '#ff4757');
             const fechaLabel = m.FECHA || m.fecha || 'TBD';
             const torneoStr = (m.torneo || "").toUpperCase();
             
+            // Score display logic
+            let scoreDisplay = "";
+            if (m.GF !== undefined && m.GC !== undefined && m.GF !== "" && m.GC !== "") {
+                scoreDisplay = `${m.GF} - ${m.GC}`;
+                const extra = res.match(/\((.*)\)/);
+                if (extra) scoreDisplay += ` (${extra[1]})`;
+            } else {
+                scoreDisplay = res || '?-?';
+            }
             return `
                 <div class="glass-panel" style="padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-light); border-radius: 12px;">
                     <div style="flex: 1.2;">
@@ -1173,7 +1317,7 @@ function openRivalModal(rivalName) {
                         <div style="font-size: 0.65rem; color: var(--accent-primary); font-weight: 700; letter-spacing: 0.5px;">${torneoStr}</div>
                     </div>
                     <div style="flex: 1; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 1rem;">
-                        <div style="font-family: var(--font-display); font-size: 1.3rem; font-weight: 900; color: ${resColor}; text-shadow: 0 0 10px ${resColor}33;">${gf} - ${gc}</div>
+                        <div style="font-family: var(--font-display); font-size: 1.3rem; font-weight: 900; color: ${resColor}; text-shadow: 0 0 10px ${resColor}33;">${scoreDisplay}</div>
                     </div>
                 </div>
             `;
@@ -1195,10 +1339,9 @@ function getRivalFormHTML(rivalName) {
     ).slice(0, 5);
     if (matches.length === 0) return '';
     return '<div style="display:flex; gap:4px; margin-top:2px;">' + matches.map(m => {
-        const gf = m.gf || m.GF || 0;
-        const gc = m.gc || m.GC || 0;
-        if (gf > gc) return '<span style="color:#2ecc71; font-weight:900; font-size:0.75rem;">G</span>';
-        if (gf === gc) return '<span style="color:#f1c40f; font-weight:900; font-size:0.75rem;">E</span>';
+        const res = (m.RESULTADO || m.resultado || "").toString().toUpperCase();
+        if (res.startsWith('V')) return '<span style="color:#2ecc71; font-weight:900; font-size:0.75rem;">G</span>';
+        if (res.startsWith('E')) return '<span style="color:#f1c40f; font-weight:900; font-size:0.75rem;">E</span>';
         return '<span style="color:#ff4757; font-weight:900; font-size:0.75rem;">P</span>';
     }).join('') + '</div>';
 }
@@ -1222,15 +1365,21 @@ function handleGlobalSearch(query) {
 
     // Search Rivals
     window.allMatches.forEach(m => {
-        const rival = (m.VS || m.rival || '').trim();
-        if (rival.toLowerCase().includes(q)) {
+        const rivalRaw = m.VS || m.rival || m.RIVAL || '';
+        const rival = rivalRaw.toString().trim();
+        if (rival && rival.toLowerCase().includes(q)) {
             results.push({ type: 'rival', label: rival, sub: 'Rival Histórico', icon: 'ph-shield', extra: getRivalFormHTML(rival) });
         }
     });
 
     const seen = new Set();
     const finalResults = results.filter(r => {
-        const key = `${r.type}-${r.label.toLowerCase()}`;
+        // Normalización agresiva para el "seen" del buscador
+        const normLabel = r.label.toUpperCase()
+                           .replace(/\b(FC|F\.C|CA|C\.A|DEPORTIVA|CLUB|ATLETICO|ASOCIACION|JRS|JUNIORS)\b/gi, '')
+                           .replace(/[^A-Z0-9]/g, '')
+                           .trim();
+        const key = `${r.type}-${normLabel}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;

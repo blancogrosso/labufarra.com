@@ -97,17 +97,18 @@ function normalizePlayerName(name) {
 }
 
 function normalize_p(p) {
+    if (!p) return {};
     return {
         PLAYER: p.PLAYER || p.nombre || p.player_name || '',
-        PJ: parseInt(p.PJ || p.pj || 0),
-        PG: parseInt(p.PG || p.pg || 0),
-        PE: parseInt(p.PE || p.pe || 0),
-        PP: parseInt(p.PP || p.pp || 0),
-        GOLES: parseInt(p.GOLES || p.goles || 0),
-        ASISTENCIAS: parseInt(p.ASISTENCIAS || p.asistencias || 0),
-        AMARILLAS: parseInt(p.AMARILLAS || p.amarillas || 0),
-        ROJAS: parseInt(p.ROJAS || p.rojas || 0),
-        MVP: parseInt(p.MVP || p.mvp || 0)
+        PJ: parseInt(p.PJ ?? p.pj ?? 0),
+        PG: parseInt(p.PG ?? p.pg ?? 0),
+        PE: parseInt(p.PE ?? p.pe ?? 0),
+        PP: parseInt(p.PP ?? p.pp ?? 0),
+        GOLES: parseInt(p.GOLES ?? p.goles ?? 0),
+        ASISTENCIAS: parseInt(p.ASISTENCIAS ?? p.asistencias ?? 0),
+        AMARILLAS: parseInt(p.AMARILLAS ?? p.amarillas ?? 0),
+        ROJAS: parseInt(p.ROJAS ?? p.rojas ?? 0),
+        MVP: parseInt(p.MVP ?? p.mvp ?? 0)
     };
 }
 
@@ -124,9 +125,15 @@ function applyYearFilters() {
         basePlayers = sourceData.map(p => {
             const norm = normalize_p(p);
             
-            // Búsqueda insensible a mayúsculas
-            const mappingKey = Object.keys(PLAYER_MAP).find(k => k.toLowerCase() === norm.PLAYER.toLowerCase());
-            const mapping = mappingKey ? PLAYER_MAP[mappingKey] : null;
+            // Búsqueda inteligente por nombre o apellido
+            let mapping = null;
+            const upperName = norm.PLAYER.toUpperCase();
+            for (const [key, info] of Object.entries(PLAYER_MAP)) {
+                if (key.toUpperCase() === upperName || info.fullName.toUpperCase() === upperName) {
+                    mapping = info;
+                    break;
+                }
+            }
             
             // Calculate win percentage
             let wins = parseInt(norm.PG || 0);
@@ -145,22 +152,28 @@ function applyYearFilters() {
         
         selectedYears.forEach(year => {
             if (year === 'ALL') return;
-            const content = allPlayers[year];
+            const content = window.allPlayers[year];
             if (!content) return;
 
             let playersArray = [];
             if (Array.isArray(content)) {
                 playersArray = content;
             } else {
-                // Nested Year > Tournament > {jugadores: []}
+                // Caso: Objeto con Torneos (Estructura histórica local)
                 Object.values(content).forEach(t => {
-                    if (t.jugadores) playersArray.push(...t.jugadores);
+                    if (Array.isArray(t)) {
+                        playersArray.push(...t);
+                    } else if (t.jugadores && Array.isArray(t.jugadores)) {
+                        playersArray.push(...t.jugadores);
+                    }
                 });
             }
 
             playersArray.forEach(p => {
-                const name = (p.PLAYER || "").trim();
+                const norm = normalize_p(p);
+                const name = norm.PLAYER;
                 if (!name) return;
+                
                 if (!aggregated[name]) {
                     aggregated[name] = {
                         PLAYER: name,
@@ -168,14 +181,14 @@ function applyYearFilters() {
                         GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0
                     };
                 }
-                aggregated[name].PJ += parseInt(p.PJ || 0);
-                aggregated[name].PG += parseInt(p.PG || 0);
-                aggregated[name].PE += parseInt(p.PE || 0);
-                aggregated[name].PP += parseInt(p.PP || 0);
-                aggregated[name].GOLES += parseInt(p.GOLES || 0);
-                aggregated[name].ASISTENCIAS += parseInt(p.ASISTENCIAS || 0);
-                aggregated[name].AMARILLAS += parseInt(p.AMARILLAS || 0);
-                aggregated[name].ROJAS += parseInt(p.ROJAS || 0);
+                aggregated[name].PJ += norm.PJ;
+                aggregated[name].PG += norm.PG;
+                aggregated[name].PE += norm.PE;
+                aggregated[name].PP += norm.PP;
+                aggregated[name].GOLES += norm.GOLES;
+                aggregated[name].ASISTENCIAS += norm.ASISTENCIAS;
+                aggregated[name].AMARILLAS += norm.AMARILLAS;
+                aggregated[name].ROJAS += norm.ROJAS;
             });
         });
 
@@ -267,49 +280,63 @@ function renderPlayersGrid() {
         const formatDecimal = (num) => parseFloat(num).toFixed(2);
         const goles = parseInt(p.GOLES || 0);
         const pj = parseInt(p.PJ || 0);
+        const wins = parseInt(p.PG || 0);
+        const draws = parseInt(p.PE || 0);
+        const losses = parseInt(p.PP || 0);
+        const effective = p['% PG'] || '0%';
         
+        // El bloque de V-E-D ahora es constante para todas las vistas
+        const vedBlock = `
+            <div style="display: flex; gap: 0.8rem; margin-top: 0.5rem; font-size: 0.85rem; font-weight: bold; justify-content: center; width: 100%; color: var(--text-muted);">
+                <span style="color: #27ae60">V: ${wins}</span>
+                <span style="color: #f39c12">E: ${draws}</span>
+                <span style="color: #e74c3c">D: ${losses}</span>
+            </div>
+        `;
+
         if (currentSort.column === 'PJ' || currentSort.column === 'PLAYER') {
-            subtitleText = `Efectividad de Victorias: ${p['% PG'] || '0%'}`;
+            subtitleText = `Efectividad: ${effective}`;
             statsBlock = `
                 <div class="stat-box" style="flex: 1; justify-content: center; flex-direction: column;">
                     <span class="stat-value" style="font-size: 2.3rem; line-height: 1;">${pj}</span>
                     <span class="stat-label">Partidos Jugados</span>
-                    <div style="display: flex; gap: 0.8rem; margin-top: 0.8rem; font-size: 0.9rem; font-weight: bold; justify-content: center; width: 100%; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 0.5rem;">
-                        <span style="color: #27ae60">V: ${p.PG || 0}</span>
-                        <span style="color: #f39c12">E: ${p.PE || 0}</span>
-                        <span style="color: #e74c3c">D: ${p.PP || 0}</span>
-                    </div>
+                    ${vedBlock}
                 </div>
             `;
         } else if (currentSort.column === 'GOLES') {
-            const prom = pj > 0 ? (parseInt(p.GOLES || 0) / pj).toFixed(2) : '0.00';
-            subtitleText = `Promedio de gol: ${prom}`;
+            const prom = pj > 0 ? (goles / pj).toFixed(2) : '0.00';
+            subtitleText = `Promedio: ${prom} G/P`;
             statsBlock = `
                 <div class="stat-box" style="flex: 1; justify-content: center; flex-direction: column;">
-                    <span class="stat-value" style="font-size: 3rem; line-height: 1;">${p.GOLES || 0}</span>
+                    <span class="stat-value" style="font-size: 2.8rem; line-height: 1;">${goles}</span>
                     <span class="stat-label">Goles Totales</span>
+                    ${vedBlock}
                 </div>
             `;
         } else if (currentSort.column === 'ASISTENCIAS') {
-            subtitleText = `Líder en pases gol`;
+            subtitleText = `Efectividad: ${effective}`;
             statsBlock = `
                 <div class="stat-box" style="flex: 1; justify-content: center; flex-direction: column;">
-                    <span class="stat-value" style="font-size: 3rem; line-height: 1; color: #1a1a1a;">${p.ASISTENCIAS || 0}</span>
+                    <span class="stat-value" style="font-size: 2.8rem; line-height: 1;">${p.ASISTENCIAS || 0}</span>
                     <span class="stat-label">Asistencias</span>
+                    ${vedBlock}
                 </div>
             `;
         } else if (currentSort.column === 'AMARILLAS' || currentSort.column === 'ROJAS' || currentSort.column === 'tarjetas') {
-            subtitleText = `Disciplina en el campo`;
+            subtitleText = `Efectividad: ${effective}`;
             statsBlock = `
-                <div class="stat-box" style="flex: 1; display: flex; flex-direction: row; justify-content: space-around; align-items: center; width: 100%;">
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <span class="stat-value" style="font-size: 2.5rem; color:#f1c40f;">${p.AMARILLAS || 0}</span>
-                        <span class="stat-label">Amarillas</span>
+                <div class="stat-box" style="flex: 1; display: flex; flex-direction: column; align-items: center; width: 100%;">
+                    <div style="display: flex; gap: 2rem; margin-bottom: 0.5rem;">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <span class="stat-value" style="font-size: 2.2rem; color:#f1c40f;">${p.AMARILLAS || 0}</span>
+                            <span class="stat-label">Amarillas</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <span class="stat-value" style="font-size: 2.2rem; color:#e74c3c;">${p.ROJAS || 0}</span>
+                            <span class="stat-label">Rojas</span>
+                        </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <span class="stat-value" style="font-size: 2.5rem; color:#e74c3c;">${p.ROJAS || 0}</span>
-                        <span class="stat-label">Rojas</span>
-                    </div>
+                    ${vedBlock}
                 </div>
             `;
         }

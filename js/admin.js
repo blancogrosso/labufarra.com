@@ -409,18 +409,17 @@ async function addRosterPlayer() {
 }
 
 async function deleteRosterPlayer(name) {
-    if (!confirm(`¿Eliminar a ${name} del plantel? (Esto no borra su historial de estadísticas previo)`)) return;
-    
-    const newRoster = roster.filter(r => r !== name);
-    
-    const res = await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
-    if (res) {
-        toast('Jugador eliminado', 'success');
-        await loadRoster();
-        buildPlayersFormTable();
-        renderCuotas();
-        showRosterManager();
-    }
+    confirmAction('Eliminar Jugador', `¿Estás seguro de eliminar a <strong>${name}</strong> del plantel?<br><small>(Esto no borra su historial previo de estadísticas)</small>`, async () => {
+        const newRoster = roster.filter(r => r !== name);
+        const res = await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
+        if (res) {
+            toast('Jugador eliminado', 'success');
+            await loadRoster();
+            buildPlayersFormTable();
+            renderCuotas();
+            showRosterManager();
+        }
+    }, 'Eliminar', 'danger');
 }
 
 function buildPlayersFormTable() {
@@ -579,7 +578,7 @@ function renderFilteredMatches(year) {
                     <div class="meta">${u.torneo || ''} ${u.instancia ? '- ' + u.instancia : ''}</div>
                 </div>
                 <div class="match-actions" style="display:flex; gap:0.4rem;" onclick="event.stopPropagation()">
-                    <button class="btn btn-icon btn-danger btn-sm" onclick="event.stopPropagation(); if(confirm('¿Descartar este aviso de carga rápida?')) deleteUpcoming('${u.id}')" title="Descartar aviso">
+                    <button class="btn btn-icon btn-danger btn-sm" onclick="event.stopPropagation(); discardUpcomingAlert('${u.id}')" title="Descartar aviso">
                         <i class="ph-bold ph-trash"></i>
                     </button>
                     <button class="btn btn-primary btn-sm" onclick="convertUpcoming('${u.id}')" title="Cargar a Estadísticas">
@@ -763,7 +762,8 @@ async function saveMatch() {
 
     const res = await spFetch('matches' + urlSuffix, method, matchObj);
     if (res !== null) {
-        toast(editingMatchId ? 'Cambios guardados ✓' : 'Partido creado ✓ No olvides correr tu script Python', 'success');
+        toast(editingMatchId ? 'Cambios guardados ✓' : 'Partido creado ✓', 'success');
+        await recalculateAllStats();
         
         // --- BORRADO AUTOMÁTICO DE PRÓXIMOS ---
         // Si no estábamos editando, verificamos si existe un aviso de Carga Rápida o partido próximo que coincida
@@ -794,18 +794,34 @@ async function saveMatch() {
         loadUpcoming(); // Refrescar próximos por si se borró
         loadPlayers();
         
+        // Preguntar por WhatsApp usando modal para evitar parpadeo
+        const matchObjFinal = { ...matchObj };
         setTimeout(() => {
-            if (confirm('¿Querés avisar de estos cambios al grupo de WhatsApp?')) {
-                const isNew = !editingMatchId;
-                const verb = isNew ? '¡Nuevo partido cargado!' : 'Atención: Hubo una corrección en las páginas de estadísticas del último partido.';
-                const text = `*La Bufarra - Panel Estadístico*\n${verb}\n\n*Rival:* ${matchObj.rival}\n*Resultado:* La Bufarra ${matchObj.gf} - ${matchObj.gc} ${matchObj.rival}\n\nRevisá los puntos en labufarra.com ⚽`;
-                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
-            }
+            openModal('Partido Guardado', `
+                <div style="text-align:center; padding: 1rem 0;">
+                    <i class="ph-bold ph-whatsapp-logo" style="font-size:3rem; color:#25D366; margin-bottom:1rem; display:block;"></i>
+                    <p>El partido se guardó con éxito.</p>
+                    <p style="margin-top:1rem;"><strong>¿Querés avisar de estos cambios al grupo de WhatsApp?</strong></p>
+                </div>
+                <div class="form-actions" style="justify-content:center; gap:1rem;">
+                    <button class="btn btn-secondary" onclick="closeModal()">No, solo guardar</button>
+                    <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="closeModal(); notifyWhatsAppMatch('${encodeURIComponent(JSON.stringify(matchObjFinal))}', ${!editingMatchId})">
+                        <i class="ph-bold ph-whatsapp-logo"></i> SÍ, AVISAR
+                    </button>
+                </div>
+            `);
         }, 300);
     } else {
         console.error("Fallo al guardar partido:", matchObj);
         toast('Error al guardar en la nube. Revisá conexión.', 'error');
     }
+}
+
+function notifyWhatsAppMatch(matchObjJson, isNew) {
+    const match = JSON.parse(decodeURIComponent(matchObjJson));
+    const verb = isNew ? '¡Nuevo partido cargado!' : 'Atención: Hubo una corrección en las páginas de estadísticas del último partido.';
+    const text = `*La Bufarra - Panel Estadístico*\n${verb}\n\n*Rival:* ${match.rival}\n*Resultado:* La Bufarra ${match.gf} - ${match.gc} ${match.rival}\n\nRevisá los puntos en labufarra.com ⚽`;
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
 }
 
 function editMatch(matchId) {
@@ -862,23 +878,53 @@ function editMatch(matchId) {
 async function deleteMatch(matchId) {
     const match = matchesData.find(m => m.id === matchId);
     if (!match) return;
-    if (!confirm(`¿Eliminar partido vs ${match.rival}? Esta acción no se puede deshacer.`)) return;
     
-    // Save the raw ISO fecha before deleting (match.fecha is formatted D/M/YYYY for UI)
-    // We need to reconstruct the ISO date for stats update
-    const matchForStats = {
-        ...match,
-        fecha: formatDateToInput(match.fecha) || match.fecha  // convert back to YYYY-MM-DD
-    };
-    
-    const res = await spFetch(`matches?id=eq.${matchId}`, 'DELETE');
-    if (res !== null) {
-        toast('Partido eliminado', 'success');
-        await updateStatsForMatch(matchForStats, true);
-        await loadMatches();
-        await loadPlayers();
-    } else {
-        toast('Error al eliminar el partido', 'error');
+    openModal('Eliminar Partido', `
+        <div style="text-align:center; padding: 1rem 0;">
+            <i class="ph-bold ph-warning-circle" style="font-size:3rem; color:var(--red); margin-bottom:1rem; display:block;"></i>
+            <p>¿Estás seguro de eliminar el partido contra <strong>${match.rival}</strong>?</p>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">Esta acción borrará el registro y actualizará las estadísticas globales de inmediato.</p>
+        </div>
+        <div class="form-actions" style="justify-content:center; gap:1rem;">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn" style="width:auto" onclick="executeMatchDelete('${matchId}')">
+                <i class="ph-bold ph-trash"></i> SÍ, ELIMINAR
+            </button>
+        </div>
+    `);
+}
+
+async function executeMatchDelete(matchId) {
+    const btn = document.getElementById('confirmDeleteBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph-bold ph-circle-notch ph-spin"></i> Borrando...';
+    }
+
+    try {
+        const res = await spFetch(`matches?id=eq.${matchId}`, 'DELETE');
+        if (res !== null) {
+            // Quitar de la lista local para feedback instantáneo
+            matchesData = matchesData.filter(m => m.id !== matchId);
+            renderMatchesList();
+            
+            closeModal();
+            toast('Sincronizando estadísticas...', 'success');
+
+            // Recalcular en segundo plano
+            await recalculateAllStats(); 
+            await loadMatches();
+            await loadPlayers();
+            
+            toast('Partido eliminado y estadísticas actualizadas ✓', 'success');
+        } else {
+            toast('Error al eliminar de la base de datos', 'error');
+            closeModal();
+        }
+    } catch (err) {
+        console.error("Error al borrar partido:", err);
+        toast('Fallo crítico al borrar el partido', 'error');
+        closeModal();
     }
 }
 
@@ -906,10 +952,6 @@ const PLAYER_MAP = {
     'Molina': { fullName: 'Justiniano Molina', aliases: ['Justi'] }
 };
 
-function removeAccents(str) {
-    if (!str) return "";
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
 
 function normalizeName(name) {
     if (!name) return "";
@@ -955,40 +997,51 @@ function normalizeName(name) {
 
 
 async function loadPlayers() {
-    // 1. Cargar Base Histórica DESDE EL EXCEL (Verdad Absoluta para el Histórico FINAL)
-    playersData = { 'ALL': {} };
-    
+    console.log("Admin: Cargando estadísticas...");
+    playersData = {};
+
+    // 1. Cargar base del Excel (Si existe)
     if (window.PLAYERS_EXCEL_DATA) {
-        // El ALL del Excel es la única fuente para la pestaña HISTÓRICO
-        if (window.PLAYERS_EXCEL_DATA['ALL']) {
-            window.PLAYERS_EXCEL_DATA['ALL'].forEach(p => {
-                const name = normalizeName(p.nombre || p.player_name);
-                playersData['ALL'][name] = { ...p, player_name: name };
+        for (const [y, players] of Object.entries(window.PLAYERS_EXCEL_DATA)) {
+            playersData[y] = {};
+            players.forEach(p => {
+                const name = normalizeName(p.nombre || p.player_name || p.PLAYER);
+                playersData[y][name] = {
+                    PLAYER: name,
+                    PJ: parseInt(p.pj || p.PJ || 0),
+                    PG: parseInt(p.pg || p.PG || 0),
+                    PE: parseInt(p.pe || p.PE || 0),
+                    PP: parseInt(p.pp || p.PP || 0),
+                    GOLES: parseInt(p.goles || p.GOLES || 0),
+                    ASISTENCIAS: parseInt(p.asistencias || p.ASISTENCIAS || 0),
+                    AMARILLAS: parseInt(p.amarillas || p.AMARILLAS || 0),
+                    ROJAS: parseInt(p.rojas || p.ROJAS || 0),
+                    MVP: parseInt(p.mvp || p.MVP || 0)
+                };
             });
         }
-        
-        // Cargar otros años del Excel
-        Object.keys(window.PLAYERS_EXCEL_DATA).forEach(y => {
-            if (y === 'ALL') return;
-            playersData[y] = {};
-            window.PLAYERS_EXCEL_DATA[y].forEach(p => {
-                const name = normalizeName(p.nombre || p.player_name);
-                playersData[y][name] = { ...p, player_name: name };
-            });
-        });
     }
-    
-    // 2. Cargar datos de la nube (Predominan para el año actual 2026)
-    let cloudData = await spFetch('players_stats', 'GET', null, '*');
-    
-    if (cloudData && Array.isArray(cloudData)) {
+
+    // 2. Mezclar con datos de la Nube (La nube manda sobre el año que tenga datos)
+    const cloudData = await spFetch('players_stats', 'GET');
+    if (cloudData) {
         cloudData.forEach(p => {
-            const year = p.year || '2026';
-            if (year === 'ALL') return; 
+            const yr = p.year || 'ALL';
+            if (!playersData[yr]) playersData[yr] = {};
             
             const name = normalizeName(p.player_name);
-            if (!playersData[year]) playersData[year] = {};
-            playersData[year][name] = { ...p, player_name: name };
+            playersData[yr][name] = {
+                PLAYER: name,
+                PJ: parseInt(p.pj || 0),
+                PG: parseInt(p.pg || 0),
+                PE: parseInt(p.pe || 0),
+                PP: parseInt(p.pp || 0),
+                GOLES: parseInt(p.goles || 0),
+                ASISTENCIAS: parseInt(p.asistencias || 0),
+                AMARILLAS: parseInt(p.amarillas || 0),
+                ROJAS: parseInt(p.rojas || 0),
+                MVP: parseInt(p.mvp || 0)
+            };
         });
     }
 
@@ -1154,10 +1207,17 @@ function renderUpcoming() {
 
 
 async function deleteUpcoming(id) {
-    if (!confirm('¿Eliminar este próximo partido?')) return;
+    confirmAction('Eliminar Próximo', '¿Eliminar este próximo partido?', () => executeDeleteUpcoming(id), 'Eliminar', 'danger');
+}
+
+function discardUpcomingAlert(id) {
+    confirmAction('Descartar Aviso', '¿Estás seguro de descartar este aviso de carga rápida?', () => executeDeleteUpcoming(id), 'Descartar', 'danger');
+}
+
+async function executeDeleteUpcoming(id) {
     const res = await spFetch(`upcoming?id=eq.${id}`, 'DELETE');
     if (res) {
-        toast('Se eliminó el próximo partido', 'success');
+        toast('Eliminado ✓', 'success');
         await loadUpcoming();
     }
 }
@@ -1166,30 +1226,30 @@ async function convertUpcoming(upcomingId) {
     const upcoming = upcomingData.find(u => u.id === upcomingId);
     if (!upcoming) return;
     
-    if (!confirm(`¿Cargar datos del partido vs ${upcoming.rival}? Se quitará de próximos partidos.`)) return;
-    
-    // Switch to Partidos tab
-    switchTab('partidos');
-    
-    // Open form and pre-fill
-    editingMatchId = null;
-    document.getElementById('matchFormTitle').textContent = 'Cargar Partido (desde próximo)';
-    document.getElementById('matchFormContainer').style.display = 'block';
-    clearMatchForm();
-    
-    // Pre-fill form
-    document.getElementById('mFecha').value = formatDateToInput(upcoming.fecha);
-    document.getElementById('mRival').value = upcoming.rival || '';
-    document.getElementById('mTorneo').value = upcoming.torneo || '';
-    document.getElementById('mInstancia').value = upcoming.instancia || '';
-    document.getElementById('mLugar').value = upcoming.lugar || '';
-    document.getElementById('mHora').value = upcoming.hora || '';
-    
-    // Delete from upcoming in background
-    spFetch(`upcoming?id=eq.${upcomingId}`, 'DELETE').then(() => loadUpcoming());
-    
-    document.getElementById('matchFormPanel').scrollIntoView({ behavior: 'smooth' });
-    toast('Completá el resultado y los datos individuales', 'success');
+    confirmAction('Cargar Partido', `¿Cargar datos del partido vs <strong>${upcoming.rival}</strong>?<br>Se quitará de la sección de próximos partidos.`, () => {
+        // Switch to Partidos tab
+        switchTab('partidos');
+        
+        // Open form and pre-fill
+        editingMatchId = null;
+        document.getElementById('matchFormTitle').textContent = 'Cargar Partido (desde próximo)';
+        document.getElementById('matchFormContainer').style.display = 'block';
+        clearMatchForm();
+        
+        // Pre-fill form
+        document.getElementById('mFecha').value = formatDateToInput(upcoming.fecha);
+        document.getElementById('mRival').value = upcoming.rival || '';
+        document.getElementById('mTorneo').value = upcoming.torneo || '';
+        document.getElementById('mInstancia').value = upcoming.instancia || '';
+        document.getElementById('mLugar').value = upcoming.lugar || '';
+        document.getElementById('mHora').value = upcoming.hora || '';
+        
+        // Delete from upcoming in background
+        spFetch(`upcoming?id=eq.${upcomingId}`, 'DELETE').then(() => loadUpcoming());
+        
+        document.getElementById('matchFormPanel').scrollIntoView({ behavior: 'smooth' });
+        toast('Completá el resultado y los datos individuales', 'success');
+    }, 'Cargar Datos');
 }
 
 function showUpcomingForm(editId) {
@@ -1272,29 +1332,38 @@ async function saveUpcoming(editId) {
         closeModal();
         await loadUpcoming();
         
+        const capturedData = { ...data };
+        const isNew = !editId;
         setTimeout(() => {
-            if (confirm('¿Querés avisar de este partido próximo en el grupo de WhatsApp?')) {
-                const isNew = !capturedEditId;
-                const verb = isNew ? '¡Atención banda, hay fecha confirmada!' : 'Atención: Hubo un cambio en los detalles del próximo partido.';
-                const d = data.fecha ? data.fecha.split('-').reverse().join('/') : 'A confirmar';
-                const h = data.hora ? data.hora + ' HS' : 'A confirmar';
-                const l = data.lugar ? data.lugar : 'A confirmar';
-                const text = `*La Bufarra - Próxima Fecha*\n${verb}\n\n*Rival:* ${data.rival}\n*Fecha:* ${d}\n*Hora:* ${h}\n*Sede:* ${l}\n\nPoné en labufarra.com si vas ⚽`;
-                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
-            }
-        }, 500);
+            openModal('Próximo Partido Guardado', `
+                <div style="text-align:center; padding: 1rem 0;">
+                    <i class="ph-bold ph-whatsapp-logo" style="font-size:3rem; color:#25D366; margin-bottom:1rem; display:block;"></i>
+                    <p>El próximo encuentro se agendó correctamente.</p>
+                    <p style="margin-top:1rem;"><strong>¿Querés avisar de este partido al grupo de WhatsApp?</strong></p>
+                </div>
+                <div class="form-actions" style="justify-content:center; gap:1rem;">
+                    <button class="btn btn-secondary" onclick="closeModal()">No, solo guardar</button>
+                    <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="closeModal(); notifyWhatsAppUpcoming('${encodeURIComponent(JSON.stringify(capturedData))}', ${isNew})">
+                        <i class="ph-bold ph-whatsapp-logo"></i> SÍ, AVISAR
+                    </button>
+                </div>
+            `);
+        }, 300);
     }
+}
+
+function notifyWhatsAppUpcoming(dataJson, isNew) {
+    const data = JSON.parse(decodeURIComponent(dataJson));
+    const verb = isNew ? '¡Atención banda, hay fecha confirmada!' : 'Atención: Hubo un cambio en los detalles del próximo partido.';
+    const d = data.fecha ? data.fecha.split('-').reverse().join('/') : 'A confirmar';
+    const h = data.hora ? data.hora + ' HS' : 'A confirmar';
+    const l = data.lugar ? data.lugar : 'A confirmar';
+    const text = `*La Bufarra - Próxima Fecha*\n${verb}\n\n*Rival:* ${data.rival}\n*Fecha:* ${d}\n*Hora:* ${h}\n*Sede:* ${l}\n\nPoné en labufarra.com si vas ⚽`;
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
 }
 
 function editUpcoming(id) {
     showUpcomingForm(id);
-}
-
-async function deleteUpcoming(id) {
-    if (!confirm('¿Eliminar este próximo partido?')) return;
-    const res = await spFetch(`upcoming?id=eq.${id}`, 'DELETE');
-    toast('Eliminado', 'success');
-    await loadUpcoming();
 }
 
 // ─── FINANCES ───
@@ -1683,10 +1752,12 @@ window.addLeagueTeam = function() {
 };
 
 window.removeLeagueTeam = function(index) {
-    if(!confirm("¿Borrar equipo de la liga?")) return;
-    updateAdminLeagueDataFromDOM();
-    adminLeagueTeams.splice(index, 1);
-    renderLeagueTableAdmin();
+    confirmAction('Borrar Equipo', '¿Estás seguro de borrar este equipo de la tabla de posiciones?', () => {
+        updateAdminLeagueDataFromDOM();
+        adminLeagueTeams.splice(index, 1);
+        renderLeagueTableAdmin();
+        toast('Equipo quitado', 'success');
+    }, 'Borrar', 'danger');
 };
 
 window.toggleLeagueBufarra = function(index) {
@@ -1768,11 +1839,12 @@ async function saveMulta() {
 }
 
 async function deleteMulta(id) {
-    if (!confirm('¿Eliminar esta multa?')) return;
-    financesData.multas = financesData.multas.filter(m => m.id !== id);
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast('Multa eliminada', 'success');
-    renderFinances();
+    confirmAction('Eliminar Multa', '¿Eliminar esta multa del registro?', async () => {
+        financesData.multas = financesData.multas.filter(m => m.id !== id);
+        await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+        toast('Multa eliminada', 'success');
+        renderFinances();
+    }, 'Eliminar', 'danger');
 }
 
 // ── Transacciones ──
@@ -1832,11 +1904,8 @@ function renderTransacciones() {
                 ${isIngreso ? '+' : '-'}$${(parseFloat(t.monto) || 0).toLocaleString()}
             </div>
             <div class="action-group" style="display:flex; gap:0.4rem;">
-                <button class="btn btn-icon btn-danger btn-sm" id="del-btn-${t.id}" onclick="confirmDeleteRow(event, '${t.id}', 'transaccion')">
+                <button class="btn btn-icon btn-danger btn-sm" onclick="deleteTransaccion('${t.id}')">
                     <i class="ph-bold ph-trash"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" id="conf-btn-${t.id}" style="display:none; font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="executeDeleteRow(event, '${t.id}', 'transaccion')">
-                    ¿BORRAR?
                 </button>
             </div>
         </div>
@@ -1909,10 +1978,12 @@ async function saveTransaccion() {
 }
 
 async function deleteTransaccion(id) {
-    if (!confirm('¿Eliminar esta transacción?')) return;
-    financesData.transacciones = financesData.transacciones.filter(t => t.id !== id);
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    renderFinances();
+    confirmAction('Eliminar Transacción', '¿Eliminar esta transacción del historial?', async () => {
+        financesData.transacciones = financesData.transacciones.filter(t => t.id !== id);
+        await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+        toast('Transacción eliminada', 'success');
+        renderFinances();
+    }, 'Eliminar', 'danger');
 }
 
 // ── Deadlines ──
@@ -2001,11 +2072,12 @@ async function saveDeadline() {
 }
 
 async function deleteDeadline(id) {
-    if (!confirm('¿Eliminar este deadline?')) return;
-    financesData.deadlines = financesData.deadlines.filter(d => d.id !== id);
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast('Deadline eliminado', 'success');
-    renderFinances();
+    confirmAction('Eliminar Deadline', '¿Eliminar este deadline de la lista?', async () => {
+        financesData.deadlines = financesData.deadlines.filter(d => d.id !== id);
+        await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+        toast('Deadline eliminado', 'success');
+        renderFinances();
+    }, 'Eliminar', 'danger');
 }
 
 // ─── MODAL ───
@@ -2092,81 +2164,119 @@ async function confirmPlayerRename(oldName) {
         return;
     }
 
-    if (!confirm(`¿Confirmar cambios para ${oldName}?\n\n- Nombre: ${newName}\n- Estadísticas manuales actualizadas`)) return;
+    confirmAction('Confirmar Cambios', `¿Guardar cambios para <strong>${oldName}</strong>?<br><br>- Nombre: ${newName}<br>- Estadísticas manuales actualizadas`, async () => {
+        toast('Guardando cambios...', 'success');
+        
+        try {
+            // 1. Update Roster & Stats mapping
+            if (newName !== oldName) {
+                const newRoster = roster.map(r => r === oldName ? newName : r).sort();
+                await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
+                roster = newRoster;
+            }
+            
+            // Guardar las nuevas estadísticas para el año seleccionado
+            const statRow = { 
+                year: currentPlayerYear, 
+                player_name: newName, 
+                ...newManual 
+            };
+            
+            // Upsert manual
+            await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
+                method: 'POST',
+                headers: { ...SP_HEADERS, "Prefer": "resolution=merge-duplicates" },
+                body: JSON.stringify(statRow)
+            });
 
-    toast('Guardando cambios...', 'success');
-    
-    try {
-        // 1. Update Roster & Stats mapping
-        if (newName !== oldName) {
-            const newRoster = roster.map(r => r === oldName ? newName : r).sort();
-            await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
-            roster = newRoster;
+            // 2. Update Matches JSON (only if name changed)
+            if (newName !== oldName) {
+                // Remove old stat row if name changed
+                await spFetch(`players_stats?player_name=eq.${oldName}&year=eq.${currentPlayerYear}`, 'DELETE');
+
+                const matchesToUpdate = matchesData.filter(m => m.jugadores && m.jugadores[oldName]);
+                for (const m of matchesToUpdate) {
+                    const updatedJugadores = { ...m.jugadores };
+                    updatedJugadores[newName] = updatedJugadores[oldName];
+                    delete updatedJugadores[oldName];
+                    await spFetch(`matches?id=eq.${m.id}`, 'PATCH', { jugadores: updatedJugadores });
+                }
+
+                // 3. Update Finances
+                if (financesData.cuotas && financesData.cuotas[oldName]) {
+                    financesData.cuotas[newName] = financesData.cuotas[oldName];
+                    delete financesData.cuotas[oldName];
+                }
+                if (financesData.multas) {
+                    financesData.multas.forEach(multa => {
+                        if (multa.jugador === oldName) multa.jugador = newName;
+                    });
+                }
+                await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+            }
+
+            toast('¡Datos actualizados con éxito!', 'success');
+            closeModal();
+            
+            // 4. Reload
+            await loadRoster();
+            await loadMatches();
+            await loadPlayers();
+            renderFinances();
+            
+        } catch (error) {
+            console.error("Error during rename:", error);
+            toast('Error al actualizar datos', 'error');
         }
-        
-        // Guardar las nuevas estadísticas para el año seleccionado
-        const statRow = { 
-            year: currentPlayerYear, 
-            player_name: newName, 
-            ...newManual 
-        };
-        
-        // Upsert manual (resolution=merge-duplicates handle cases if needed)
-        await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
-            method: 'POST',
-            headers: { ...SP_HEADERS, "Prefer": "resolution=merge-duplicates" },
-            body: JSON.stringify(statRow)
-        });
-
-        // 2. Update Matches JSON (only if name changed)
-        if (newName !== oldName) {
-            // Remove old stat row if name changed
-            await spFetch(`players_stats?player_name=eq.${oldName}&year=eq.${currentPlayerYear}`, 'DELETE');
-
-            const matchesToUpdate = matchesData.filter(m => m.jugadores && m.jugadores[oldName]);
-            for (const m of matchesToUpdate) {
-                const updatedJugadores = { ...m.jugadores };
-                updatedJugadores[newName] = updatedJugadores[oldName];
-                delete updatedJugadores[oldName];
-                await spFetch(`matches?id=eq.${m.id}`, 'PATCH', { jugadores: updatedJugadores });
-            }
-
-            // 3. Update Finances
-            if (financesData.cuotas && financesData.cuotas[oldName]) {
-                financesData.cuotas[newName] = financesData.cuotas[oldName];
-                delete financesData.cuotas[oldName];
-            }
-            if (financesData.multas) {
-                financesData.multas.forEach(multa => {
-                    if (multa.jugador === oldName) multa.jugador = newName;
-                });
-            }
-            await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-        }
-
-        toast('¡Datos actualizados con éxito!', 'success');
-        closeModal();
-        
-        // 4. Reload (no recalculate needed, we just saved the final stats)
-        await loadRoster();
-        await loadMatches();
-        await loadPlayers();
-        renderFinances();
-        
-    } catch (error) {
-        console.error("Error during rename:", error);
-        toast('Error al actualizar datos', 'error');
-    }
+    });
 }
 
-// ─── TOAST ───
+// ─── UI HELPERS ───
 function toast(message, type = 'success') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    if (container.children.length > 2) container.removeChild(container.firstChild);
+
     const t = document.createElement('div');
     t.className = `toast ${type}`;
+    t.style.opacity = '0';
     t.innerHTML = `<i class="ph-bold ${type === 'success' ? 'ph-check-circle' : 'ph-warning'}"></i> ${message}`;
     container.appendChild(t);
-    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+    
+    t.offsetHeight;
+    t.style.opacity = '1';
+
+    setTimeout(() => { 
+        t.style.opacity = '0'; 
+        setTimeout(() => t.remove(), 400); 
+    }, 3000);
+}
+
+/**
+ * Reemplazo premium para confirm()
+ * @param {string} title Título del modal
+ * @param {string} message Mensaje de la pregunta
+ * @param {function} onConfirm Acción si acepta
+ * @param {string} confirmText Texto del botón principal
+ * @param {string} type 'danger' para rojos, 'primary' para azules
+ */
+function confirmAction(title, message, onConfirm, confirmText = 'Confirmar', type = 'primary') {
+    const btnClass = type === 'danger' ? 'btn-danger' : 'btn-primary';
+    const icon = type === 'danger' ? 'ph-trash' : 'ph-check';
+    
+    openModal(title, `
+        <div style="text-align:center; padding: 1rem 0;">
+            <p>${message}</p>
+        </div>
+        <div class="form-actions" style="justify-content:center; gap:1rem;">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn ${btnClass}" onclick="closeModal(); this.callback();" id="confirmActionBtn">
+                <i class="ph-bold ${icon}"></i> ${confirmText}
+            </button>
+        </div>
+    `);
+    document.getElementById('confirmActionBtn').callback = onConfirm;
 }
 
 function setUpcomingTime(val) {
@@ -2198,11 +2308,8 @@ async function loadNotifications() {
                     <p style="font-size:0.85rem; margin:0">${n.body}</p>
                 </div>
                 <div class="action-group" style="display:flex; gap:0.4rem;">
-                    <button class="btn btn-icon btn-danger btn-sm" id="del-notif-${n.id}" onclick="confirmDeleteRow(event, '${n.id}', 'notification')">
+                    <button class="btn btn-icon btn-danger btn-sm" onclick="deleteNotification('${n.id}')">
                         <i class="ph-bold ph-trash"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm" id="conf-notif-${n.id}" style="display:none; font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="executeDeleteRow(event, '${n.id}', 'notification')">
-                        ¿BORRAR?
                     </button>
                 </div>
             </div>
@@ -2266,41 +2373,14 @@ function toggleFinancesList(e) {
     if (btn) btn.innerHTML = isHidden ? '<i class="ph-bold ph-caret-up"></i>' : '<i class="ph-bold ph-caret-down"></i>';
 }
 
-// --- Sistema de Borrado con Confirmación UI ---
-window.confirmDeleteRow = function(e, id, type) {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    const prefix = type === 'transaccion' ? 'del-btn-' : 'del-notif-';
-    const confPrefix = type === 'transaccion' ? 'conf-btn-' : 'conf-notif-';
-    
-    document.getElementById(prefix + id).style.display = 'none';
-    document.getElementById(confPrefix + id).style.display = 'inline-block';
-    
-    // Auto-reset después de 3 segundos si no confirma
-    setTimeout(() => {
-        const delBtn = document.getElementById(prefix + id);
-        const confBtn = document.getElementById(confPrefix + id);
-        if (delBtn && confBtn) {
-            delBtn.style.display = 'inline-block';
-            confBtn.style.display = 'none';
-        }
-    }, 3000);
-};
-
-window.executeDeleteRow = function(e, id, type) {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    if (type === 'transaccion') {
-        deleteTransaccion(id);
-    } else {
-        deleteNotification(id);
-    }
-};
-
 async function deleteNotification(id) {
-    const res = await spFetch(`notifications?id=eq.${id}`, 'DELETE');
-    if (res !== null) {
-        toast('Mensaje eliminado', 'success');
-        loadNotifications();
-    }
+    confirmAction('Eliminar Historial', '¿Eliminar este mensaje del historial de notificaciones?', async () => {
+        const res = await spFetch(`notifications?id=eq.${id}`, 'DELETE');
+        if (res !== null) {
+            toast('Mensaje eliminado ✓', 'success');
+            loadNotifications();
+        }
+    }, 'Eliminar', 'danger');
 }
 
 let financeOrderAsc = false;
@@ -2352,4 +2432,148 @@ function fillFromLastMatch() {
         }
     }
     toast('Datos del último partido cargados', 'success');
+}
+
+async function recalculateAllStats() {
+    console.log("Iniciando recálculo maestro (Excel Base + Matches 2026)...");
+    try {
+        const statsMap = {}; // { year: { player: { stats } } }
+        const globalStats = {}; // { player: { stats } }
+        const initStats = () => ({ pj:0, pg:0, pe:0, pp:0, goles:0, asistencias:0, amarillas:0, rojas:0, mvp:0 });
+
+        // 1. CARGAR BASE HISTÓRICA DEL EXCEL (2021-2025 + inicio 2026)
+        if (window.PLAYERS_EXCEL_DATA) {
+            console.log("Cargando base histórica desde PLAYERS_EXCEL_DATA...");
+            for (const [year, players] of Object.entries(window.PLAYERS_EXCEL_DATA)) {
+                if (year === 'ALL') {
+                    players.forEach(p => {
+                        const name = normalizeName(p.nombre || p.player_name);
+                        globalStats[name] = {
+                            pj: parseInt(p.pj || 0), pg: parseInt(p.pg || 0), pe: parseInt(p.pe || 0), pp: parseInt(p.pp || 0),
+                            goles: parseInt(p.goles || 0), asistencias: parseInt(p.asistencias || 0),
+                            amarillas: parseInt(p.amarillas || 0), rojas: parseInt(p.rojas || 0), mvp: parseInt(p.mvp || 0)
+                        };
+                    });
+                } else {
+                    statsMap[year] = {};
+                    players.forEach(p => {
+                        const name = normalizeName(p.nombre || p.player_name);
+                        statsMap[year][name] = {
+                            pj: parseInt(p.pj || 0), pg: parseInt(p.pg || 0), pe: parseInt(p.pe || 0), pp: parseInt(p.pp || 0),
+                            goles: parseInt(p.goles || 0), asistencias: parseInt(p.asistencias || 0),
+                            amarillas: parseInt(p.amarillas || 0), rojas: parseInt(p.rojas || 0), mvp: parseInt(p.mvp || 0)
+                        };
+                    });
+                }
+            }
+        }
+
+        // 2. SUMAR PARTIDOS CARGADOS EN EL ADMIN (Prioridad 2026)
+        // Para evitar duplicar lo que YA está en el Excel, solo sumamos partidos de 2026
+        // que NO estén contemplados en el cierre del Excel. 
+        // Según el usuario, el Excel tiene los primeros 3 partidos del Apertura 2026.
+        // Pero para ser SEGUROS y AUTOMÁTICOS: 
+        // El Admin siempre sobreescribirá el año 2026 completo basándose en la tabla matches.
+        
+        const allMatches = await spFetch('matches', 'GET', null, '*');
+        if (allMatches) {
+            // REGLA DE ORO: 
+            // 2021-2025 = EXCEL
+            // 2026 = MATCHES NUBE
+            // ALL = EXCEL(21-25) + MATCHES(26)
+            
+            statsMap['2026'] = {}; // Limpiar 2026 para reconstruirlo
+            const newGlobal = {};
+
+            // 1. Inicializar global con años históricos 2021-2025 del Excel
+            for (const [year, players] of Object.entries(statsMap)) {
+                if (year === '2026' || year === 'ALL') continue;
+                for (const [name, s] of Object.entries(players)) {
+                    if (!newGlobal[name]) newGlobal[name] = initStats();
+                    for (const key in s) newGlobal[name][key] += s[key];
+                }
+            }
+
+            // 2. Sumar partidos de 2026 de la nube
+            allMatches.forEach(m => {
+                const date = m.fecha || '';
+                const year = date.includes('-') ? date.split('-')[0] : (date.includes('/') ? date.split('/')[2] : '2026');
+                
+                // SOLO procesamos 2026 para evitar duplicar años anteriores que ya están en el Excel
+                if (year !== '2026') return;
+
+                const gf = parseInt(m.gf || 0);
+                const gc = parseInt(m.gc || 0);
+                const win = gf > gc;
+                const draw = gf === gc;
+                const loss = gf < gc;
+
+                if (!statsMap['2026']) statsMap['2026'] = {};
+                
+                if (m.jugadores) {
+                    for (const [name, s] of Object.entries(m.jugadores)) {
+                        if (name === '__hora') continue;
+                        const officialName = normalizeName(name);
+                        
+                        if (!statsMap['2026'][officialName]) statsMap['2026'][officialName] = initStats();
+                        if (!newGlobal[officialName]) newGlobal[officialName] = initStats();
+
+                        [statsMap['2026'][officialName], newGlobal[officialName]].forEach(target => {
+                            target.pj++;
+                            if (win) target.pg++;
+                            else if (draw) target.pe++;
+                            else if (loss) target.pp++;
+                            target.goles += (parseInt(s.goles) || 0);
+                            target.asistencias += (parseInt(s.asistencias) || 0);
+                            target.amarillas += (parseInt(s.amarillas) || 0);
+                            target.rojas += (parseInt(s.rojas) || 0);
+                            if (s.mvp) target.mvp++;
+                        });
+                    }
+                }
+            });
+
+            // Actualizar globalStats definitivo
+            for (const name in newGlobal) globalStats[name] = newGlobal[name];
+        }
+
+        // 3. SUBIR A SUPABASE
+        const rowsToUpload = [];
+        for (const [year, players] of Object.entries(statsMap)) {
+            for (const [name, s] of Object.entries(players)) {
+                rowsToUpload.push({ year, player_name: name, ...s });
+            }
+        }
+        for (const [name, s] of Object.entries(globalStats)) {
+            rowsToUpload.push({ year: 'ALL', player_name: name, ...s });
+        }
+
+        console.log(`Subiendo ${rowsToUpload.length} registros de estadísticas...`);
+        
+        // Usar spFetch para consistencia (PATCH a la tabla players_stats es difícil masivamente, mejor POST con resolution=merge)
+        console.log(`Subiendo ${rowsToUpload.length} registros a Supabase con UPSERT...`);
+        
+        // UPSERT explícito basado en player_name y year
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/players_stats?on_conflict=player_name,year`, {
+            method: 'POST',
+            headers: { 
+                ...SP_HEADERS, 
+                "Prefer": "resolution=merge-duplicates" 
+            },
+            body: JSON.stringify(rowsToUpload)
+        });
+
+        if (res.ok) {
+            console.log("Recálculo maestro completado y subido ✓");
+            await loadPlayers();
+            return true;
+        } else {
+            const errText = await res.text();
+            console.error("Fallo UPSERT de estadísticas:", errText);
+            toast("Error al actualizar estadísticas globales", "error");
+        }
+    } catch (e) {
+        console.error("Error crítico en recalculateAllStats:", e);
+    }
+    return false;
 }

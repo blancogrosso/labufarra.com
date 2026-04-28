@@ -33,9 +33,11 @@ function renderRivalStats(name) {
     let v = 0, e = 0, d = 0;
     
     rivalMatches.forEach(m => {
-        const res = m.RESULTADO_TIPO || m.resultado || (m.RESULTADO ? getResultType(m.RESULTADO) : 'D');
-        if (res === 'V') v++;
-        else if (res === 'E') e++;
+        const res = m.resultado || m.RESULTADO || '';
+        const resType = res.toString().toLowerCase().startsWith('v') ? 'V' : 
+                      (res.toString().toLowerCase().startsWith('e') ? 'E' : 'D');
+        if (resType === 'V') v++;
+        else if (resType === 'E') e++;
         else d++;
     });
 
@@ -51,8 +53,20 @@ function renderRivalStats(name) {
     }
 
     container.innerHTML = rivalMatches.map(m => {
-        const resType = m.RESULTADO_TIPO || m.resultado || (m.RESULTADO ? getResultType(m.RESULTADO) : 'D');
+        const res = m.resultado || m.RESULTADO || '';
+        const resType = res.toString().toLowerCase().startsWith('v') ? 'V' : 
+                      (res.toString().toLowerCase().startsWith('e') ? 'E' : 'D');
         const badgeClass = `res-${resType.toLowerCase()}`;
+        
+        let scoreDisplay = "";
+        if (m.GF !== undefined && m.GC !== undefined && m.GF !== "" && m.GC !== "") {
+            scoreDisplay = `${m.GF} - ${m.GC}`;
+            const extra = res.toString().match(/\((.*)\)/);
+            if (extra) scoreDisplay += ` (${extra[1]})`;
+        } else {
+            scoreDisplay = res || '?-?';
+        }
+
         return `
             <div class="match-row">
                 <div style="flex: 1;">
@@ -60,7 +74,7 @@ function renderRivalStats(name) {
                     <div style="font-weight: 800; font-family: var(--font-display);">${m.torneo || 'Torneo'}</div>
                 </div>
                 <div style="flex: 1; text-align: center; font-size: 1.2rem; font-weight: 900; font-family: var(--font-display);">
-                    ${m.RESULTADO || '?-?'}
+                    ${scoreDisplay}
                 </div>
                 <div style="flex: 1; text-align: right;">
                     <span class="res-badge ${badgeClass}">${resType}</span>
