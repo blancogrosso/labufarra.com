@@ -25,6 +25,7 @@ let currentMatchSearch = '';
 let currentPlayerSearch = '';
 let currentMatchYear = 'all';
 let currentPlayerYear = 'ALL';
+let adminLeagueTeams = [];
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', async () => {
@@ -105,8 +106,12 @@ async function doLogin() {
     
     try {
         // --- MASTER LOGIN OVERRIDE ---
-        if ((user === 'admin' && pw === 'bufarra2026') || (user === 'oso' && pw === 'oso2018')) {
-            authSuccess(user, user === 'oso' ? 'Oso' : 'Administrador');
+        if ((user === 'admin' && pw === 'bufarra2026') || 
+            (user === 'oso' && pw === 'oso2018') ||
+            (user === 'feli' && pw === 'feli2018') ||
+            (user === 'justi' && pw === 'justi2018')) {
+            const displayNames = { admin: 'Administrador', oso: 'Oso', feli: 'Feli', justi: 'Justi' };
+            authSuccess(user, displayNames[user]);
             return;
         }
 
@@ -220,8 +225,11 @@ async function showApp() {
         loadMatches(),
         loadPlayers(),
         loadUpcoming(),
-        loadFinances()
+        loadFinances(),
+        loadLeagueTableAdmin()
     ]);
+    
+    renderLeagueTableAdmin();
 
     // Recalcular automáticamente si no hay datos o hay inconsistencias
     if (Object.keys(playersData).length === 0) {
@@ -570,7 +578,10 @@ function renderFilteredMatches(year) {
                     <div class="teams">LA BUFARRA vs ${u.rival || '?'}</div>
                     <div class="meta">${u.torneo || ''} ${u.instancia ? '- ' + u.instancia : ''}</div>
                 </div>
-                <div class="match-actions" onclick="event.stopPropagation()">
+                <div class="match-actions" style="display:flex; gap:0.4rem;" onclick="event.stopPropagation()">
+                    <button class="btn btn-icon btn-danger btn-sm" onclick="event.stopPropagation(); if(confirm('¿Descartar este aviso de carga rápida?')) deleteUpcoming('${u.id}')" title="Descartar aviso">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
                     <button class="btn btn-primary btn-sm" onclick="convertUpcoming('${u.id}')" title="Cargar a Estadísticas">
                         <i class="ph-bold ph-note-pencil"></i> Cargar Datos
                     </button>
@@ -752,8 +763,24 @@ async function saveMatch() {
 
     const res = await spFetch('matches' + urlSuffix, method, matchObj);
     if (res !== null) {
-        toast(editingMatchId ? 'Cambios guardados ✓' : 'Partido creado ✓', 'success');
+        toast(editingMatchId ? 'Cambios guardados ✓' : 'Partido creado ✓ No olvides correr tu script Python', 'success');
         
+        // --- BORRADO AUTOMÁTICO DE PRÓXIMOS ---
+        // Si no estábamos editando, verificamos si existe un aviso de Carga Rápida o partido próximo que coincida
+        if (!editingMatchId && rawFecha) {
+            const uiDate = formatDateForUI(rawFecha); // D/M/YYYY
+            const upcomingMatch = (upcomingData || []).find(u => 
+                u.fecha === uiDate && 
+                u.rival && matchObj.rival && 
+                u.rival.trim().toLowerCase() === matchObj.rival.trim().toLowerCase()
+            );
+            if (upcomingMatch) {
+                // Lo borramos silenciosamente de próximos porque ya se jugó
+                await spFetch(`upcoming?id=eq.${upcomingMatch.id}`, 'DELETE');
+                console.log('Aviso de Próximos borrado automáticamente tras cargar el partido.');
+            }
+        }
+
         editingMatchId = null; // Limpiar estado de edición
         cancelMatchForm();
         const mainBtn = document.getElementById('toggleFormBtn');
@@ -764,7 +791,17 @@ async function saveMatch() {
 
         // Refresh UI
         loadMatches();
+        loadUpcoming(); // Refrescar próximos por si se borró
         loadPlayers();
+        
+        setTimeout(() => {
+            if (confirm('¿Querés avisar de estos cambios al grupo de WhatsApp?')) {
+                const isNew = !editingMatchId;
+                const verb = isNew ? '¡Nuevo partido cargado!' : 'Atención: Hubo una corrección en las páginas de estadísticas del último partido.';
+                const text = `*La Bufarra - Panel Estadístico*\n${verb}\n\n*Rival:* ${matchObj.rival}\n*Resultado:* La Bufarra ${matchObj.gf} - ${matchObj.gc} ${matchObj.rival}\n\nRevisá los puntos en labufarra.com ⚽`;
+                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
+            }
+        }, 300);
     } else {
         console.error("Fallo al guardar partido:", matchObj);
         toast('Error al guardar en la nube. Revisá conexión.', 'error');
@@ -1231,8 +1268,21 @@ async function saveUpcoming(editId) {
     
     if (res) {
         toast(editId ? 'Partido actualizado' : 'Partido agregado', 'success');
+        const capturedEditId = editId; // Capture before potential reset
         closeModal();
         await loadUpcoming();
+        
+        setTimeout(() => {
+            if (confirm('¿Querés avisar de este partido próximo en el grupo de WhatsApp?')) {
+                const isNew = !capturedEditId;
+                const verb = isNew ? '¡Atención banda, hay fecha confirmada!' : 'Atención: Hubo un cambio en los detalles del próximo partido.';
+                const d = data.fecha ? data.fecha.split('-').reverse().join('/') : 'A confirmar';
+                const h = data.hora ? data.hora + ' HS' : 'A confirmar';
+                const l = data.lugar ? data.lugar : 'A confirmar';
+                const text = `*La Bufarra - Próxima Fecha*\n${verb}\n\n*Rival:* ${data.rival}\n*Fecha:* ${d}\n*Hora:* ${h}\n*Sede:* ${l}\n\nPoné en labufarra.com si vas ⚽`;
+                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
+            }
+        }, 500);
     }
 }
 
@@ -1490,6 +1540,184 @@ function renderMultas() {
         </div>
     `).join('');
 }
+
+// ==========================================
+// 12. GESTIÓN TABLA DE POSICIONES (LIGA)
+// ==========================================
+async function loadLeagueTableAdmin() {
+    try {
+        const res = await spFetch('config?key=eq.league_table&select=value', 'GET');
+        if (res && res.length > 0 && res[0].value) {
+            adminLeagueTeams = res[0].value;
+        } else {
+            try {
+                const legacy = await fetch('data/league_table.json?v=' + Date.now());
+                if (legacy.ok) adminLeagueTeams = await legacy.json();
+            } catch(e) {}
+        }
+        
+        if (!adminLeagueTeams || adminLeagueTeams.length === 0) {
+            // Default 12 teams
+            adminLeagueTeams = [
+                { pos: 1, name: "La Costa FC", pj: 2, pts: 6 },
+                { pos: 2, name: "Berges FC (Dom)", pj: 2, pts: 6 },
+                { pos: 3, name: "FC Fernetbache ( Dom Pro)", pj: 2, pts: 6 },
+                { pos: 4, name: "Porte FC (Domingo)", pj: 2, pts: 3 },
+                { pos: 5, name: "Parque Guarani", pj: 1, pts: 3 },
+                { pos: 6, name: "LA BUFARRA", pj: 2, pts: 3, highlighted: true },
+                { pos: 7, name: "Safaera FC.", pj: 2, pts: 3 },
+                { pos: 8, name: "C. A. Magna", pj: 2, pts: 3 },
+                { pos: 9, name: "Alta Gama F.C", pj: 1, pts: 0 },
+                { pos: 10, name: "Club Atletico Parenaese", pj: 2, pts: 0 },
+                { pos: 11, name: "Prestcold FC", pj: 2, pts: 0 },
+                { pos: 12, name: "ENFUGEIRA FC", pj: 2, pts: 0 }
+            ];
+        }
+        renderLeagueTableAdmin();
+    } catch(e) {
+        console.error("Error cargando tabla de liga", e);
+    }
+}
+
+function renderLeagueTableAdmin() {
+    const container = document.getElementById('leagueTableAdminContainer');
+    if (!container) return;
+    
+    // NO HACEMOS SORT AUTOMATICO, dejamos el orden que el usuario elija manual
+    let html = `
+        <div style="background:var(--surface); border-radius:12px; overflow:hidden; border:1px solid var(--border-light);">
+            <table style="width:100%; text-align:left; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:rgba(255,255,255,0.05); border-bottom:1px solid var(--border-light);">
+                        <th style="padding:10px; width:40px; text-align:center;">#</th>
+                        <th style="padding:10px; width:60px; text-align:center;">Orden</th>
+                        <th style="padding:10px;">Equipo</th>
+                        <th style="padding:10px; width:90px; text-align:center;">
+                            PJ 
+                            <button class="btn btn-secondary btn-sm" style="padding:2px 4px; font-size:0.6rem;" onclick="bulkAddPJ()">+1</button>
+                        </th>
+                        <th style="padding:10px; width:120px; text-align:center;">Pts</th>
+                        <th style="padding:10px; width:50px; text-align:center;"></th>
+                    </tr>
+                </thead>
+                <tbody id="leagueTbody">
+    `;
+    
+    adminLeagueTeams.forEach((t, index) => {
+        const isBuf = t.highlighted;
+        html += `
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.05); background:${isBuf ? 'rgba(255,107,129,0.1)' : 'transparent'};">
+                <td style="padding:10px; text-align:center; font-weight:bold; color:var(--text-muted);">${index + 1}</td>
+                <td style="padding:10px; text-align:center;">
+                    <button class="btn btn-icon btn-secondary" style="width:24px; height:24px; padding:0;" onclick="moveLeagueTeam(${index}, -1)" ${index === 0 ? 'disabled' : ''}><i class="ph-bold ph-caret-up" style="font-size:0.8rem;"></i></button>
+                    <button class="btn btn-icon btn-secondary" style="width:24px; height:24px; padding:0;" onclick="moveLeagueTeam(${index}, 1)" ${index === adminLeagueTeams.length - 1 ? 'disabled' : ''}><i class="ph-bold ph-caret-down" style="font-size:0.8rem;"></i></button>
+                </td>
+                <td style="padding:10px;">
+                    <input type="text" class="l-name" data-index="${index}" value="${t.name}" style="background:transparent; border:none; color:${isBuf ? 'var(--accent-primary)' : '#fff'}; font-weight:${isBuf ? '900' : 'normal'}; width:100%;">
+                </td>
+                <td style="padding:10px; text-align:center;">
+                    <input type="number" class="l-pj" data-index="${index}" value="${t.pj || 0}" style="width:35px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid var(--border-light); color:#fff; border-radius:4px;">
+                </td>
+                <td style="padding:10px; text-align:center;">
+                    <div style="display:flex; align-items:center; justify-content:center; gap:4px;">
+                        <input type="number" class="l-pts" data-index="${index}" value="${t.pts || 0}" style="width:35px; text-align:center; background:rgba(0,0,0,0.2); border:1px solid var(--border-light); color:#fff; border-radius:4px; font-weight:bold;">
+                        <button class="btn btn-secondary btn-sm" style="padding:2px 4px; font-size:0.6rem; background:#ffd700; color:#000;" onclick="adjustLeagueValue(${index}, 'pts', 1)">+1</button>
+                        <button class="btn btn-secondary btn-sm" style="padding:2px 4px; font-size:0.6rem; background:#25D366; color:#000;" onclick="adjustLeagueValue(${index}, 'pts', 3)">+3</button>
+                    </div>
+                </td>
+                <td style="padding:10px; text-align:center;">
+                    <button class="btn btn-icon btn-danger" style="padding:5px;" onclick="removeLeagueTeam(${index})">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
+
+window.adjustLeagueValue = function(index, field, delta) {
+    updateAdminLeagueDataFromDOM(); // Save current state from inputs
+    if (adminLeagueTeams[index]) {
+        adminLeagueTeams[index][field] = (parseInt(adminLeagueTeams[index][field]) || 0) + delta;
+        if (adminLeagueTeams[index][field] < 0) adminLeagueTeams[index][field] = 0;
+        renderLeagueTableAdmin();
+    }
+};
+
+window.bulkAddPJ = function() {
+    updateAdminLeagueDataFromDOM();
+    adminLeagueTeams.forEach(t => t.pj = (parseInt(t.pj) || 0) + 1);
+    renderLeagueTableAdmin();
+};
+
+function updateAdminLeagueDataFromDOM() {
+    const names = document.querySelectorAll('.l-name');
+    const pjs = document.querySelectorAll('.l-pj');
+    const dgs = document.querySelectorAll('.l-dg');
+    const pts = document.querySelectorAll('.l-pts');
+    
+    names.forEach((el, i) => {
+        adminLeagueTeams[i].name = el.value;
+        adminLeagueTeams[i].pj = parseInt(pjs[i].value) || 0;
+        adminLeagueTeams[i].pts = parseInt(pts[i].value) || 0;
+    });
+}
+window.moveLeagueTeam = function(index, direction) {
+    updateAdminLeagueDataFromDOM();
+    const newIdx = index + direction;
+    if (newIdx >= 0 && newIdx < adminLeagueTeams.length) {
+        const temp = adminLeagueTeams[index];
+        adminLeagueTeams[index] = adminLeagueTeams[newIdx];
+        adminLeagueTeams[newIdx] = temp;
+        renderLeagueTableAdmin();
+    }
+};
+
+window.addLeagueTeam = function() {
+    updateAdminLeagueDataFromDOM();
+    adminLeagueTeams.push({ pos: adminLeagueTeams.length + 1, name: "Nuevo Equipo", pj: 0, pts: 0, highlighted: false });
+    renderLeagueTableAdmin();
+};
+
+window.removeLeagueTeam = function(index) {
+    if(!confirm("¿Borrar equipo de la liga?")) return;
+    updateAdminLeagueDataFromDOM();
+    adminLeagueTeams.splice(index, 1);
+    renderLeagueTableAdmin();
+};
+
+window.toggleLeagueBufarra = function(index) {
+    updateAdminLeagueDataFromDOM();
+    adminLeagueTeams.forEach(t => t.highlighted = false);
+    adminLeagueTeams[index].highlighted = true;
+    renderLeagueTableAdmin();
+};
+
+
+window.saveLeagueTable = async function() {
+    updateAdminLeagueDataFromDOM();
+    
+    // Calcular tendencias comparando con la última posición guardada
+    adminLeagueTeams.forEach((t, i) => {
+        const currentPos = i + 1;
+        const oldPos = t.lastPos || currentPos;
+        
+        t.trend = 'stable';
+        if (currentPos < oldPos) t.trend = 'up';
+        else if (currentPos > oldPos) t.trend = 'down';
+        
+        t.lastPos = currentPos; // Guardar para la próxima comparación
+    });
+
+    const res = await spFetch('config?key=eq.league_table', 'PATCH', { value: adminLeagueTeams });
+    if (res !== null) {
+        toast('Tabla de la Liga guardada y en vivo ✓', 'success');
+        renderLeagueTableAdmin();
+    }
+};
 
 function showMultaForm() {
     openModal('Agregar Multa', `
@@ -1984,48 +2212,41 @@ async function loadNotifications() {
     }
 }
 
-async function broadcastPush(btn) {
+async function broadcastPush() {
     const title = document.getElementById('pushTitle').value.trim();
     const body = document.getElementById('pushBody').value.trim();
 
-    if (!title || !body) {
-        toast('Completá título y mensaje', 'error');
+    if (!body) {
+        toast('Completá al menos el mensaje', 'error');
         return;
     }
 
-    const oldText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="ph-bold ph-circle-notch animate-spin"></i> Enviando...';
+    let fullText = "";
+    if (title) fullText += `*${title}*\n\n`;
+    fullText += body;
 
-    const notifObj = {
-        title,
-        body,
-        created_at: new Date().toISOString(),
-        author: 'Admin'
-    };
-
-    try {
-        console.log("Enviando a Supabase:", notifObj);
-        const res = await spFetch('notifications', 'POST', notifObj);
-        console.log("Respuesta de Supabase:", res);
-        
-        if (res !== null) {
-            toast('¡Notificación enviada a todos!', 'success');
-            document.getElementById('pushTitle').value = '';
-            document.getElementById('pushBody').value = '';
-            loadNotifications();
-        } else {
-            console.error("Error: La tabla 'notifications' devolvió null. Verificar columnas en Supabase.");
-            toast('Error: No se pudo guardar en el historial.', 'error');
-        }
-    } catch (e) {
-        console.error("Push Error Completo:", e);
-        toast('Error crítico: ' + e.message, 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = oldText;
-    }
+    const encodedText = encodeURIComponent(fullText);
+    window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
+    toast('Abriendo WhatsApp...', 'success');
 }
+
+window.setPushTemplate = function(type) {
+    const titleInput = document.getElementById('pushTitle');
+    const bodyInput = document.getElementById('pushBody');
+    const tip = document.getElementById('waPollTip');
+    if (tip) tip.style.display = 'block';
+    
+    if (type === 'horario') {
+        titleInput.value = '🕒 HORARIO CONFIRMADO';
+        bodyInput.value = '¡Banda! Ya tenemos el detalle de la próxima fecha:\n\n📅 Fecha: \n⏰ Hora: \n📍 Sede: \n\nConfirmar asistencia en la web.';
+    } else if (type === 'cuota') {
+        titleInput.value = '💰 RECORDATORIO DE PAGO';
+        bodyInput.value = '¡Hola todos! Les recordamos que estamos en fecha de pago mensual de la cuota. \n\n💵 Monto: $ \n🏦 Alias/Transferencia: \n\nCualquier duda avisen.';
+    } else if (type === 'convocatoria') {
+        titleInput.value = '📋 CONVOCATORIA';
+        bodyInput.value = '¡Buenas! Sale la lista para el próximo partido. Confirmen disponibilidad en la web hoy mismo para organizar el equipo.';
+    }
+};
 
 function setTime(val) {
     const input = document.getElementById('mHora');

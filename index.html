@@ -66,7 +66,8 @@
                         <span style="color:var(--text-muted);">/</span>
                         <span style="font-weight:800; color:var(--text-muted); opacity:0.5;">EN</span>
                     </div>
-                    <button id="headerNotiBell" class="btn-icon" style="background:none; border:none; color:white; font-size:1.4rem; cursor:pointer;" title="Gestionar Notificaciones">
+                    <!-- Campana oculta por migración a WhatsApp -->
+                    <button id="headerNotiBell" class="btn-icon" style="display:none; background:none; border:none; color:white; font-size:1.4rem; cursor:pointer;" title="Gestionar Notificaciones">
                         <i class="ph-bold ph-bell"></i>
                     </button>
                     <div class="nav-toggle" id="mobileMenuBtn">
@@ -242,7 +243,8 @@
                 <h2 class="section-title" style="margin: 0; text-align: left; align-items: flex-start; padding-right: 80px;"><span>Fixture</span>Apertura 2026</h2>
                 
                 <div style="position: absolute; top: -0.5rem; right: 0; display: flex; gap: 0.75rem; align-items: center;">
-                    <button id="notiBell" class="btn-icon" style="background: rgba(255,107,129,0.1); border: 1px solid var(--accent-primary); color: var(--accent-primary); padding: 0.75rem; border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease;" title="Activar notificaciones de partidos">
+                    <!-- Botón de noti oculto -->
+                    <button id="notiBell" class="btn-icon" style="display:none; background: rgba(255,107,129,0.1); border: 1px solid var(--accent-primary); color: var(--accent-primary); padding: 0.75rem; border-radius: 50%; width: 42px; height: 42px; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease;" title="Activar notificaciones de partidos">
                         <i class="ph-bold ph-bell"></i>
                     </button>
                     <button onclick="closeFixtureModal()" class="btn btn-icon btn-secondary" style="width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
@@ -277,25 +279,13 @@
 
     <!-- App Logic -->
     <!-- Notificaciones PWA -->
-    <button id="mainNotiBell" class="noti-float-btn active" title="Activar Notificaciones">
+    <!-- Notificaciones PWA ocultas -->
+    <button id="mainNotiBell" class="noti-float-btn" style="display:none;" title="Activar Notificaciones">
         <i class="ph-bold ph-bell"></i>
     </button>
 
-    <div id="welcomeAlert" class="welcome-alert">
-        <div class="welcome-alert-header">
-            <div class="welcome-alert-icon">
-                <i class="ph-bold ph-megaphone"></i>
-            </div>
-            <div class="welcome-alert-content">
-                <h4>¡Hola, Bufarrero!</h4>
-                <p>¿Querés recibir alertas de partidos y resultados en tiempo real?</p>
-            </div>
-        </div>
-        <div class="welcome-alert-actions">
-            <button class="btn-alert-no" onclick="closeWelcomeAlert()">Después</button>
-            <button class="btn-alert-ok" onclick="enableNotifications()">¡Obvio!</button>
-        </div>
-    </div>
+    <!-- welcomeAlert oculto por migración a WhatsApp -->
+
 
     <!-- Scripts de Datos y Lógica -->
     <script src="js/db.js?v=8.1"></script>

@@ -51,65 +51,128 @@ async function loadMatches() {
     console.log("%c DB: Iniciando carga de datos híbrida... ", "background: #e91e63; color: white; font-weight: bold;");
     const cacheBuster = `?t=${Date.now()}`;
     
-    const tryLocal = async () => {
+    const loadLocal = async () => {
         try {
             // PRIORIDAD 1: Datos inyectados desde el Excel directamente
             if (window.PLAYERS_EXCEL_DATA) {
                 window.allPlayers = mapPlayers(window.PLAYERS_EXCEL_DATA);
-            }
-
-            const mRes = await fetch('data/matches.json' + cacheBuster).catch(() => null);
-            if (!mRes || !mRes.ok) return false;
-            window.allMatches = mapMatches(await mRes.json());
-            
-            // Si no hay datos inyectados, probar el JSON de siempre
-            if (!window.allPlayers) {
+            } else {
                 const pRes = await fetch('data/players.json' + cacheBuster).catch(() => null);
                 if (pRes && pRes.ok) window.allPlayers = mapPlayers(await pRes.json());
             }
-            
-            const uRes = await fetch('data/upcoming.json' + cacheBuster).catch(() => null);
-            if (uRes && uRes.ok) window.allUpcoming = await uRes.json();
-            return true;
-        } catch (e) { return false; }
+
+            const mRes = await fetch('data/matches.json' + cacheBuster).catch(() => null);
+            if (mRes && mRes.ok) {
+                window.allMatches = mapMatches(await mRes.json());
+            }
+        } catch (e) {
+            console.error("Local Load Error:", e);
+        }
     };
 
-    const trySupabase = async () => {
+    const loadSupabase = async () => {
         try {
-            // No sobrescribir si ya tenemos los datos del Excel
-            if (window.allPlayers && window.PLAYERS_EXCEL_DATA) {
-                console.log("DB: Usando Excel inyectado, omitiendo carga de Supabase para Jugadores.");
-            } else {
-                const pRes = await fetch(`${SUPABASE_URL}/rest/v1/players_stats?select=*`, { headers: SP_HEADERS }).catch(() => null);
-                if (pRes && pRes.ok) window.allPlayers = mapPlayers(await pRes.json());
-            }
-
+            let sbMatches = [];
             const mRes = await fetch(`${SUPABASE_URL}/rest/v1/matches?select=*&order=fecha.desc`, { headers: SP_HEADERS }).catch(() => null);
-            if (!mRes || !mRes.ok) return false;
-            window.allMatches = mapMatches(await mRes.json());
+            if (mRes && mRes.ok) sbMatches = mapMatches(await mRes.json());
+            
+            // Fusión de partidos: Supabase (nuevos) + Local (históricos y backup)
+            if (sbMatches.length > 0) {
+                // Combinar evitando duplicados por ID
+                const local = window.allMatches || [];
+                const mergedMap = new Map();
+                local.forEach(m => mergedMap.set(m.ID, m));
+                sbMatches.forEach(m => mergedMap.set(m.ID, m));
+                window.allMatches = Array.from(mergedMap.values());
+            }
             
             const uRes = await fetch(`${SUPABASE_URL}/rest/v1/upcoming?select=*&order=fecha.asc`, { headers: SP_HEADERS }).catch(() => null);
             if (uRes && uRes.ok) window.allUpcoming = await uRes.json();
             return true;
-        } catch (e) { return false; }
+        } catch (e) {
+            console.error("Supabase Load Error:", e);
+            return false;
+        }
     };
 
-    const tryCSV = async () => {
-        try {
-            const res = await fetch('DATOS%20EXCEL/BUFARRA%20ESTADISTICAS%20-%20PARTIDOS.csv' + cacheBuster).catch(() => null);
-            if (!res || !res.ok) return false;
-            window.allMatches = parseCSV(await res.text());
-            return true;
-        } catch (e) { return false; }
-    };
+    try {
+        // 1. Cargar base local de todo el histórico
+        await loadLocal();
+        
+        // 2. Cargar Supabase y fusionar lo nuevo en tiempo real
+        const sbSuccess = await loadSupabase();
 
-    let source = "NONE";
-    if (await tryLocal()) source = "Local JSON";
-    else if (await trySupabase()) source = "Supabase Cloud";
-    else if (await tryCSV()) source = "CSV Fallback";
-    else source = "FAILED";
+        // 3. CALCULO DINÁMICO DE ESTADÍSTICAS 2026 (Para que el plantel se vea siempre en vivo)
+        const matches2026 = (window.allMatches || []).filter(m => {
+            const yr = String(m.AÑO || m.año || '');
+            const fe = String(m.FECHA || m.fecha || '');
+            return yr.includes('2026') || fe.includes('2026');
+        });
+        
+        if (matches2026.length > 0) {
+            const liveStats = calculateLiveStats(matches2026);
+            const baseStats = window.allPlayers['2026'] || [];
+            
+            // Fusionar: Usar LiveStats si existe el jugador, sino BaseStats
+            const merged = [...baseStats];
+            Object.values(liveStats).forEach(lp => {
+                const idx = merged.findIndex(bp => bp.PLAYER.toUpperCase() === lp.PLAYER.toUpperCase());
+                if (idx >= 0) {
+                    merged[idx] = lp; // Reemplazar con datos frescos
+                } else {
+                    merged.push(lp); // Agregar nuevo
+                }
+            });
+            window.allPlayers['2026'] = merged;
+        }
 
-    finishLoad(source);
+        finishLoad(sbSuccess ? "Híbrido (Local + Supabase)" : "Local JSON Fallback");
+    } catch (e) {
+        console.error("DB: Error fatal en loadMatches:", e);
+        finishLoad("Error Fallback");
+    }
+}
+
+function calculateLiveStats(matches) {
+    const stats = {};
+    matches.forEach(m => {
+        const gf = parseInt(m.GF || 0);
+        const gc = parseInt(m.GC || 0);
+        const res = gf > gc ? 'V' : (gf < gc ? 'D' : 'E');
+        
+        if (m.jugadores) {
+            Object.entries(m.jugadores).forEach(([name, data]) => {
+                if (name.startsWith('__')) return;
+                
+                let n = name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const low = n.toLowerCase();
+                if (low.includes('rocca')) n = 'Diego Rocca';
+                else if (low.includes('gaston silva')) n = 'Gaston Silva';
+                else if (low === 'de leon' || low === 'deleón') n = 'De Leon';
+                else {
+                    // Capitalización estándar
+                    n = n.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                }
+
+                if (!stats[n]) {
+                    stats[n] = { PLAYER: n, PJ: 0, PG: 0, PE: 0, PP: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0, MVP: 0 };
+                }
+                
+                const s = stats[n];
+                s.PJ++;
+                if (res === 'V') s.PG++;
+                else if (res === 'E') s.PE++;
+                else s.PP++;
+                
+                s.GOLES += parseInt(data.goles || 0);
+                s.ASISTENCIAS += parseInt(data.asistencias || 0);
+                s.AMARILLAS += parseInt(data.amarillas || 0);
+                s.ROJAS += parseInt(data.rojas || 0);
+                if (data.mvp) s.MVP++;
+            });
+        }
+    });
+    return Object.values(stats);
 }
 
 
@@ -302,17 +365,20 @@ function finishLoad(source) {
                 });
             }
         }
-        localStorage.setItem('bufarra_last_next_match', currentMatchStr);
+    localStorage.setItem('bufarra_last_next_match', currentMatchStr);
     }
-
+    
     // Restore UI components
     setTimeout(() => {
         document.getElementById('efemerideAlert')?.classList.add('show');
     }, 1000);
 
-    initScrollObserver();
+    if (typeof initScrollObserver === 'function') initScrollObserver();
     
-    document.dispatchEvent(new CustomEvent('dataLoaded'));
+    // Disparar evento para otros componentes
+    const event = new CustomEvent('dataLoaded', { detail: { source } });
+    window.dispatchEvent(event);
+    document.dispatchEvent(event);
 }
 
 /**
@@ -429,12 +495,15 @@ function getRivalShield(name) {
         'EL RETIRO': 'img/escudos/el-retiro.png',
         'BOURBON ST': 'img/escudos/bourbon-st.png',
         'PARQUE GUARANI': 'img/escudos/parque-guarani.png',
-        'ALTA GAMA': null 
+        'C. A. MAGNA': 'img/escudos/magna.png',
+        'C.A. MAGNA': 'img/escudos/magna.png',
+        'MAGNA': 'img/escudos/magna.png'
     };
 
     if (SPECIAL_SHIELDS[n]) return SPECIAL_SHIELDS[n];
     
-    const finalClean = fileName.replace(/\s+/g, '-');
+    // De-duplicar prefijos comunes que ya fueron quitados o que sobran
+    let finalClean = fileName.replace(/\s+/g, '-').replace(/^c-a-/, '').replace(/^ca-/, '');
     return `img/escudos/${finalClean}.png`;
 }
 
@@ -453,7 +522,13 @@ function renderEfeméride() {
     });
 
     if (match) {
-        textEl.innerHTML = `Un ${match.FECHA}, La Bufarra jugó contra ${match.VS}. Resultado: ${match.RESULTADO}.`;
+        const gf = match.GF ?? match.gf ?? '';
+        const gc = match.GC ?? match.gc ?? '';
+        let resStr = match.RESULTADO || '';
+        if (gf !== '' && gc !== '') {
+            resStr = `${gf} - ${gc}`;
+        }
+        textEl.innerHTML = `Un ${match.FECHA}, La Bufarra jugó contra ${match.VS}. Resultado: <strong>${resStr}</strong>.`;
     } else {
         textEl.innerHTML = "Hoy no hay partidos históricos en el archivo. ¡A seguir haciendo historia!";
     }
@@ -628,6 +703,10 @@ function generateMatchCard(m, title = "") {
 
     const rivalShield = getRivalShield(m.rival || m.VS);
     
+    let matchTime = m.hora || m.HORA || '';
+    if (!matchTime && m.jugadores && m.jugadores.__hora) matchTime = m.jugadores.__hora;
+    let matchTimeFormatted = (!matchTime || matchTime === 'TBD') ? (isUpcoming ? 'SIN CONFIRMAR' : 'S/H') : matchTime + ' HS';
+    
     return `
         <div class="glass-panel" style="padding: 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; position: relative; overflow: hidden;">
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--accent-primary); opacity: 0.8;"></div>
@@ -653,10 +732,10 @@ function generateMatchCard(m, title = "") {
                 </div>
             </div>
             
-            <div class="match-details" style="display: flex; gap: 2.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 2rem; width: 100%; justify-content: center;">
-                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600;"><i class="ph-bold ph-calendar" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.5rem;"></i> ${fechaFinal}</div>
-                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600;"><i class="ph-bold ph-clock" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.5rem;"></i> ${m.hora || m.HORA || 'TBD'} HS</div>
-                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600;"><i class="ph-bold ph-map-pin" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.5rem;"></i> ${m.lugar || m.LUGAR || 'TBD'}</div>
+            <div class="match-details" style="display: flex; flex-direction:row; flex-wrap:wrap; justify-content: center; gap: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 2rem; width: 100%;">
+                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600; white-space:nowrap;"><i class="ph-bold ph-calendar" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.4rem;"></i>${fechaFinal}</div>
+                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600; white-space:nowrap;"><i class="ph-bold ph-clock" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.4rem;"></i>${matchTimeFormatted}</div>
+                <div class="detail-item" style="font-size: 0.85rem; font-weight: 600; white-space:nowrap;"><i class="ph-bold ph-map-pin" style="color: var(--accent-primary); font-size: 1.1rem; margin-right: 0.4rem;"></i>${(m.lugar || m.LUGAR || 'A CONFIRMAR').toUpperCase()}</div>
             </div>
         </div>
     `;
@@ -690,31 +769,50 @@ async function renderLeagueTable(expanded = false) {
 
     let teams = [];
     try {
-        const res = await fetch('data/league_table.json?v=' + Date.now());
-        if (res.ok) teams = await res.json();
-    } catch(e) { console.warn("DB: Falló carga de tabla dinámica, usando fallback."); }
+        const res = await fetch('https://hmaqdzkpjkxamggaiypo.supabase.co/rest/v1/config?key=eq.league_table&select=value', {
+            headers: {
+                'apikey': 'sb_publishable_Vu_F-McwcDK4g2k8fU6w7A_p_Mva8-Y'
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0 && data[0].value) {
+                teams = data[0].value;
+            }
+        }
+    } catch(e) { console.warn("DB: Falló carga de tabla Supabase, intentando fallback"); }
+
+    if (!teams || teams.length === 0) {
+        try {
+            const res = await fetch('data/league_table.json?v=' + Date.now());
+            if (res.ok) teams = await res.json();
+        } catch(e) {}
+    }
 
     if (!teams || teams.length === 0) {
         teams = [
             { pos: 1, name: "La Costa FC", pj: 2, pts: 6 },
             { pos: 2, name: "Berges FC (Dom)", pj: 2, pts: 6 },
-            { pos: 3, name: "FC Fernetbache", pj: 2, pts: 6 },
+            { pos: 3, name: "FC Fernetbache ( Dom Pro)", pj: 2, pts: 6 },
             { pos: 4, name: "Porte FC (Domingo)", pj: 2, pts: 3 },
             { pos: 5, name: "Parque Guarani", pj: 1, pts: 3 },
             { pos: 6, name: "LA BUFARRA", pj: 2, pts: 3, highlighted: true },
-            { pos: 7, name: "Safaera FC", pj: 2, pts: 3 },
+            { pos: 7, name: "Safaera FC.", pj: 2, pts: 3 },
             { pos: 8, name: "C. A. Magna", pj: 2, pts: 3 },
             { pos: 9, name: "Alta Gama F.C", pj: 1, pts: 0 },
-            { pos: 10, name: "C. A. Parenaese", pj: 2, pts: 0 },
+            { pos: 10, name: "Club Atletico Parenaese", pj: 2, pts: 0 },
             { pos: 11, name: "Prestcold FC", pj: 2, pts: 0 },
             { pos: 12, name: "ENFUGEIRA FC", pj: 2, pts: 0 }
         ];
     }
+    
+    // NO HACEMOS SORT AUTOMATICO, respetamos el orden manual del admin
+    teams.forEach((t, i) => t.pos = i + 1);
 
     let displayTeams = expanded ? teams : teams.filter(t => t.highlighted || (t.name && t.name.toUpperCase().includes('BUFARRA')));
     
-    // Si no hay resaltados, mostrar los primeros 5
-    if (!expanded && displayTeams.length === 0) {
+    // Si la lista es muy corta, mostrar el Top 5 para que la home no se vea vacía
+    if (!expanded && displayTeams.length <= 1 && teams.length > 1) {
         displayTeams = teams.slice(0, 5);
     }
 
@@ -731,14 +829,19 @@ async function renderLeagueTable(expanded = false) {
                     const shield = isBufarra ? 'img/logo/ESCUDO_BUFARRA.png' : getRivalShield(t.name);
                     
                     return `
-                        <div style="display:grid; grid-template-columns: 40px 40px 1fr 60px 60px; align-items:center; transition: all 0.3s ease; padding: 1.2rem; background: ${isBufarra ? 'rgba(255,107,129,0.1)' : 'transparent'}; border-radius: 12px; border: ${isBufarra ? '1px solid var(--accent-primary)' : '1px solid transparent'};">
-                            <div style="font-family:var(--font-display); font-size:1.2rem; font-weight:900; color:${isBufarra ? 'var(--accent-primary)' : '#fff'};">${t.pos}º</div>
+                        <div style="display:grid; grid-template-columns: 20px 30px 35px 1fr 40px 60px; align-items:center; transition: all 0.3s ease; padding: 1.2rem; background: ${isBufarra ? 'rgba(255,107,129,0.1)' : 'transparent'}; border-radius: 12px; border: ${isBufarra ? '1px solid var(--accent-primary)' : '1px solid transparent'};">
+                            <div style="text-align:center;">
+                                ${t.trend === 'up' ? '<i class="ph-fill ph-caret-up" style="color:#25D366; font-size:1rem;"></i>' : 
+                                  t.trend === 'down' ? '<i class="ph-fill ph-caret-down" style="color:#ff4d4d; font-size:1rem;"></i>' : 
+                                  '<span style="color:var(--text-muted); font-size:0.8rem; opacity:0.3;">-</span>'}
+                            </div>
+                            <div style="font-family:var(--font-display); font-size:1rem; font-weight:900; color:${isBufarra ? 'var(--accent-primary)' : '#fff'};">${t.pos}º</div>
                             <div style="display:flex; align-items:center; justify-content:center;">
                                 ${shield ? `<img src="${shield}" style="width:24px; height:24px; object-fit:contain;">` : '<i class="ph ph-shield" style="font-size:24px; opacity:0.1;"></i>'}
                             </div>
-                            <div style="font-family:var(--font-display); font-size: 1rem; font-weight:800; color:#fff; text-transform:uppercase;">${t.name}</div>
+                            <div style="font-family:var(--font-display); font-size: 0.95rem; font-weight:800; color:#fff; text-transform:uppercase;">${t.name}</div>
                             <div style="text-align:center; font-weight:700; color:var(--text-muted); font-size:0.9rem;">${t.pj} <small style="display:block; font-size:0.5rem; opacity:0.5;">PJ</small></div>
-                            <div style="text-align:center; font-weight:900; color:var(--accent-primary); font-size:1.1rem;">${t.pts} <small style="display:block; font-size:0.5rem; opacity:0.5; color:var(--text-muted);">PTS</small></div>
+                            <div style="text-align:center; font-weight:900; color:${isBufarra ? 'var(--accent-primary)' : '#fff'}; font-size:1.2rem;">${t.pts} <small style="display:block; font-size:0.5rem; opacity:0.5; color:var(--text-muted);">PTS</small></div>
                         </div>
                     `;
                 }).join('')}
@@ -808,6 +911,13 @@ function renderPlantel2026(filter = 'general') {
     let explicitStaff = [];
     const rawData = window.rawPlayersData ? window.rawPlayersData['2026'] : null;
     
+    // Si el array está vacío o no existe, forzamos la carga del roster base para que la Home nunca esté vacía
+    if (!players2026 || players2026.length === 0) {
+        console.warn("DB: allPlayers['2026'] vacío, generando roster de emergencia...");
+        const rosterBase = ["Anzuatte", "Blanco", "Bonilla", "Colombo", "De Leon", "Flores", "Iza", "Martinez", "Mari", "Menchaca", "Molina", "Olarte", "Pedemonte", "Sparkov"];
+        players2026 = rosterBase.map(name => ({ PLAYER: name, PJ: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0 }));
+    }
+    
     // MAPPING DE DORSALES OFICIALES
     const JUGADOR_DORSAL = {
         "ANZUATTE": "#4",
@@ -826,7 +936,7 @@ function renderPlantel2026(filter = 'general') {
         "SPARKOV": "#9"
     };
 
-    const staffNamesToForce = ["Santiago Mateo", "Emiliano Reyes", "Mateo", "Reyes"];
+    const staffNamesToForce = ["SANTIAGO MATEO", "EMILIANO REYES", "MATEO", "REYES"];
 
     if (rawData) {
         Object.keys(rawData).forEach(tk => {
@@ -835,22 +945,30 @@ function renderPlantel2026(filter = 'general') {
                 tData.dt.split(/[/,]/).forEach(name => {
                     const n = name.trim();
                     if (n && !explicitStaff.some(s => s.PLAYER.toUpperCase() === n.toUpperCase())) {
-                        explicitStaff.push({ PLAYER: n, PJ: '0', GOLES: '0', ASISTENCIAS: '0', AMARILLAS: '0', ROJAS: '0', isStaff: true });
+                        explicitStaff.push({ PLAYER: n, PJ: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0, isStaff: true });
                     }
                 });
             }
         });
     }
 
+    // Forzar Staff si no está
+    staffNamesToForce.forEach(stName => {
+        const upper = stName.toUpperCase();
+        // Evitar duplicados inteligentes (si ya hay alguien con ese nombre o es parte de un nombre existente)
+        if (!explicitStaff.some(s => s.PLAYER.toUpperCase().includes(upper) || upper.includes(s.PLAYER.toUpperCase()))) {
+            explicitStaff.push({ PLAYER: stName.charAt(0) + stName.slice(1).toLowerCase(), PJ: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0, isStaff: true });
+        }
+    });
+
     if (!players2026.some(p => p.PLAYER.toUpperCase().includes('PEDEMONTE'))) {
-        players2026.push({ PLAYER: 'Pedemonte', PJ: '0', GOLES: '0', ASISTENCIAS: '0', AMARILLAS: '0', ROJAS: '0' });
+        players2026.push({ PLAYER: 'Pedemonte', PJ: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0 });
     }
 
-    const statKeywords = ["DT", "Cuerpo", "Director", "Delegado", ...staffNamesToForce];
     const statMap = { 'goles': 'GOLES', 'asistencias': 'ASISTENCIAS', 'tarjetas': 'tarjetas' };
 
-    let players = players2026.filter(p => !p.isStaff && !statKeywords.some(kw => (p.PLAYER || '').toUpperCase().includes(kw.toUpperCase())));
-    let staff = [...explicitStaff, ...players2026.filter(p => p.isStaff || statKeywords.some(kw => (p.PLAYER || '').toUpperCase().includes(kw.toUpperCase())))];
+    let players = players2026.filter(p => !p.isStaff && !staffNamesToForce.some(kw => (p.PLAYER || '').toUpperCase().includes(kw)));
+    let staff = [...explicitStaff];
     
     const seenStaff = new Set();
     staff = staff.filter(s => {
@@ -869,20 +987,34 @@ function renderPlantel2026(filter = 'general') {
             return parseInt(p[statMap[filter]] || 0) > 0;
         });
 
-        players.sort((a,b) => (filter==='tarjetas'? (parseInt(b.AMARILLAS||0)+parseInt(b.ROJAS||0))-(parseInt(a.AMARILLAS||0)+parseInt(a.ROJAS||0)) : parseInt(b[statMap[filter]]||0)-parseInt(a[statMap[filter]]||0)));
+        players.sort((a,b) => {
+            let valB, valA;
+            if (filter === 'tarjetas') {
+                valB = parseInt(b.AMARILLAS || 0) + parseInt(b.ROJAS || 0);
+                valA = parseInt(a.AMARILLAS || 0) + parseInt(a.ROJAS || 0);
+            } else {
+                valB = parseInt(b[statMap[filter]] || 0);
+                valA = parseInt(a[statMap[filter]] || 0);
+            }
+            if (valB !== valA) return valB - valA;
+            
+            // Desempate 1: Menos partidos jugados es mejor (si hay empate)
+            const pjB = parseInt(b.PJ || 0);
+            const pjA = parseInt(a.PJ || 0);
+            if (pjA !== pjB) return pjA - pjB;
+            
+            // Desempate 2: Orden alfabético
+            return (a.PLAYER || '').localeCompare(b.PLAYER || '');
+        });
         staff = [];
     } else {
-        // En vista general, si el staff manual está vacío, forzamos a los técnicos mencionados
-        if (staff.length === 0) {
-            staff.push({ PLAYER: 'Santiago Mateo', PJ: '0', GOLES: '0', ASISTENCIAS: '0', AMARILLAS: '0', ROJAS: '0', isStaff: true });
-            staff.push({ PLAYER: 'Emiliano Reyes', PJ: '0', GOLES: '0', ASISTENCIAS: '0', AMARILLAS: '0', ROJAS: '0', isStaff: true });
-        }
+        // El staff ya está cargado por staffNamesToForce anteriormente
         players.sort((a,b) => (a.PLAYER||'').localeCompare(b.PLAYER||''));
     }
 
     const drawCard = (p) => {
         const nameText = (p.PLAYER || "").toUpperCase().trim();
-        const isStaffItem = p.isStaff || statKeywords.some(kw => nameText.includes(kw.toUpperCase()));
+        const isStaffItem = p.isStaff || staffNamesToForce.some(kw => nameText.includes(kw.toUpperCase()));
         const img = getPlayerImage(p.PLAYER);
         
         // Determinar Dorsal o Etiqueta
@@ -921,7 +1053,14 @@ function renderPlantel2026(filter = 'general') {
         `;
     };
     let html = players.map(drawCard).join('') + staff.map(drawCard).join('');
-    
+
+    // DEFENSA FINAL: Si el HTML quedó vacío, forzamos el dibujo del roster base
+    if (!html || html.trim().length < 50) {
+        console.warn("DB: El HTML de plantel parece estar vacío. Forzando render de emergencia.");
+        const rosterBase = ["Anzuatte", "Blanco", "Bonilla", "Colombo", "De Leon", "Flores", "Iza", "Martinez", "Mari", "Menchaca", "Molina", "Olarte", "Pedemonte", "Sparkov"];
+        html = rosterBase.map(name => drawCard({ PLAYER: name, PJ: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0 })).join('');
+    }
+
     // Links de navegación rápida
     const links = {
         'general': { text: 'Ver todos los planteles', url: 'jugadores.html' },
@@ -1167,22 +1306,7 @@ OneSignal.push(function() {
 
 // Lógica de invitación a notificaciones y PWA
 function initSmartPrompts() {
-    const status = localStorage.getItem('bufarra_notifications');
-    const closedDate = localStorage.getItem('bufarra_prompt_closed');
-    const today = new Date().toDateString();
-
-    if (status === 'true' || closedDate === today) return;
-
-    // Si ya estamos suscritos en OneSignal, no preguntar
-    OneSignal.push(function() {
-        OneSignal.isPushNotificationsEnabled(function(isEnabled) {
-            if (isEnabled) {
-                localStorage.setItem('bufarra_notifications', 'true');
-                return;
-            }
-            showTheBanner(today);
-        });
-    });
+    return;
 }
 
 function showTheBanner(today) {

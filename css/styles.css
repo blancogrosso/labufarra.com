@@ -1053,6 +1053,11 @@ footer {
     gap: 1rem;
     align-items: center;
   }
+  
+  .players-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
 }
 
 .btn-report {

@@ -80,6 +80,9 @@
             <button class="tab-btn" data-tab="notificaciones" onclick="switchTab('notificaciones')">
                 <i class="ph-bold ph-bell-ringing"></i> Notificaciones
             </button>
+            <button class="tab-btn" data-tab="liga" onclick="switchTab('liga')">
+                <i class="ph-bold ph-ranking"></i> Liga
+            </button>
         </div>
 
         <!-- ═══ TAB: PARTIDOS ═══ -->
@@ -380,21 +383,30 @@
     <!-- ═══ TAB: NOTIFICACIONES ═══ -->
     <section id="tab-notificaciones" class="tab-content">
         <div class="panel-header">
-            <h2><i class="ph-bold ph-bell-ringing"></i> Historial de Notificaciones</h2>
+            <h2><i class="ph-bold ph-whatsapp-logo"></i> Difusión por WhatsApp</h2>
         </div>
         
-        <div class="panel" style="margin-bottom: 2rem; border-left: 4px solid var(--blue);">
-            <h3><i class="ph-bold ph-paper-plane-tilt"></i> Enviar Nueva Notificación</h3>
+        <div class="panel" style="margin-bottom: 2rem; border-left: 4px solid #25D366;">
+            <h3><i class="ph-bold ph-paper-plane-tilt"></i> Generar Aviso para el Grupo</h3>
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">Creá el mensaje y el sistema abrirá tu aplicación de WhatsApp (o Web) lista para que elijas el grupo de La Bufarra y mandes la info al instante, 100% gratis.</p>
             <div class="form-group">
-                <label>Título</label>
-                <input type="text" id="pushTitle" placeholder="Ej: Próximo Partido Confirmado">
+                <label>Título (Opcional)</label>
+                <input type="text" id="pushTitle" placeholder="Ej: ¡GANAMOS!">
             </div>
             <div class="form-group">
                 <label>Mensaje</label>
-                <textarea id="pushBody" rows="3" placeholder="Escribí el mensaje para los jugadores..."></textarea>
+                <textarea id="pushBody" rows="4" placeholder="Escribí acá el mensaje para avisarle a los jugadores..."></textarea>
             </div>
-            <button class="btn btn-primary" onclick="broadcastPush(this)">
-                <i class="ph-bold ph-paper-plane-right"></i> Enviar a Todos
+            <div class="quick-pills" style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="setPushTemplate('horario')">🕒 Horario Confirmado</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="setPushTemplate('cuota')">💰 Recordatorio Cuota</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="setPushTemplate('convocatoria')">📋 Convocatoria</button>
+            </div>
+            <div id="waPollTip" style="font-size:0.75rem; color:#25D366; margin-bottom:1rem; display:none;">
+                <i class="ph-bold ph-info"></i> <b>Tip:</b> Una vez en WhatsApp, podés convertir este mensaje en una encuesta tocando el clip 📎 > Encuesta.
+            </div>
+            <button class="btn btn-primary" style="background:#25D366; color:#000; font-weight:800;" onclick="broadcastPush()">
+                <i class="ph-bold ph-whatsapp-logo"></i> Abrir WhatsApp y Enviar
             </button>
         </div>
         <div class="panel">
@@ -406,6 +418,27 @@
             </div>
             <div id="notificationsList" style="min-height: 100px;">
                 <div class="empty-state"><p>Cargando historial...</p></div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- ═══ TAB: LIGA ═══ -->
+    <section id="tab-liga" class="tab-content" style="display:none;">
+        <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h2><i class="ph-bold ph-ranking"></i> Gestor Tabla de Posiciones</h2>
+            <button class="btn btn-primary btn-sm" onclick="saveLeagueTable()">
+                <i class="ph-bold ph-floppy-disk"></i> Guardar Tabla
+            </button>
+        </div>
+        <div class="panel">
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom: 1.5rem;">Cargá de manera manual los puntos de los equipos de la Liga. La web oficial reflejará estos cambios inmediatamente al guardar.</p>
+            <div id="leagueTableAdminContainer">
+                <div class="empty-state"><p>Cargando posiciones...</p></div>
+            </div>
+            <div style="margin-top: 1.5rem; text-align:center;">
+                <button class="btn btn-secondary btn-sm" onclick="addLeagueTeam()">
+                    <i class="ph-bold ph-plus"></i> Añadir Equipo
+                </button>
             </div>
         </div>
     </section>
