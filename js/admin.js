@@ -1281,8 +1281,10 @@ function renderFinances() {
 }
 
 function renderBalance() {
+    const hist = financesData.balanceHistorico || { ingresos: 0, egresos: 0 };
     const transacciones = financesData.transacciones || [];
-    let ingresos = 0, egresos = 0;
+    let ingresos = hist.ingresos || 0;
+    let egresos  = hist.egresos  || 0;
     
     transacciones.forEach(t => {
         const monto = parseFloat(t.monto) || 0;
@@ -2083,6 +2085,16 @@ async function confirmarCierre() {
         return;
     }
 
+    const hist = financesData.balanceHistorico || { ingresos: 0, egresos: 0 };
+    (financesData.transacciones || []).forEach(t => {
+        const m = parseFloat(t.monto) || 0;
+        if (t.tipo === 'ingreso') hist.ingresos += m; else hist.egresos += m;
+    });
+    (financesData.multas || []).forEach(m => {
+        if (m.pagada) hist.ingresos += parseFloat(m.monto) || 0;
+    });
+    financesData.balanceHistorico = hist;
+
     const cuotaObjetivo = financesData.cuotaObjetivo || 2970;
     const cuotasReset = {};
     (roster || []).forEach(j => { cuotasReset[j] = { paid: 0, total: cuotaObjetivo, multas: 0 }; });
@@ -2094,7 +2106,7 @@ async function confirmarCierre() {
 
     const res2 = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
     if (res2 === null) {
-        toast('El archivo se guardó pero el reset falló. Recargá la página antes de continuar.', 'error');
+        toast('El archivo se guardó pero el balance histórico y el reset no se aplicaron. El balance visible puede estar desactualizado — revisá manualmente.', 'error');
         return;
     }
 
