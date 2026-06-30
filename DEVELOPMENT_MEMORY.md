@@ -237,3 +237,30 @@ PENDIENTE — próxima sesión:
     sesión a propósito.
 13. Confirmar si render.yaml y Procfile son código muerto de un intento de
     deploy en Render no usado (deploy activo real es Netlify).
+
+## Cierre de sesión — investigación tabla de Liga automática
+
+Se investigó la posibilidad de automatizar la carga de la tabla de posiciones
+(hoy 100% manual) desde ligapro.uy/campeonatos/501. Hallazgos:
+- La página es una SPA que carga "Posiciones" vía JavaScript, no está en el
+  HTML inicial — un fetch simple no trae los datos.
+- Existe un subdominio interno.ligapro.uy que sugiere una API propia detrás,
+  pero no se pudo confirmar su estructura sin herramientas de inspección de
+  red en navegador real.
+- El usuario mencionó una posible herramienta de "generar imagen para CM" en
+  el sitio (para exportar la tabla como imagen) que podría revelar una API
+  con los datos en crudo antes de renderizarlos — no se pudo investigar a
+  fondo en esta sesión por limitaciones de las herramientas de fetch estático.
+
+PRÓXIMO PASO (cuando se retome): usar Claude para Chrome (extensión de
+navegador) para abrir el sitio real, ir a la pestaña Network de DevTools, y
+ver qué requests dispara la pestaña "Posiciones" o la herramienta de exportar
+imagen — si hay una API JSON identificable ahí, se puede armar un script
+Python (mismo patrón que sincronizar_stats.py) para automatizar la
+sincronización con config.league_table en Supabase. Si no hay API accesible,
+la alternativa es un parser de texto pegado en el admin en vez de carga
+manual campo por campo.
+
+Mientras tanto, la tabla de Liga vieja de Apertura sigue visible en el home
+sin actualizar — sigue pendiente sacarla/resetearla manualmente (ítem ya
+anotado en el backlog de la sesión anterior).
