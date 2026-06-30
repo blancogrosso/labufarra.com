@@ -227,10 +227,18 @@ function removeAccents(str) {
 }
 
 async function loadRoster() {
-    // Plantel Oficial 2026 (Forzado para evitar históricos)
-    roster = ['Anzuatte', 'Blanco', 'Bonilla', 'Colombo', 'Iza', 'Mari', 'Martinez', 'Menchaca', 'Olarte', 'Sparkov', 'Flores', 'De Leon', 'Molina', 'Pedemonte'].sort();
-    
-    console.log("Roster 2026 activo:", roster.length);
+    try {
+        const data = await spFetch('config?key=eq.roster', 'GET', null, 'value');
+        if (data && data.length > 0 && Array.isArray(data[0].value) && data[0].value.length > 0) {
+            roster = [...data[0].value].sort();
+            console.log("Roster cargado desde Supabase:", roster.length);
+        } else {
+            throw new Error('roster vacío o ausente en Supabase');
+        }
+    } catch (e) {
+        console.warn("loadRoster: usando fallback hardcodeado.", e.message);
+        roster = ['Anzuatte', 'Blanco', 'Bonilla', 'Colombo', 'Iza', 'Mari', 'Martinez', 'Menchaca', 'Olarte', 'Sparkov', 'Flores', 'De Leon', 'Molina', 'Pedemonte'].sort();
+    }
     buildPlayersFormTable();
 }
 
