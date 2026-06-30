@@ -279,12 +279,14 @@ async function addRosterPlayer() {
     
     // Guardar en la DB
     const res = await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
-    if (res) {
+    if (res !== null) {
         toast('Jugador agregado', 'success');
         await loadRoster(); // recarga la memoria
         buildPlayersFormTable(); // Actualiza planilla de partido
         renderCuotas(); // Actualiza finanzas
         showRosterManager(); // refresh el modal
+    } else {
+        toast('Error al agregar el jugador, intentá de nuevo', 'error');
     }
 }
 
@@ -292,12 +294,14 @@ async function deleteRosterPlayer(name) {
     confirmAction('Eliminar Jugador', `¿Estás seguro de eliminar a <strong>${name}</strong> del plantel?<br><small>(Esto no borra su historial previo de estadísticas)</small>`, async () => {
         const newRoster = roster.filter(r => r !== name);
         const res = await spFetch('config?key=eq.roster', 'PATCH', { value: newRoster });
-        if (res) {
+        if (res !== null) {
             toast('Jugador eliminado', 'success');
             await loadRoster();
             buildPlayersFormTable();
             renderCuotas();
             showRosterManager();
+        } else {
+            toast('Error al eliminar el jugador, intentá de nuevo', 'error');
         }
     }, 'Eliminar', 'danger');
 }
@@ -1392,10 +1396,14 @@ async function savePago(jugador) {
         descripcion: `Pago cuota: ${jugador}`
     });
     
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast('Pago registrado', 'success');
-    closeModal();
-    renderFinances();
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast('Pago registrado', 'success');
+        closeModal();
+        renderFinances();
+    } else {
+        toast('Error al registrar el pago, intentá de nuevo', 'error');
+    }
 }
 
 async function toggleMulta(jugador) {
@@ -1415,9 +1423,13 @@ async function toggleMulta(jugador) {
         pagada: false
     });
     
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast(`Multa de $50 aplicada a ${jugador}`, 'warning');
-    renderFinances();
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast(`Multa de $50 aplicada a ${jugador}`, 'warning');
+        renderFinances();
+    } else {
+        toast('Error al aplicar la multa, intentá de nuevo', 'error');
+    }
 }
 
 function showEditCuotaForm(jugador) {
@@ -1452,16 +1464,24 @@ async function saveEditCuota(jugador) {
     if (!financesData.cuotas) financesData.cuotas = {};
     financesData.cuotas[jugador] = { paid, total, multas };
     
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast('Cuota actualizada', 'success');
-    closeModal();
-    renderFinances();
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast('Cuota actualizada', 'success');
+        closeModal();
+        renderFinances();
+    } else {
+        toast('Error al guardar la cuota, intentá de nuevo', 'error');
+    }
 }
 async function saveCostoFecha() {
     const costo = parseInt(document.getElementById('costoFechaInput').value) || 0;
     financesData.costoFecha = costo;
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast('Costo actualizado', 'success');
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast('Costo actualizado', 'success');
+    } else {
+        toast('Error al guardar el costo, intentá de nuevo', 'error');
+    }
 }
 
 // ── Multas ──
@@ -1712,18 +1732,26 @@ async function saveMulta() {
     
     if (!financesData.multas) financesData.multas = [];
     financesData.multas.push(data);
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast('Multa agregada', 'success');
-    closeModal();
-    renderFinances();
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast('Multa agregada', 'success');
+        closeModal();
+        renderFinances();
+    } else {
+        toast('Error al guardar la multa, intentá de nuevo', 'error');
+    }
 }
 
 async function deleteMulta(id) {
     confirmAction('Eliminar Multa', '¿Eliminar esta multa del registro?', async () => {
         financesData.multas = financesData.multas.filter(m => m.id !== id);
-        await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-        toast('Multa eliminada', 'success');
-        renderFinances();
+        const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+        if (res !== null) {
+            toast('Multa eliminada', 'success');
+            renderFinances();
+        } else {
+            toast('Error al eliminar la multa, intentá de nuevo', 'error');
+        }
     }, 'Eliminar', 'danger');
 }
 
@@ -1851,18 +1879,26 @@ async function saveTransaccion() {
     
     if (!financesData.transacciones) financesData.transacciones = [];
     financesData.transacciones.push(data);
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast('Transacción registrada', 'success');
-    closeModal();
-    renderFinances();
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast('Transacción registrada', 'success');
+        closeModal();
+        renderFinances();
+    } else {
+        toast('Error al guardar la transacción, intentá de nuevo', 'error');
+    }
 }
 
 async function deleteTransaccion(id) {
     confirmAction('Eliminar Transacción', '¿Eliminar esta transacción del historial?', async () => {
         financesData.transacciones = financesData.transacciones.filter(t => t.id !== id);
-        await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-        toast('Transacción eliminada', 'success');
-        renderFinances();
+        const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+        if (res !== null) {
+            toast('Transacción eliminada', 'success');
+            renderFinances();
+        } else {
+            toast('Error al eliminar la transacción, intentá de nuevo', 'error');
+        }
     }, 'Eliminar', 'danger');
 }
 
@@ -1945,18 +1981,26 @@ async function saveDeadline() {
     
     if (!financesData.deadlines) financesData.deadlines = [];
     financesData.deadlines.push(data);
-    await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    toast('Deadline agregado', 'success');
-    closeModal();
-    renderFinances();
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast('Deadline agregado', 'success');
+        closeModal();
+        renderFinances();
+    } else {
+        toast('Error al guardar el deadline, intentá de nuevo', 'error');
+    }
 }
 
 async function deleteDeadline(id) {
     confirmAction('Eliminar Deadline', '¿Eliminar este deadline de la lista?', async () => {
         financesData.deadlines = financesData.deadlines.filter(d => d.id !== id);
-        await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-        toast('Deadline eliminado', 'success');
-        renderFinances();
+        const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+        if (res !== null) {
+            toast('Deadline eliminado', 'success');
+            renderFinances();
+        } else {
+            toast('Error al eliminar el deadline, intentá de nuevo', 'error');
+        }
     }, 'Eliminar', 'danger');
 }
 
