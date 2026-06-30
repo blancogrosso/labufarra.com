@@ -13,6 +13,13 @@ const SP_HEADERS = {
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const INSTANCIA_OPTIONS = [
+    'FECHA 1', 'FECHA 2', 'FECHA 3', 'FECHA 4', 'FECHA 5',
+    'FECHA 6', 'FECHA 7', 'FECHA 8', 'FECHA 9', 'FECHA 10',
+    'FECHA 11', 'FECHA 12', 'FECHA 13', 'FECHA 14', 'FECHA 15',
+    'FASE DE GRUPOS', 'CUARTOS DE FINAL', 'SEMI FINAL', 'FINAL'
+];
+
 let currentUser = '';
 let roster = [];
 let matchesData = [];
@@ -30,6 +37,8 @@ let adminLeagueTeams = [];
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', async () => {
+    populateInstanciaSelect('mInstancia');
+
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         currentUser = getDisplayName(session.user.email);
@@ -47,6 +56,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.key === 'Enter') document.getElementById('passwordInput').focus();
     });
 });
+
+function populateInstanciaSelect(selectId, selected) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-</option>' +
+        INSTANCIA_OPTIONS.map(i => `<option value="${i}" ${selected === i ? 'selected' : ''}>${i}</option>`).join('');
+}
 
 // ─── Supabase Helper ───
 async function spFetch(endpoint, method = 'GET', body = null, select = '*', extraHeaders = {}) {
@@ -1179,7 +1195,10 @@ function showUpcomingForm(editId) {
             </div>
             <div class="form-group">
                 <label>Instancia</label>
-                <input type="text" id="uInstancia" value="${existing?.instancia || ''}" placeholder="Ej: Fecha 1">
+                <select id="uInstancia">
+                    <option value="">-</option>
+                    ${INSTANCIA_OPTIONS.map(i => `<option value="${i}" ${existing?.instancia === i ? 'selected' : ''}>${i}</option>`).join('')}
+                </select>
             </div>
             <div class="form-group">
                 <label>Lugar</label>
@@ -1352,13 +1371,13 @@ function renderCuotas() {
                 <td style="color:${saldoColor}; font-weight:bold">$${saldo}</td>
                 <td>
                     <div style="display:flex; gap:0.3rem">
-                        <button class="btn btn-icon btn-sm" onclick="showPagoForm('${name}')" title="Cargar Pago">
+                        <button class="btn btn-icon btn-secondary btn-sm" onclick="showPagoForm('${name}')" title="Cargar Pago">
                             <i class="ph-bold ph-hand-coins"></i>
                         </button>
-                        <button class="btn btn-icon btn-sm" onclick="toggleMulta('${name}')" title="Multa ($50)">
+                        <button class="btn btn-icon btn-secondary btn-sm" onclick="toggleMulta('${name}')" title="Multa ($50)">
                             <i class="ph-bold ph-warning-circle"></i>
                         </button>
-                        <button class="btn btn-icon btn-sm" onclick="showEditCuotaForm('${name}')" title="Modificar">
+                        <button class="btn btn-icon btn-secondary btn-sm" onclick="showEditCuotaForm('${name}')" title="Modificar">
                             <i class="ph-bold ph-pencil-simple"></i>
                         </button>
                     </div>

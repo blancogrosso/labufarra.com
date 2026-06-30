@@ -153,6 +153,8 @@ body {
     transition: all 0.25s ease;
     text-transform: uppercase;
     letter-spacing: 1px;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .btn-primary {
@@ -389,6 +391,10 @@ body {
     gap: 1rem;
 }
 
+.cuota-objetivo-grid {
+    grid-template-columns: 1fr auto auto;
+}
+
 .form-group {
     display: flex;
     flex-direction: column;
@@ -416,6 +422,12 @@ body {
     outline: none;
     transition: border-color 0.2s;
     width: 100%;
+}
+
+.form-group input[type="date"],
+.form-group input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .form-group input:focus,
@@ -553,6 +565,9 @@ body {
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .match-info .teams {
