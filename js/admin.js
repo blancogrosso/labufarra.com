@@ -4,15 +4,16 @@
 
 const SUPABASE_URL = "https://hmaqdzkpjkxamggaiypo.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Vu_F-McwcDK4g2k8fU6w7A_p_Mva8-Y";
-const SP_HEADERS = { 
-    "apikey": SUPABASE_KEY, 
+const SP_HEADERS = {
+    "apikey": SUPABASE_KEY,
     "Authorization": `Bearer ${SUPABASE_KEY}`,
     "Content-Type": "application/json",
     "Prefer": "return=representation"
 };
 
-let authToken = sessionStorage.getItem('bufarra_token') || '';
-let currentUser = sessionStorage.getItem('bufarra_user') || '';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = '';
 let roster = [];
 let matchesData = [];
 let playersData = {};
@@ -29,21 +30,22 @@ let adminLeagueTeams = [];
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', async () => {
-    if (authToken) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        currentUser = getDisplayName(session.user.email);
         showApp();
     } else {
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('fabContainer').style.display = 'none';
+        document.getElementById('usernameInput').focus();
     }
-    
-    // Enter key on password
+
     document.getElementById('passwordInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') doLogin();
     });
     document.getElementById('usernameInput').addEventListener('keydown', e => {
         if (e.key === 'Enter') document.getElementById('passwordInput').focus();
     });
-    document.getElementById('usernameInput').focus();
 });
 
 // ─── Supabase Helper ───
@@ -94,65 +96,33 @@ async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
     }
 }
 
-// ─── AUTH (Supabase Version) ───
+const USER_DISPLAY_NAMES = { admin: 'Administrador', oso: 'Oso', feli: 'Feli', justi: 'Justi' };
+
+function getDisplayName(email) {
+    const username = email.replace('@labufarra.local', '');
+    return USER_DISPLAY_NAMES[username] || username;
+}
+
+// ─── AUTH ───
 async function doLogin() {
     const user = document.getElementById('usernameInput').value.trim().toLowerCase();
     const pw = document.getElementById('passwordInput').value;
     if (!user || !pw) return;
-    
+
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="ph-bold ph-circle-notch animate-spin"></i> Entrando...';
-    
+
     try {
-        // --- MASTER LOGIN OVERRIDE ---
-        if ((user === 'admin' && pw === 'bufarra2026') || 
-            (user === 'oso' && pw === 'oso2018') ||
-            (user === 'feli' && pw === 'feli2018') ||
-            (user === 'justi' && pw === 'justi2018')) {
-            const displayNames = { admin: 'Administrador', oso: 'Oso', feli: 'Feli', justi: 'Justi' };
-            authSuccess(user, displayNames[user]);
-            return;
-        }
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: `${user}@labufarra.local`,
+            password: pw
+        });
 
-        const loginUser = userData[user];
-        
-        // --- SECURE CONTEXT CHECK & FALLBACK ---
-        if (!window.crypto || !window.crypto.subtle) {
-            console.warn('Insecure context detected. Using fallback password check.');
-            if (pw === 'labufarra2026') {
-                authSuccess(user, loginUser?.display_name || user);
-                return;
-            } else {
-                throw new Error('Insecure context: Solamente podes usar la clave maestra o activar SSL.');
-            }
-        }
+        if (error) throw error;
 
-        if (!loginUser) throw new Error('Usuario no encontrado');
-
-        const saltHex = loginUser.salt;
-        const storedHash = loginUser.hash;
-        
-        const encoder = new TextEncoder();
-        const pwData = encoder.encode(pw);
-        const saltData = encoder.encode(saltHex);
-        
-        const keyMaterial = await crypto.subtle.importKey('raw', pwData, 'PBKDF2', false, ['deriveBits']);
-        const derivedKey = await crypto.subtle.deriveBits({
-            name: 'PBKDF2',
-            salt: saltData,
-            iterations: 100000,
-            hash: 'SHA-256'
-        }, keyMaterial, 256);
-        
-        const hashArray = Array.from(new Uint8Array(derivedKey));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-        if (hashHex === storedHash || pw === 'labufarra2026') {
-            authSuccess(user, loginUser.display_name || user);
-        } else {
-            throw new Error('Contraseña incorrecta');
-        }
+        currentUser = getDisplayName(data.user.email);
+        showApp();
     } catch (e) {
         console.warn('Login failure:', e.message);
         document.getElementById('loginError').style.display = 'block';
@@ -162,15 +132,6 @@ async function doLogin() {
         btn.disabled = false;
         btn.innerHTML = '<i class="ph-bold ph-lock-key"></i> Ingresar';
     }
-}
-
-function authSuccess(user, displayName) {
-    authToken = 'supabase_authed'; 
-    currentUser = displayName || user;
-    
-    sessionStorage.setItem('bufarra_token', authToken);
-    sessionStorage.setItem('bufarra_user', currentUser);
-    showApp();
 }
 
 function togglePasswordVisibility() {
@@ -200,15 +161,15 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Función original deshabilitada movida a la segunda declaración de doChangePassword
-
-function doLogout() {
-    authToken = '';
-    sessionStorage.removeItem('bufarra_user');
+async function doLogout() {
+    await supabaseClient.auth.signOut();
+    currentUser = '';
     document.getElementById('adminApp').style.display = 'none';
     document.getElementById('fabContainer').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
     const errorEl = document.getElementById('loginError');
     if (errorEl) errorEl.style.display = 'none';
+    document.getElementById('usernameInput').focus();
 }
 
 async function showApp() {
@@ -234,97 +195,6 @@ async function showApp() {
     // Recalcular automáticamente si no hay datos o hay inconsistencias
     if (Object.keys(playersData).length === 0) {
         await recalculateAllStats();
-    }
-}
-
-// ── Password Change ──
-function showChangePassword() {
-    openModal('Cambiar Contraseña', `
-        <div class="form-grid" style="grid-template-columns:1fr">
-            <div class="form-group">
-                <label>Contraseña actual</label>
-                <input type="password" id="cpOld" placeholder="Tu contraseña actual">
-            </div>
-            <div class="form-group">
-                <label>Nueva contraseña</label>
-                <input type="password" id="cpNew" placeholder="Mínimo 4 caracteres">
-            </div>
-            <div class="form-group">
-                <label>Confirmar nueva contraseña</label>
-                <input type="password" id="cpConfirm" placeholder="Repetí la nueva">
-            </div>
-        </div>
-        <div class="form-actions">
-            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-primary" style="width:auto" onclick="doChangePassword()">
-                <i class="ph-bold ph-key"></i> Cambiar
-            </button>
-        </div>
-    `);
-}
-
-async function doChangePassword() {
-    const oldPw = document.getElementById('cpOld').value;
-    const newPw = document.getElementById('cpNew').value;
-    const confirmPw = document.getElementById('cpConfirm').value;
-    
-    if (newPw !== confirmPw) { toast('Las contraseñas no coinciden', 'error'); return; }
-    if (newPw.length < 4) { toast('Mínimo 4 caracteres', 'error'); return; }
-    
-    // Traer usuarios de Supabase para validar clave vieja
-    const data = await spFetch('config?key=eq.users', 'GET', null, 'value');
-    if (!data || !data[0]) { toast('Error de conexión', 'error'); return; }
-    const configVal = data[0].value;
-    const userData = configVal.users || {};
-    
-    // currentUser se graba globalmente en el login (es por ej. "Oso" en display o usuario)
-    // Buscamos el key correcto en el objeto de usuarios:
-    const username = Object.keys(userData).find(k => (userData[k].display_name || k).toLowerCase() === currentUser.toLowerCase());
-    if (!username) { toast('Usuario no encontrado', 'error'); return; }
-    
-    const userObj = userData[username];
-    const passwordMatchParams = {
-        name: 'PBKDF2',
-        salt: new TextEncoder().encode(userObj.salt),
-        iterations: 100000,
-        hash: 'SHA-256'
-    };
-    
-    const encoder = new TextEncoder();
-    
-    // 1. Verificar la contraseña vieja
-    const oldKeyMaterial = await crypto.subtle.importKey('raw', encoder.encode(oldPw), 'PBKDF2', false, ['deriveBits']);
-    const oldDerivedKey = await crypto.subtle.deriveBits(passwordMatchParams, oldKeyMaterial, 256);
-    const oldHashHex = Array.from(new Uint8Array(oldDerivedKey)).map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    // labufarra2026 es el pasaporte de emergencia por si perdimos la pass vieja
-    if (oldHashHex !== userObj.hash && oldPw !== 'labufarra2026') {
-        toast('Contraseña actual incorrecta', 'error');
-        return;
-    }
-    
-    // 2. Generar el hash y salt de la NUEVA contraseña
-    const newSaltHex = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
-    const newKeyMaterial = await crypto.subtle.importKey('raw', encoder.encode(newPw), 'PBKDF2', false, ['deriveBits']);
-    const newDerivedKey = await crypto.subtle.deriveBits({
-        name: 'PBKDF2',
-        salt: encoder.encode(newSaltHex),
-        iterations: 100000,
-        hash: 'SHA-256'
-    }, newKeyMaterial, 256);
-    const newHashHex = Array.from(new Uint8Array(newDerivedKey)).map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    // 3. Guardar en Supabase
-    userData[username].salt = newSaltHex;
-    userData[username].hash = newHashHex;
-    
-    const res = await spFetch('config?key=eq.users', 'PATCH', { value: configVal });
-    
-    if (res) {
-        toast('Contraseña actualizada ✓', 'success');
-        closeModal();
-    } else {
-        toast('Error al guardar la nueva contraseña', 'error');
     }
 }
 
