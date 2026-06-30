@@ -18,7 +18,7 @@ let roster = [];
 let matchesData = [];
 let playersData = {};
 let upcomingData = [];
-let financesData = { cuotas:{}, costoFecha:0, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
+let financesData = { cuotas:{}, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
 let manualStatsData = {};
 let editingMatchId = null;
 let currentTxFilter = 'all';
@@ -1265,7 +1265,7 @@ async function loadFinances() {
         financesData = data[0].value;
     } else {
         // Init financesData with defaults if missing
-        financesData = { cuotas:{}, costoFecha:0, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
+        financesData = { cuotas:{}, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
     }
     renderFinances();
 }
@@ -1277,7 +1277,6 @@ function renderFinances() {
     renderTransacciones();
     renderDeadlines();
     
-    document.getElementById('costoFechaInput').value = financesData.costoFecha || 0;
     document.getElementById('cuotaObjetivoInput').value = financesData.cuotaObjetivo || 2970;
     const pr = financesData.preciosRapidos || [495, 990, 2970];
     document.getElementById('precioRapido1').value = pr[0];
@@ -1489,17 +1488,6 @@ async function saveEditCuota(jugador) {
         toast('Error al guardar la cuota, intentá de nuevo', 'error');
     }
 }
-async function saveCostoFecha() {
-    const costo = parseInt(document.getElementById('costoFechaInput').value) || 0;
-    financesData.costoFecha = costo;
-    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
-    if (res !== null) {
-        toast('Costo actualizado', 'success');
-    } else {
-        toast('Error al guardar el costo, intentá de nuevo', 'error');
-    }
-}
-
 async function saveCuotaObjetivo() {
     const val = parseInt(document.getElementById('cuotaObjetivoInput').value) || 0;
     if (!val) { toast('Ingresá un monto válido', 'error'); return; }
