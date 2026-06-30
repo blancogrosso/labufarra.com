@@ -195,3 +195,45 @@ PENDIENTE — próxima sesión:
   viejas, afectan al HOME (no al admin).
 - render.yaml y Procfile parecen código muerto de un intento de deploy en
   Render — deploy activo real es Netlify. Confirmar si se puede limpiar.
+
+## Backlog confirmado al cierre de la sesión — pendiente para sesiones futuras
+
+1. Confirmar fix de convertUpcoming() con un partido real vencido (domingo).
+2. Ajustar manualmente total:0 en cuotas para De Leon, Sparkov y Olarte (no
+   juegan fase de grupos de la Copa) — lo hace el usuario directamente, no
+   requiere código.
+3. NUEVO — Filtro por torneo en la sección Jugadores del admin: partidos.html
+   (web pública) ya tiene filtros por torneo/amistosos funcionando. Antes de
+   implementar en el admin, revisar cómo arma esos filtros partidos.html/db.js
+   (probablemente un campo "instancia" o "tipo" en matches) y replicar la
+   misma lógica para poder filtrar estadísticas de jugadores por torneo,
+   además del filtro por año que ya existe.
+4. NUEVO — Reporte de asistencia: lista "jugador → partidos jugados (A) /
+   partidos totales posibles (B)", filtrable por torneo o por año. El usuario
+   armaba esto a mano al cierre de cada torneo. Derivado de datos existentes
+   en matches/players_stats, no requiere campos nuevos.
+5. Pantalla de listado/consulta de cierres archivados de Finanzas
+   (finances_cierre_*) — la data ya se guarda bien, falta la UI de consulta.
+6. Auditoría de notificaciones WhatsApp: revisar en qué acciones del admin
+   aparece el botón "Avisar por WhatsApp" hoy, y decidir cuáles sacar (el
+   usuario mencionó que no todas son necesarias).
+7. Generador de resumen mensual de finanzas en texto, formato listo para
+   copiar/pegar a WhatsApp (reemplaza trabajo manual de un compañero).
+8. Sacar/resetear la tabla de Liga de Apertura del home — ya terminó el
+   torneo, no debe seguir mostrándose.
+9. Mobile/UX: en el formulario de carga de partido, los campos de fecha/hora
+   se desbordan de la tabla en celular. Reportados otros problemas de scroll/
+   elementos corridos sin detalle específico — pendiente relevar con
+   capturas o recorrido guiado (admin se usa mayormente desde celular).
+10. Feature de trazabilidad (quién/cuándo creó-editó cada dato: partidos,
+    movimientos de plata, etc.) — campos tipo creadoPor/creadoEn/editadoPor/
+    editadoEn. Transversal a varias tablas, requiere sesión de diseño propia.
+11. Deuda técnica: dos sistemas de normalización de nombres independientes
+    (normalizeName() en admin.js vs normalizePlayerName()/PLAYER_MAP en
+    db.js) pueden desincronizarse con futuros jugadores nuevos. Candidato a
+    unificar en una sola fuente de verdad.
+12. data/players.json y db.js → rosterBase siguen con listas hardcodeadas
+    viejas de 14 jugadores — afectan al HOME (no al admin), no se tocó esta
+    sesión a propósito.
+13. Confirmar si render.yaml y Procfile son código muerto de un intento de
+    deploy en Render no usado (deploy activo real es Netlify).
