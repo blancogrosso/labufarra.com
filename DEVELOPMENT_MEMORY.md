@@ -66,25 +66,66 @@ Resuelto hasta ahora:
 - Verificado en producción (Netlify): login nuevo funciona, contraseñas viejas
   rechazadas, persistencia de sesión y logout funcionan correctamente.
 
-PENDIENTE — próxima sesión:
-- Políticas de ESCRITURA (INSERT/UPDATE/DELETE) en todas las tablas siguen sin
-  restricción para rol anon. Esto significa que cualquiera con la publishable
-  key (pública en el código) puede escribir directo en Supabase sin pasar por
-  el login, aunque el panel admin ya esté protegido. Falta crear políticas
-  con condición auth.role() = 'authenticated' en: matches, players_stats,
-  upcoming, notifications, y las keys finances/roster/league_table de config.
-- La fila config key='users' (contraseñas hasheadas viejas) ya no se usa para
-  login pero sigue existiendo en la tabla — candidata a eliminar más adelante.
-- render.yaml y Procfile en la raíz parecen ser de un intento de deploy en
-  Render que no se usa — el deploy real activo es Netlify. Confirmar si se
-  puede limpiar.
-- Detectado: un jugador nuevo (para el torneo intermedio) que otro admin
-  intentó cargar no aparece en roster. Investigar al cargarlo si fue tema de
-  timing con el cambio de RLS o un bug de sincronización aparte.
+RESUELTO (sesión de continuación, mismo día):
+- Políticas de ESCRITURA (INSERT/UPDATE/DELETE) creadas en las 5 tablas
+  (matches, players_stats, upcoming, notifications, config), condición
+  auth.role() = 'authenticated'. Cierra el agujero de escritura sin
+  autenticación.
+- Eliminada fila config key='users' (contraseñas viejas, ya sin uso).
+- Bug encontrado y resuelto: las funciones de escritura usaban fetch crudo con
+  la anon key en vez del JWT de sesión (spFetch no consultaba
+  supabaseClient.auth.getSession()). Esto rompía recalculateAllStats() y el
+  upsert de stats tras migrar el login. Fix: spFetch ahora inyecta el JWT real
+  como Bearer token, con fallback a anon key solo para GET. Las escrituras sin
+  sesión activa ahora fallan con error explícito en vez de silencio.
+- Bug encontrado y resuelto: 12 funciones (savePago, toggleMulta,
+  saveEditCuota, saveCostoFecha, saveMulta, deleteMulta, saveTransaccion,
+  deleteTransaccion, saveDeadline, deleteDeadline, addRosterPlayer,
+  deleteRosterPlayer) mostraban toast de "guardado" sin chequear el resultado
+  real de spFetch. Con RLS bloqueando, PostgREST devuelve 200 OK con array
+  vacío en vez de error — el toast de éxito se disparaba igual. Fix: las 12
+  funciones ahora chequean if (res !== null) y muestran toast de error si
+  falla, sin cerrar el modal en el camino de error.
+- Bug encontrado y resuelto: loadRoster() en admin.js tenía hardcodeada una
+  lista fija de 14 jugadores ("Forzado para evitar históricos"), ignorando
+  config.roster de Supabase por completo. Esto rompía Finanzas/Cuotas, carga
+  de partido, y gestor de plantel para cualquier jugador agregado dinámicamente
+  vía addRosterPlayer. Fix: loadRoster() ahora lee config.roster de Supabase,
+  con fallback al hardcode si la llamada falla. config.roster en Supabase fue
+  limpiado de 24 a los 15 jugadores activos reales (14 originales + Rodriguez).
+- Bug de datos encontrado y resuelto: jugadores duplicados en players_stats por
+  desync entre dos sistemas de normalización de nombres independientes
+  (normalizeName() en admin.js vs normalizePlayerName()/PLAYER_MAP en db.js).
+  "Bruno Silva"/"Silva" y "Gaston Silva"/"Silva, Gaston" existían como filas
+  separadas. Fusionados (eran datos idénticos duplicados, sin pérdida).
+  Agregadas las entradas faltantes en normalizeName() de admin.js para evitar
+  recurrencia.
+- Confirmado: el jugador "Rodriguez" (alta nueva post-Apertura) ya tenía
+  player_name='Rodriguez' limpio en su historial viejo — sin duplicados, va a
+  sumar correctamente con partidos nuevos.
 
-Después de la seguridad, retomar lo que disparó toda esta sesión:
-- Cierre de Torneo Apertura: revisar jugadores (altas/bajas, el caso del
-  jugador nuevo), cuotas.
-- Limpieza de tabla finances / ingresos y egresos — "chorizo de movimientos"
-  a limpiar, empezar de cero con los números actuales (puede que Feli ya
-  haya puesto esto en 0, confirmar si fue intencional).
+PENDIENTE — próxima sesión:
+- Bug funcional: en Próximos Partidos, el aviso automático de "partido vencido,
+  falta cargar" no funciona al tocarlo — hay que cargar el partido manualmente
+  desde cero. Sin diagnosticar todavía.
+- Deuda técnica estructural: existen dos sistemas de normalización de nombres
+  independientes (admin.js y db.js) que pueden desincronizarse de nuevo con
+  futuros jugadores. Candidato a unificar en una sola fuente de verdad más
+  adelante.
+- data/players.json y db.js → rosterBase siguen con listas hardcodeadas viejas,
+  afectan al HOME (no al admin). No se tocó en esta sesión a propósito.
+- Cierre de Torneo Apertura: actualizar montos de cuotas para el torneo nuevo
+  (hoy están hardcodeados/viejos de Apertura, hay que poder editarlos desde el
+  admin).
+- Tabla de Liga en el home sigue mostrando la tabla vieja de Apertura — hay que
+  sacarla/resetear ahora que terminó el torneo.
+- Feature nueva pedida: generador de resumen mensual de finanzas en texto,
+  formato listo para copiar/pegar a WhatsApp (hoy lo hace manualmente un
+  compañero).
+- Mobile/UX: reportados problemas de scroll y elementos corridos en el admin
+  usado desde celular (es el dispositivo más usado a diario) — sin detalle
+  específico todavía, pendiente de capturas o recorrido guiado para precisar
+  qué arreglar.
+- render.yaml y Procfile en la raíz del proyecto parecen ser de un intento de
+  deploy en Render no usado — el deploy activo real es Netlify. Confirmar si
+  se puede limpiar.
