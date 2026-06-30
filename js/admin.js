@@ -1278,6 +1278,11 @@ function renderFinances() {
     renderDeadlines();
     
     document.getElementById('costoFechaInput').value = financesData.costoFecha || 0;
+    document.getElementById('cuotaObjetivoInput').value = financesData.cuotaObjetivo || 2970;
+    const pr = financesData.preciosRapidos || [495, 990, 2970];
+    document.getElementById('precioRapido1').value = pr[0];
+    document.getElementById('precioRapido2').value = pr[1];
+    document.getElementById('precioRapido3').value = pr[2];
 }
 
 function renderBalance() {
@@ -1369,13 +1374,14 @@ function renderCuotas() {
 
 function showPagoForm(jugador) {
     const c = (financesData.cuotas && financesData.cuotas[jugador]) || { paid: 0 };
+    const pr = financesData.preciosRapidos || [495, 990, 2970];
     openModal(`Cargar Pago: ${jugador}`, `
         <div class="form-group">
             <label>Monto a sumar</label>
             <div style="display:flex; gap:0.5rem; margin-bottom:1rem">
-                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = 495">$495</button>
-                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = 990">$990</button>
-                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = 2970">$2970</button>
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = ${pr[0]}">$${pr[0].toLocaleString()}</button>
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = ${pr[1]}">$${pr[1].toLocaleString()}</button>
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pagoMonto').value = ${pr[2]}">$${pr[2].toLocaleString()}</button>
             </div>
             <input type="number" id="pagoMonto" placeholder="Monto extra" class="glass-panel">
         </div>
@@ -1491,6 +1497,63 @@ async function saveCostoFecha() {
         toast('Costo actualizado', 'success');
     } else {
         toast('Error al guardar el costo, intentá de nuevo', 'error');
+    }
+}
+
+async function saveCuotaObjetivo() {
+    const val = parseInt(document.getElementById('cuotaObjetivoInput').value) || 0;
+    if (!val) { toast('Ingresá un monto válido', 'error'); return; }
+    financesData.cuotaObjetivo = val;
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast('Monto objetivo guardado', 'success');
+        renderFinances();
+    } else {
+        toast('Error al guardar el monto objetivo, intentá de nuevo', 'error');
+    }
+}
+
+function aplicarCuotaATodos() {
+    const val = parseInt(document.getElementById('cuotaObjetivoInput').value) || 0;
+    if (!val) { toast('Ingresá un monto válido primero', 'error'); return; }
+    confirmAction(
+        'Aplicar a todos',
+        `¿Actualizar el total de cuota a <strong>$${val.toLocaleString()}</strong> para los ${(roster || []).length} jugadores del plantel?<br>No se tocará lo pagado ni las multas de nadie.`,
+        async () => {
+            if (!financesData.cuotas) financesData.cuotas = {};
+            (roster || []).forEach(j => {
+                if (!financesData.cuotas[j]) {
+                    financesData.cuotas[j] = { paid: 0, total: val, multas: 0 };
+                } else {
+                    financesData.cuotas[j].total = val;
+                }
+            });
+            financesData.cuotaObjetivo = val;
+            const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+            if (res !== null) {
+                toast(`Total de $${val.toLocaleString()} aplicado a todos los jugadores`, 'success');
+                renderFinances();
+            } else {
+                toast('Error al aplicar los cambios, intentá de nuevo', 'error');
+            }
+        },
+        'Aplicar',
+        'primary'
+    );
+}
+
+async function savePreciosRapidos() {
+    const p1 = parseInt(document.getElementById('precioRapido1').value) || 0;
+    const p2 = parseInt(document.getElementById('precioRapido2').value) || 0;
+    const p3 = parseInt(document.getElementById('precioRapido3').value) || 0;
+    if (!p1 && !p2 && !p3) { toast('Ingresá al menos un precio', 'error'); return; }
+    financesData.preciosRapidos = [p1, p2, p3];
+    const res = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res !== null) {
+        toast('Precios rápidos guardados', 'success');
+        renderFinances();
+    } else {
+        toast('Error al guardar los precios, intentá de nuevo', 'error');
     }
 }
 
