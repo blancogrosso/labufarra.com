@@ -209,6 +209,14 @@ body {
     font-size: 1rem;
 }
 
+/* Iguala "Guardar Cambios" (sticky top) al tamaño de "Cancelar" en mobile —
+   el inline style del botón fija un padding mayor que .btn-sm; el !important
+   es necesario para pisar ese inline style sin tocar el HTML. */
+#saveMatchTopBtn {
+    padding: 8px 14px !important;
+    font-size: 0.75rem;
+}
+
 /* ─── Admin Layout ─── */
 .admin-app { display: none; }
 
@@ -614,16 +622,24 @@ body {
         display: grid;
         grid-template-columns: 1fr auto;
         grid-template-areas:
-            "info  badge"
-            "actions actions";
-        align-items: center;
-        gap: 0.5rem 1rem;
+            "info badge"
+            "info actions";
+        align-items: start;
+        gap: 0.4rem 0.75rem;
     }
-    .match-info { grid-area: info; }
-    .result-badge { grid-area: badge; }
+    .match-info {
+        grid-area: info;
+    }
+    .result-badge {
+        grid-area: badge;
+        justify-self: end;
+    }
     .match-actions {
         grid-area: actions;
-        justify-content: flex-end;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-self: end;
+        gap: 0.4rem;
     }
 }
 /* ═══ FIN bloque Problema A ═══ */
