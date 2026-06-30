@@ -1115,7 +1115,7 @@ async function executeDeleteUpcoming(id) {
 }
 
 async function convertUpcoming(upcomingId) {
-    const upcoming = upcomingData.find(u => u.id === upcomingId);
+    const upcoming = upcomingData.find(u => u.id === parseInt(upcomingId));
     if (!upcoming) return;
     
     confirmAction('Cargar Partido', `¿Cargar datos del partido vs <strong>${upcoming.rival}</strong>?<br>Se quitará de la sección de próximos partidos.`, () => {
