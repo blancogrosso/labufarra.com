@@ -38,14 +38,32 @@ window.PLAYER_MAP = {
     'Olarte': { fullName: 'Juan Miguel Olarte', aliases: ['Juan'] },
     'Pedemonte': { fullName: 'Sebastian Pedemonte', aliases: ['Seba', 'Sebita'] },
     'Rodriguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
-    'Bruno Silva': { fullName: 'Bruno Silva', aliases: ['Bruno', 'Silva'] },
-    'Gaston Silva': { fullName: 'Gaston Silva', aliases: ['Silva Gaston'] },
-    'Diego Rocca': { fullName: 'Diego Rocca', aliases: ['Rocca'] },
+    'Bruno Silva': { fullName: 'Bruno Silva', aliases: ['Bruno', 'Silva', 'Bruno Silva'] },
+    'Gaston Silva': { fullName: 'Gaston Silva', aliases: ['Gaston Silva', 'Silva Gaston', 'Gaston', 'Junior', 'G. Silva', 'Silva, Gaston'] },
+    'Diego Rocca': { fullName: 'Diego Rocca', aliases: ['Diego Rocca', 'Rocca', 'Diego', 'Harry'] },
     'Sparkov': { fullName: 'Santiago Sparkov', aliases: ['Spark', 'Sparky'] },
     'Valle': { fullName: 'Joaquin Valle', aliases: ['Joaco'] },
     'Vigil': { fullName: 'Sebastian Vigil', aliases: ['Seba'] },
     'Balestie': { fullName: 'Kevin Balestie', aliases: ['Kevin'] }
 };
+
+// Función maestra de normalización (Visible para todos)
+function normalizePlayerName(name) {
+    if (!name) return "";
+    let n = name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/,/g, "");
+    const upperName = n.toUpperCase();
+    
+    for (const [official, info] of Object.entries(window.PLAYER_MAP || {})) {
+        const upperOfficial = official.toUpperCase();
+        const upperFull = (info.fullName || "").toUpperCase();
+        const aliases = (info.aliases || []).map(a => a.toUpperCase());
+        
+        if (upperName === upperOfficial || upperName === upperFull || aliases.includes(upperName)) {
+            return official;
+        }
+    }
+    return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase();
+}
 
 async function loadMatches() {
     console.log("%c DB: Iniciando carga de datos híbrida... ", "background: #e91e63; color: white; font-weight: bold;");
@@ -182,8 +200,9 @@ async function loadPlayersSupabase() {
             const yr = p.year || 'ALL';
             if (!cloudPlayers[yr]) cloudPlayers[yr] = [];
             
+            const normName = normalizePlayerName(p.player_name);
             cloudPlayers[yr].push({
-                PLAYER: p.player_name,
+                PLAYER: normName,
                 PJ: parseInt(p.pj || 0),
                 PG: parseInt(p.pg || 0),
                 PE: parseInt(p.pe || 0),
@@ -229,28 +248,14 @@ function calculateLiveStats(matches) {
             Object.entries(m.jugadores).forEach(([name, data]) => {
                 if (name.startsWith('__')) return;
                 
-                let n = name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const upperName = n.toUpperCase();
-                
-                // Buscar el nombre oficial (apellido) en el PLAYER_MAP
-                let officialName = n;
-                for (const [surname, info] of Object.entries(window.PLAYER_MAP)) {
-                    const upperSurname = surname.toUpperCase();
-                    const upperFullName = (info.fullName || "").toUpperCase();
-                    const aliases = (info.aliases || []).map(a => a.toUpperCase());
-                    
-                    if (upperName === upperSurname || upperName === upperFullName || aliases.includes(upperName)) {
-                        officialName = surname;
-                        break;
-                    }
-                }
-                n = officialName;
+                const officialName = normalizePlayerName(name);
+                const upperOfficial = officialName.toUpperCase();
 
-                if (!stats[n]) {
-                    stats[n] = { PLAYER: n, PJ: 0, PG: 0, PE: 0, PP: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0, MVP: 0 };
+                if (!stats[upperOfficial]) {
+                    stats[upperOfficial] = { PLAYER: officialName, PJ: 0, PG: 0, PE: 0, PP: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0, MVP: 0 };
                 }
                 
-                const s = stats[n];
+                const s = stats[upperOfficial];
                 s.PJ++;
                 if (res === 'V') s.PG++;
                 else if (res === 'E') s.PE++;
@@ -338,19 +343,8 @@ function mapPlayers(data) {
     let mapped = {};
 
     const normalize = (p) => {
-        let name = p.PLAYER || p.nombre || p.player_name || '';
-        name = name.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const officialName = normalizePlayerName(p.PLAYER || p.nombre || p.player_name || '');
         
-        // Unificación de nombres usando el PLAYER_MAP si existe
-        let officialName = name;
-        const upperName = name.toUpperCase();
-        for (const [surname, info] of Object.entries(window.PLAYER_MAP || {})) {
-            if (upperName === surname.toUpperCase() || upperName === (info.fullName || "").toUpperCase()) {
-                officialName = surname;
-                break;
-            }
-        }
-
         return {
             PLAYER: officialName,
             YEAR: p.YEAR || p.year || p.año || '',

@@ -20,86 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-const PLAYER_MAP = {
-    'Alvez': { fullName: 'Lautaro Alvez', aliases: ['Pekeno'] },
-    'Anzuatte': { fullName: 'Agustin Anzuatte', aliases: ['Anzu'] },
-    'Blanco': { fullName: 'Tomas Blanco', aliases: ['Oso'] },
-    'Brito': { fullName: 'Emiliano Brito', aliases: ['Emi'] },
-    'Bonilla': { fullName: 'Felipe Bonilla', aliases: ['Feli', 'Boni'] },
-    'Cravino': { fullName: 'Agustin Cravino', aliases: ['Cravi'] },
-    'Colombo': { fullName: 'Mateo Colombo', aliases: ['Pepo'] },
-    'Da Silveira': { fullName: 'Guzman da Silveira', aliases: ['Guz'] },
-    'De Leon': { fullName: 'Enzo de Leon', aliases: ['Enzo'] },
-    'Dobal': { fullName: 'Federico Dobal', aliases: ['Feche'] },
-    'Fernandez': { fullName: 'Geronimo Fernandez', aliases: ['Gero'] },
-    'Flores': { fullName: 'Antonio Flores', aliases: ['Antony'] },
-    'Iza': { fullName: 'Federico Iza', aliases: ['Fede', 'Iza'] },
-    'Lorenzo': { fullName: 'Martin Lorenzo', aliases: ['Tincho'] },
-    'Luzardo': { fullName: 'Valentin Luzardo', aliases: ['Luza'] },
-    'Martinez': { fullName: 'Miqueas Martinez', aliases: ['Mique', 'Quique'] },
-    'Mari': { fullName: 'Pablo Mari', aliases: ['Pablito'] },
-    'Mateo': { fullName: 'Santiago Mateo', aliases: ['Santi'] },
-    'Menchaca': { fullName: 'Mateo Menchaca', aliases: ['Mencha'] },
-    'Molina': { fullName: 'Justiniano Molina', aliases: ['Justi'] },
-    'Olarte': { fullName: 'Juan Miguel Olarte', aliases: ['Juan'] },
-    'Pedemonte': { fullName: 'Sebastian Pedemonte', aliases: ['Seba', 'Sebita'] },
-    'Diego Rocca': { fullName: 'Diego Rocca', aliases: ['Harry', 'Rocca'] },
-    'Rocca': { fullName: 'Diego Rocca', aliases: ['Harry', 'Rocca'] },
-    'Rodriguez': { fullName: 'Guillermo Rodriguez', aliases: ['Guille'] },
-    'Bruno Silva': { fullName: 'Bruno Silva', aliases: ['Bruno', 'Silva'] },
-    'Gaston Silva': { fullName: 'Gaston Silva', aliases: ['Junior', 'G. Silva'] },
-    'Sparkov': { fullName: 'Santiago Sparkov', aliases: ['Spark', 'Sparky'] },
-    'Valle': { fullName: 'Joaquin Valle', aliases: ['Joaco'] },
-    'Vigil': { fullName: 'Sebastian Vigil', aliases: ['Seba'] },
-    'Balestie': { fullName: 'Kevin Balestie', aliases: ['Kevin'] }
-};
-
-function normalizePlayerName(name) {
-    if (!name) return "";
-    let n = name.trim();
-    
-    // Hardcoded visual mappings to ensure only Surnames / Short names are rendered
-    const visualMap = {
-        'Alvez': 'Alvez', 'Lautaro Alvez': 'Alvez',
-        'Anzuatte': 'Anzuatte', 'Agustin Anzuatte': 'Anzuatte',
-        'Blanco': 'Blanco', 'Tomas Blanco': 'Blanco',
-        'Brito': 'Brito', 'Emiliano Brito': 'Brito',
-        'Bonilla': 'Bonilla', 'Felipe Bonilla': 'Bonilla',
-        'Cravino': 'Cravino', 'Agustin Cravino': 'Cravino',
-        'Colombo': 'Colombo', 'Mateo Colombo': 'Colombo',
-        'Da Silveira': 'Da Silveira', 'da Silveira': 'Da Silveira', 'Guzman Da Silveira': 'Da Silveira',
-        'De Leon': 'De Leon', 'De León': 'De Leon', 'Enzo De Leon': 'De Leon',
-        'Dobal': 'Dobal', 'Federico Dobal': 'Dobal',
-        'Fernandez': 'Fernandez', 'Geronimo Fernandez': 'Fernandez',
-        'Flores': 'Flores', 'Antonio Flores': 'Flores',
-        'Iza': 'Iza', 'Federico Iza': 'Iza',
-        'Lorenzo': 'Lorenzo', 'Martin Lorenzo': 'Lorenzo',
-        'Luzardo': 'Luzardo', 'Valentin Luzardo': 'Luzardo',
-        'Martinez': 'Martinez', 'Miqueas Martinez': 'Martinez', 'Martínez': 'Martinez',
-        'Mari': 'Mari', 'Pablo Mari': 'Mari',
-        'Mateo': 'Mateo', 'Santiago Mateo': 'Mateo',
-        'Menchaca': 'Menchaca', 'Mateo Menchaca': 'Menchaca',
-        'Molina': 'Molina', 'Justiniano Molina': 'Molina',
-        'Olarte': 'Olarte', 'Juan Miguel Olarte': 'Olarte',
-        'Pedemonte': 'Pedemonte', 'Sebastian Pedemonte': 'Pedemonte',
-        'Diego Rocca': 'Rocca', 'Rocca': 'Rocca',
-        'Rodriguez': 'Rodriguez', 'Guillermo Rodriguez': 'Rodriguez',
-        'Silva': 'Silva', 'Bruno Silva': 'Silva',
-        'Gaston Silva': 'G. Silva', 'G. Silva': 'G. Silva',
-        'Sparkov': 'Sparkov', 'Santiago Sparkov': 'Sparkov',
-        'Valle': 'Valle', 'Joaquin Valle': 'Valle',
-        'Vigil': 'Vigil', 'Sebastian Vigil': 'Vigil',
-        'Balestie': 'Balestie', 'Kevin Balestie': 'Balestie'
-    };
-
-    if (visualMap[n]) return visualMap[n];
-    return n;
-}
+// PLAYER_MAP and normalizePlayerName are now globally provided by db.js
 
 function normalize_p(p) {
     if (!p) return {};
     return {
-        PLAYER: p.PLAYER || p.nombre || p.player_name || '',
+        PLAYER: normalizePlayerName(p.PLAYER || p.nombre || p.player_name || ''),
         PJ: parseInt(p.PJ ?? p.pj ?? 0),
         PG: parseInt(p.PG ?? p.pg ?? 0),
         PE: parseInt(p.PE ?? p.pe ?? 0),
@@ -128,8 +54,12 @@ function applyYearFilters() {
             // Búsqueda inteligente por nombre o apellido
             let mapping = null;
             const upperName = norm.PLAYER.toUpperCase();
-            for (const [key, info] of Object.entries(PLAYER_MAP)) {
-                if (key.toUpperCase() === upperName || info.fullName.toUpperCase() === upperName) {
+            for (const [key, info] of Object.entries(window.PLAYER_MAP || {})) {
+                const upperKey = key.toUpperCase();
+                const upperFull = (info.fullName || "").toUpperCase();
+                const aliases = (info.aliases || []).map(a => a.toUpperCase());
+
+                if (upperName === upperKey || upperName === upperFull || aliases.includes(upperName)) {
                     mapping = info;
                     break;
                 }
@@ -210,12 +140,12 @@ function applyYearFilters() {
     if (term) {
         filteredPlayers = basePlayers.filter(p => {
             const csvName = (p.PLAYER || '').trim();
-            const mapping = PLAYER_MAP[csvName];
+            const mapping = (window.PLAYER_MAP || {})[csvName];
             const searchTargets = [csvName.toLowerCase()];
             
             if (mapping) {
-                searchTargets.push(mapping.fullName.toLowerCase());
-                mapping.aliases.forEach(a => searchTargets.push(a.toLowerCase()));
+                searchTargets.push((mapping.fullName || "").toLowerCase());
+                (mapping.aliases || []).forEach(a => searchTargets.push(a.toLowerCase()));
             }
             
             return searchTargets.some(target => target.includes(term));
