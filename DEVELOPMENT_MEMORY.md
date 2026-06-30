@@ -129,3 +129,69 @@ PENDIENTE — próxima sesión:
 - render.yaml y Procfile en la raíz del proyecto parecen ser de un intento de
   deploy en Render no usado — el deploy activo real es Netlify. Confirmar si
   se puede limpiar.
+
+## Sesión de continuación — Finanzas, Roster y UX del Admin (mismo día, tercera parte)
+
+RESUELTO:
+- Bug funcional: convertUpcoming() comparaba u.id (number) con upcomingId
+  (string) con igualdad estricta, fallando en silencio. Fix: parseInt() del
+  argumento, mismo patrón que ya usaba showUpcomingForm(). Pendiente de
+  confirmar con un caso real el próximo domingo.
+- Nueva función "Crear Cierre" en Finanzas: archiva transacciones/multas/
+  cuotas actuales en una key nueva de config (finances_cierre_<nombre
+  sanitizado>_<timestamp>), con nombre libre editable por el usuario. Resetea
+  transacciones, multas, deadlines, y cuotas (vuelven a paid:0/multas:0)
+  manteniendo el roster y respetando cuotaObjetivo. Pantalla para LISTAR/VER
+  cierres archivados queda pendiente para otra sesión (la data ya se guarda
+  bien, solo falta la UI de consulta).
+- Bug de diseño encontrado y resuelto: renderBalance() sumaba solo
+  transacciones activas, así que el primer "Cierre" vació el balance visible
+  a $0 aunque los datos reales seguían guardados. Fix: nuevo campo
+  financesData.balanceHistorico = { ingresos, egresos } que se acumula en
+  confirmarCierre() antes del reset, y que renderBalance() lee sumándolo a
+  las transacciones activas. El balance del primer cierre (que se hizo antes
+  del fix) se restauró manualmente vía SQL con los valores reales: ingresos
+  $58.860, egresos $47.259.
+- Nuevo panel "Configuración de Cuotas del Torneo" en Finanzas:
+  - Campo cuotaObjetivo editable + botón "Aplicar a todos" (actualiza el
+    total de los 15 jugadores del roster sin tocar paid/multas, con
+    confirmación modal).
+  - 3 campos editables para los "precios rápidos" del modal de pago
+    (financesData.preciosRapidos), reemplazando los literales hardcodeados
+    $495/$990/$2970. showPagoForm() ahora los lee dinámicamente con fallback
+    a esos valores si el campo no existe.
+- Eliminado el panel "Costo por Fecha" (financesData.costoFecha) — era
+  puramente decorativo, no se usaba en ningún cálculo.
+- Fix de estilo: los 3 inputs de precios rápidos no tenían el wrapper
+  form-group, se veían con estilo default del navegador. Corregido.
+- Configuración aplicada para el torneo nuevo (Copa, fase de grupos, 3
+  fechas): cuotaObjetivo = 880, aplicado a los 15 jugadores. Excepciones:
+  De Leon, Sparkov y Olarte no juegan fase de grupos — deben editarse a mano
+  con total:0 vía el editor individual de cuotas.
+
+PENDIENTE — próxima sesión:
+- Confirmar fix de convertUpcoming() con un partido real vencido (próximo
+  domingo).
+- Ajustar manualmente total:0 para De Leon, Sparkov y Olarte en cuotas (si
+  no se hizo ya).
+- Pantalla de listado/consulta de cierres archivados (finances_cierre_*).
+- Auditoría de notificaciones WhatsApp: revisar en qué acciones aparece el
+  botón "Avisar por WhatsApp" y decidir cuáles sacar.
+- Generador de resumen mensual de finanzas en texto para WhatsApp (reemplaza
+  trabajo manual de un compañero).
+- Tabla de Liga en el home sigue mostrando la tabla vieja de Apertura — hay
+  que sacarla/resetear.
+- Mobile/UX: fecha/hora se desborda de la tabla al cargar partido en celular;
+  reportados otros problemas de scroll/elementos corridos sin detalle
+  específico todavía — pendiente de capturas o recorrido guiado.
+- Feature propuesta (no diseñada todavía): trazabilidad de quién y cuándo
+  creó/editó cada dato (partidos, movimientos de plata, etc.) — campos tipo
+  creadoPor/creadoEn/editadoPor/editadoEn. Transversal a varias tablas,
+  requiere sesión dedicada de diseño.
+- Deuda técnica estructural: dos sistemas de normalización de nombres
+  independientes (admin.js y db.js) pueden desincronizarse con futuros
+  jugadores nuevos.
+- data/players.json y db.js → rosterBase siguen con listas hardcodeadas
+  viejas, afectan al HOME (no al admin).
+- render.yaml y Procfile parecen código muerto de un intento de deploy en
+  Render — deploy activo real es Netlify. Confirmar si se puede limpiar.
