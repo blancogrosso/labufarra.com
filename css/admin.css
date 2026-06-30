@@ -613,33 +613,23 @@ body {
     flex-shrink: 0;
 }
 
-/* ═══ MOBILE MATCH CARD — Problema A (layout vertical) ═══
-   PARA REVERTIR a "Opción B" (botones compactos al lado, layout horizontal):
-   borrar este bloque @media completo. .match-item vuelve a heredar el
-   flex row de desktop automáticamente, sin tocar nada más. ═══ */
+/* ═══ MOBILE MATCH CARD — Opción B (íconos compactos) ═══
+   Se mantiene el layout horizontal de desktop (.match-item sigue siendo flex
+   row, sin override de grid). Solo se reducen badge/íconos en mobile para
+   liberar ancho al resultado del partido. ═══ */
 @media (max-width: 768px) {
-    .match-item {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        grid-template-areas:
-            "info badge"
-            "info actions";
-        align-items: start;
-        gap: 0.4rem 0.75rem;
+    .match-item .match-actions {
+        gap: 0.3rem;
     }
-    .match-info {
-        grid-area: info;
+    .match-item .match-actions .btn-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
     }
-    .result-badge {
-        grid-area: badge;
-        justify-self: end;
-    }
-    .match-actions {
-        grid-area: actions;
-        flex-direction: column;
-        align-items: flex-end;
-        justify-self: end;
-        gap: 0.4rem;
+    .match-item .result-badge {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
     }
 }
 /* ═══ FIN bloque Problema A ═══ */
