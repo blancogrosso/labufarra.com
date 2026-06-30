@@ -876,7 +876,7 @@ function normalizeName(name) {
         'rocca': 'Diego Rocca', 'diego rocca': 'Diego Rocca',
         'rodriguez': 'Rodriguez', 'guillermo rodriguez': 'Rodriguez',
         'silva': 'Bruno Silva', 'bruno silva': 'Bruno Silva',
-        'gaston silva': 'Gaston Silva',
+        'gaston silva': 'Gaston Silva', 'silva gaston': 'Gaston Silva', 'silva, gaston': 'Gaston Silva',
         'sparkov': 'Sparkov', 'santiago sparkov': 'Sparkov',
         'valle': 'Valle', 'joaquin valle': 'Valle',
         'vigil': 'Vigil', 'sebastian vigil': 'Vigil',
