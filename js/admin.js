@@ -2012,6 +2012,97 @@ async function deleteDeadline(id) {
     }, 'Eliminar', 'danger');
 }
 
+// ─── CIERRE DE PERÍODO ───
+
+function showCierreModal() {
+    const transacciones = financesData.transacciones || [];
+    let ingresos = 0, egresos = 0;
+    transacciones.forEach(t => {
+        const m = parseFloat(t.monto) || 0;
+        if (t.tipo === 'ingreso') ingresos += m; else egresos += m;
+    });
+    (financesData.multas || []).forEach(m => {
+        if (m.pagada) ingresos += parseFloat(m.monto) || 0;
+    });
+    const saldo = ingresos - egresos;
+    const hoy = new Date();
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const yyyy = hoy.getFullYear();
+    const fechaDefault = `${dd}/${mm}/${yyyy}`;
+
+    openModal('Crear Cierre de Período', `
+        <div style="margin-bottom:1.2rem">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.8rem; margin-bottom:1.2rem">
+                <div style="text-align:center; background:rgba(0,255,136,0.07); border-radius:8px; padding:0.8rem">
+                    <div style="color:var(--green); font-size:1.1rem; font-weight:700">+$${ingresos.toLocaleString()}</div>
+                    <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Ingresos</div>
+                </div>
+                <div style="text-align:center; background:rgba(255,80,80,0.07); border-radius:8px; padding:0.8rem">
+                    <div style="color:var(--red); font-size:1.1rem; font-weight:700">-$${egresos.toLocaleString()}</div>
+                    <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Egresos</div>
+                </div>
+                <div style="text-align:center; background:rgba(255,255,255,0.04); border-radius:8px; padding:0.8rem">
+                    <div style="color:${saldo >= 0 ? 'var(--green)' : 'var(--red)'}; font-size:1.1rem; font-weight:700">${saldo >= 0 ? '+' : ''}$${saldo.toLocaleString()}</div>
+                    <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Saldo</div>
+                </div>
+            </div>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 1rem">
+                Se archivarán ${transacciones.length} transacción(es) y ${(financesData.multas||[]).length} multa(s).
+                Las cuotas, multas y transacciones quedarán en cero para el nuevo período.
+            </p>
+            <div class="form-group">
+                <label>Nombre del cierre</label>
+                <input type="text" id="cierreNombre" value="Cierre ${fechaDefault}" style="width:100%">
+            </div>
+        </div>
+        <button class="btn btn-danger" style="width:100%" onclick="confirmarCierre()">
+            <i class="ph-bold ph-archive"></i> Confirmar Cierre
+        </button>
+    `);
+}
+
+async function confirmarCierre() {
+    const nombre = (document.getElementById('cierreNombre')?.value || '').trim();
+    if (!nombre) { toast('Ingresá un nombre para el cierre', 'error'); return; }
+
+    const keySlug = removeAccents(nombre).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const key = `finances_cierre_${keySlug}_${Date.now()}`;
+
+    const archivo = {
+        nombre,
+        fechaCierre: new Date().toISOString().split('T')[0],
+        transacciones: [...(financesData.transacciones || [])],
+        multas: [...(financesData.multas || [])],
+        cuotas: { ...(financesData.cuotas || {}) }
+    };
+
+    const res1 = await spFetch('config', 'POST', { key, value: archivo }, '*', { 'Prefer': 'resolution=merge-duplicates' });
+    if (res1 === null) {
+        toast('Error al guardar el archivo. No se hicieron cambios.', 'error');
+        return;
+    }
+
+    const cuotaObjetivo = financesData.cuotaObjetivo || 2970;
+    const cuotasReset = {};
+    (roster || []).forEach(j => { cuotasReset[j] = { paid: 0, total: cuotaObjetivo, multas: 0 }; });
+
+    financesData.transacciones = [];
+    financesData.multas = [];
+    financesData.deadlines = [];
+    financesData.cuotas = cuotasReset;
+
+    const res2 = await spFetch('config?key=eq.finances', 'PATCH', { value: financesData });
+    if (res2 === null) {
+        toast('El archivo se guardó pero el reset falló. Recargá la página antes de continuar.', 'error');
+        return;
+    }
+
+    closeModal();
+    toast(`Cierre "${nombre}" creado. Período reiniciado.`, 'success');
+    renderFinances();
+}
+
 // ─── MODAL ───
 function openModal(title, bodyHtml) {
     document.getElementById('modalTitle').textContent = title;
