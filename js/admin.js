@@ -49,25 +49,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ─── Supabase Helper ───
-async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
+async function spFetch(endpoint, method = 'GET', body = null, select = '*', extraHeaders = {}) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+
+    if (method !== 'GET' && !session) {
+        console.error(`spFetch: escritura sin sesión activa (${method} ${endpoint})`);
+        throw new Error('Sesión no activa. Iniciá sesión antes de guardar cambios.');
+    }
+
+    const token = session?.access_token ?? SUPABASE_KEY;
+
     let finalUrl = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-    
+
     if (method === 'GET') {
         const hasParams = finalUrl.includes('?');
         const sep = hasParams ? '&' : '?';
-        
+
         // Add select if not already in URL
         if (select && !finalUrl.includes('select=')) {
             finalUrl += `${sep}select=${select}`;
         }
     }
-    
+
     const opts = {
         method,
-        headers: { 
+        headers: {
             ...SP_HEADERS,
+            'Authorization': `Bearer ${token}`,
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Pragma': 'no-cache',
+            ...extraHeaders
         }
     };
     if (body) opts.body = JSON.stringify(body);
@@ -81,17 +92,16 @@ async function spFetch(endpoint, method = 'GET', body = null, select = '*') {
             const errorText = await res.text();
             throw new Error(`Supabase Error: ${res.status} ${errorText}`);
         }
-        
+
         // Handle 204 No Content or empty bodies
         if (res.status === 204 || res.headers.get('content-length') === '0') {
             return {};
         }
-        
+
         const text = await res.text();
         return text ? JSON.parse(text) : {};
     } catch (e) {
         console.error('Supabase Fetch Error:', e);
-        // Silently fail for certain operations or toast for critical ones
         return null;
     }
 }
@@ -2053,11 +2063,7 @@ async function confirmPlayerRename(oldName) {
             };
             
             // Upsert manual
-            await fetch(`${SUPABASE_URL}/rest/v1/players_stats`, {
-                method: 'POST',
-                headers: { ...SP_HEADERS, "Prefer": "resolution=merge-duplicates" },
-                body: JSON.stringify(statRow)
-            });
+            await spFetch('players_stats', 'POST', statRow, '*', { "Prefer": "resolution=merge-duplicates" });
 
             // 2. Update Matches JSON (only if name changed)
             if (newName !== oldName) {
@@ -2424,22 +2430,13 @@ async function recalculateAllStats() {
         console.log(`Subiendo ${rowsToUpload.length} registros a Supabase con UPSERT...`);
         
         // UPSERT explícito basado en player_name y year
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/players_stats?on_conflict=player_name,year`, {
-            method: 'POST',
-            headers: { 
-                ...SP_HEADERS, 
-                "Prefer": "resolution=merge-duplicates" 
-            },
-            body: JSON.stringify(rowsToUpload)
-        });
+        const res = await spFetch('players_stats?on_conflict=player_name,year', 'POST', rowsToUpload, '*', { "Prefer": "resolution=merge-duplicates" });
 
-        if (res.ok) {
+        if (res !== null) {
             console.log("Recálculo maestro completado y subido ✓");
             await loadPlayers();
             return true;
         } else {
-            const errText = await res.text();
-            console.error("Fallo UPSERT de estadísticas:", errText);
             toast("Error al actualizar estadísticas globales", "error");
         }
     } catch (e) {
