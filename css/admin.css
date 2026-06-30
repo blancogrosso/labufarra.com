@@ -428,6 +428,7 @@ body {
 .form-group input[type="time"] {
     -webkit-appearance: none;
     appearance: none;
+    min-height: 2.5rem;
 }
 
 .form-group input:focus,
@@ -603,6 +604,29 @@ body {
     gap: 0.5rem;
     flex-shrink: 0;
 }
+
+/* ═══ MOBILE MATCH CARD — Problema A (layout vertical) ═══
+   PARA REVERTIR a "Opción B" (botones compactos al lado, layout horizontal):
+   borrar este bloque @media completo. .match-item vuelve a heredar el
+   flex row de desktop automáticamente, sin tocar nada más. ═══ */
+@media (max-width: 768px) {
+    .match-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "info  badge"
+            "actions actions";
+        align-items: center;
+        gap: 0.5rem 1rem;
+    }
+    .match-info { grid-area: info; }
+    .result-badge { grid-area: badge; }
+    .match-actions {
+        grid-area: actions;
+        justify-content: flex-end;
+    }
+}
+/* ═══ FIN bloque Problema A ═══ */
 
 /* ─── Stats Grid (Players) ─── */
 .stats-grid {
