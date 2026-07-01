@@ -221,10 +221,22 @@ PENDIENTE — próxima sesión:
    copiar/pegar a WhatsApp (reemplaza trabajo manual de un compañero).
 8. Sacar/resetear la tabla de Liga de Apertura del home — ya terminó el
    torneo, no debe seguir mostrándose.
-9. Mobile/UX: en el formulario de carga de partido, los campos de fecha/hora
-   se desbordan de la tabla en celular. Reportados otros problemas de scroll/
-   elementos corridos sin detalle específico — pendiente relevar con
-   capturas o recorrido guiado (admin se usa mayormente desde celular).
+9. Mobile/UX — EN PROGRESO:
+   - RESUELTO: inputs date/time más grandes en iOS (appearance: none + min-height)
+   - RESUELTO: metadata partido en una línea (white-space nowrap + ellipsis)
+   - RESUELTO: input fecha vacío en Próximos Partidos (min-height)
+   - RESUELTO: instancia unificada como dropdown con 19 opciones (INSTANCIA_OPTIONS)
+   - RESUELTO: botones cuotas celestes en iOS (appearance: none + btn-secondary)
+   - RESUELTO: label "Configuración de Cuotas" rompía layout (acortado + grid class)
+   - RESUELTO: botón "Guardar Cambios" gigante en edición de partido
+   - PENDIENTE: íconos de partido (V/E/D, editar, eliminar) siguen viéndose en
+     columna vertical en iPhone a pesar del último fix (Opción B — compactos
+     horizontal). Puede ser problema de caché del Service Worker (sw.js) o un
+     bug real en el CSS — verificar primero en ventana privada de Safari en iPhone
+     antes de tocar más código. Si es caché, problema resuelto. Si sigue en
+     vertical, revisar que el bloque @media del "MOBILE MATCH CARD" haya quedado
+     reemplazado correctamente (no duplicado).
+   - PENDIENTE: revisión de UX en versión desktop (anotado para sesión futura).
 10. Feature de trazabilidad (quién/cuándo creó-editó cada dato: partidos,
     movimientos de plata, etc.) — campos tipo creadoPor/creadoEn/editadoPor/
     editadoEn. Transversal a varias tablas, requiere sesión de diseño propia.
