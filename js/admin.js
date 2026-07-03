@@ -2593,17 +2593,22 @@ function showRecordatorioCuotaModal() {
                 <i class="ph-bold ph-plus"></i> Agregar otro monto
             </button>
         </div>
-        <div class="form-group">
-            <label>Lista de @</label>
-            <textarea id="cuotaListaArrobas" rows="2" placeholder="@nombre1 @nombre2 ..."></textarea>
-        </div>
-        <div class="form-group">
-            <label>Fecha límite</label>
-            <input type="text" id="cuotaFechaLimite" placeholder="ej: 10 julio 18hs">
+        <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+            <div class="form-group">
+                <label>Fecha límite</label>
+                <input type="date" id="cuotaFechaLimiteFecha">
+            </div>
+            <div class="form-group">
+                <label>Hora límite</label>
+                <input type="time" id="cuotaFechaLimiteHora" value="16:00">
+            </div>
         </div>
         <div class="form-actions">
             <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="enviarRecordatorioCuota()">
+            <button class="btn btn-secondary" onclick="copiarRecordatorioCuotaTexto()">
+                <i class="ph-bold ph-copy"></i> Copiar texto
+            </button>
+            <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="enviarRecordatorioCuotaWhatsApp()">
                 <i class="ph-bold ph-whatsapp-logo"></i> Abrir WhatsApp y Enviar
             </button>
         </div>
@@ -2634,18 +2639,47 @@ function quitarMontoRow(idx) {
     document.querySelector(`.cuota-monto-row[data-idx="${idx}"]`)?.remove();
 }
 
-function enviarRecordatorioCuota() {
+const MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+function formatFechaLimite(fechaISO, horaStr) {
+    if (!fechaISO) return '';
+    const [y, m, d] = fechaISO.split('-').map(Number);
+    let text = `${d} de ${MESES_ES[m - 1]}`;
+    if (horaStr) {
+        const [hh, mm] = horaStr.split(':');
+        const hora = parseInt(hh, 10);
+        text += mm && mm !== '00' ? ` a las ${hora}:${mm}hs` : ` a las ${hora}hs`;
+    }
+    return text;
+}
+
+function buildRecordatorioCuotaText() {
     const montos = Array.from(document.querySelectorAll('.cuota-monto-input'))
         .map(el => el.value.trim())
         .filter(v => v !== '');
-    if (montos.length === 0) { toast('Ingresá al menos un monto', 'error'); return; }
+    if (montos.length === 0) { toast('Ingresá al menos un monto', 'error'); return null; }
 
-    const arrobas = document.getElementById('cuotaListaArrobas').value.trim();
-    const fechaLimite = document.getElementById('cuotaFechaLimite').value.trim();
-    const montoLines = montos.map(m => `💵 Monto: *$${m}*`).join('\n');
+    const fechaVal = document.getElementById('cuotaFechaLimiteFecha').value;
+    const horaVal = document.getElementById('cuotaFechaLimiteHora').value || '16:00';
+    if (!fechaVal) { toast('Elegí la fecha límite', 'error'); return null; }
+    const fechaLimiteTexto = formatFechaLimite(fechaVal, horaVal);
 
-    const text = `*💰 RECORDATORIO DE PAGO*\n${montoLines}\n\n${arrobas}\n\n🏦 OCA: 8038866\n🛑 _FECHA LÍMITE: ${fechaLimite}_\nCualquier duda avisen.`;
+    const montoLines = montos.map(m => `💵 Monto: *$${m}*`).join('\n\n');
 
+    return `*💰 RECORDATORIO DE PAGO*\n${montoLines}\n\n🏦 OCA: 8038866\n🛑 _FECHA LÍMITE: ${fechaLimiteTexto}_\nCualquier duda avisen.`;
+}
+
+function copiarRecordatorioCuotaTexto() {
+    const text = buildRecordatorioCuotaText();
+    if (!text) return;
+    navigator.clipboard.writeText(text)
+        .then(() => toast('Texto copiado ✓', 'success'))
+        .catch(() => toast('No se pudo copiar', 'error'));
+}
+
+function enviarRecordatorioCuotaWhatsApp() {
+    const text = buildRecordatorioCuotaText();
+    if (!text) return;
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
     closeModal();
 }
