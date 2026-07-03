@@ -180,7 +180,7 @@ PENDIENTE — próxima sesión:
 - Generador de resumen mensual de finanzas en texto para WhatsApp (reemplaza
   trabajo manual de un compañero).
 - Tabla de Liga en el home sigue mostrando la tabla vieja de Apertura — hay
-  que sacarla/resetear.
+  que sacarla/resetearla.
 - Mobile/UX: fecha/hora se desborda de la tabla al cargar partido en celular;
   reportados otros problemas de scroll/elementos corridos sin detalle
   específico todavía — pendiente de capturas o recorrido guiado.
@@ -196,83 +196,53 @@ PENDIENTE — próxima sesión:
 - render.yaml y Procfile parecen código muerto de un intento de deploy en
   Render — deploy activo real es Netlify. Confirmar si se puede limpiar.
 
-## Backlog confirmado al cierre de la sesión — pendiente para sesiones futuras
+## Sesión — Admin: Reportes, Finanzas, Notificaciones, UX Mobile (Jul 2026)
 
-1. Confirmar fix de convertUpcoming() con un partido real vencido (domingo).
-2. Ajustar manualmente total:0 en cuotas para De Leon, Sparkov y Olarte (no
-   juegan fase de grupos de la Copa) — lo hace el usuario directamente, no
-   requiere código.
-3. NUEVO — Filtro por torneo en la sección Jugadores del admin: partidos.html
-   (web pública) ya tiene filtros por torneo/amistosos funcionando. Antes de
-   implementar en el admin, revisar cómo arma esos filtros partidos.html/db.js
-   (probablemente un campo "instancia" o "tipo" en matches) y replicar la
-   misma lógica para poder filtrar estadísticas de jugadores por torneo,
-   además del filtro por año que ya existe.
-4. NUEVO — Reporte de asistencia: lista "jugador → partidos jugados (A) /
-   partidos totales posibles (B)", filtrable por torneo o por año. El usuario
-   armaba esto a mano al cierre de cada torneo. Derivado de datos existentes
-   en matches/players_stats, no requiere campos nuevos.
-5. Pantalla de listado/consulta de cierres archivados de Finanzas
-   (finances_cierre_*) — la data ya se guarda bien, falta la UI de consulta.
-6. Auditoría de notificaciones WhatsApp: revisar en qué acciones del admin
-   aparece el botón "Avisar por WhatsApp" hoy, y decidir cuáles sacar (el
-   usuario mencionó que no todas son necesarias).
-7. Generador de resumen mensual de finanzas en texto, formato listo para
-   copiar/pegar a WhatsApp (reemplaza trabajo manual de un compañero).
-8. Sacar/resetear la tabla de Liga de Apertura del home — ya terminó el
-   torneo, no debe seguir mostrándose.
-9. Mobile/UX — EN PROGRESO:
-   - RESUELTO: inputs date/time más grandes en iOS (appearance: none + min-height)
-   - RESUELTO: metadata partido en una línea (white-space nowrap + ellipsis)
-   - RESUELTO: input fecha vacío en Próximos Partidos (min-height)
-   - RESUELTO: instancia unificada como dropdown con 19 opciones (INSTANCIA_OPTIONS)
-   - RESUELTO: botones cuotas celestes en iOS (appearance: none + btn-secondary)
-   - RESUELTO: label "Configuración de Cuotas" rompía layout (acortado + grid class)
-   - RESUELTO: botón "Guardar Cambios" gigante en edición de partido
-   - PENDIENTE: íconos de partido (V/E/D, editar, eliminar) siguen viéndose en
-     columna vertical en iPhone a pesar del último fix (Opción B — compactos
-     horizontal). Puede ser problema de caché del Service Worker (sw.js) o un
-     bug real en el CSS — verificar primero en ventana privada de Safari en iPhone
-     antes de tocar más código. Si es caché, problema resuelto. Si sigue en
-     vertical, revisar que el bloque @media del "MOBILE MATCH CARD" haya quedado
-     reemplazado correctamente (no duplicado).
-   - PENDIENTE: revisión de UX en versión desktop (anotado para sesión futura).
-10. Feature de trazabilidad (quién/cuándo creó-editó cada dato: partidos,
-    movimientos de plata, etc.) — campos tipo creadoPor/creadoEn/editadoPor/
-    editadoEn. Transversal a varias tablas, requiere sesión de diseño propia.
-11. Deuda técnica: dos sistemas de normalización de nombres independientes
-    (normalizeName() en admin.js vs normalizePlayerName()/PLAYER_MAP en
-    db.js) pueden desincronizarse con futuros jugadores nuevos. Candidato a
-    unificar en una sola fuente de verdad.
-12. data/players.json y db.js → rosterBase siguen con listas hardcodeadas
-    viejas de 14 jugadores — afectan al HOME (no al admin), no se tocó esta
-    sesión a propósito.
-13. Confirmar si render.yaml y Procfile son código muerto de un intento de
-    deploy en Render no usado (deploy activo real es Netlify).
+RESUELTO:
+- Buscador de jugadores: bug de nombre de propiedad corregido, ahora busca
+  por clave + fullName + aliases via PLAYER_MAP.
+- Pastillas de jugadores: muestran nombre completo via PLAYER_MAP, clave
+  interna intacta.
+- js/player-map.js creado (window.PLAYER_MAP aislado, sin auto-arranque) e
+  incluido en admin.html.
+- Modales de WhatsApp post-guardado de partido y próximo partido eliminados.
+- Plantillas "Horario Confirmado" y "Convocatoria" eliminadas.
+- Pestaña "Notificaciones" renombrada a "Reportes".
+- Nueva sección Reportes: filtro año + torneo, tres vistas (Asistencia por
+  jugador / Asistencia por partido / Detalle por partido), botones Copiar y
+  Enviar por WhatsApp. Pretemporada excluida. Orden cronológico. Header con
+  récord del equipo en Detalle.
+- Reorganización Finanzas: Config. Cuotas como modal junto a Administrar
+  Plantel; Cierre de Período dentro de Gastos e Ingresos.
+- Historial de cierres archivados clickeable con detalle por categoría.
+- Generador de informe por rango libre: combina transacciones archivadas +
+  activas, agrupa por categoría, muestra ingresos/egresos/balance, campo de
+  observaciones, botones Copiar y Enviar por WhatsApp.
+- Modal "Recordatorio de Cuota" reestructurado: montos con botones rápidos
+  (financesData.preciosRapidos) + input libre + agregar montos, fecha límite
+  con calendario + hora (default 16hs), botones Copiar y Enviar por WhatsApp.
+- UX Mobile resueltos: inputs date/time iOS, metadata partido en una línea,
+  instancia unificada como dropdown (INSTANCIA_OPTIONS), botones cuotas iOS,
+  layout config cuotas mobile, botón guardar partido, íconos partido
+  compactos horizontal.
 
-## Cierre de sesión — investigación tabla de Liga automática
-
-Se investigó la posibilidad de automatizar la carga de la tabla de posiciones
-(hoy 100% manual) desde ligapro.uy/campeonatos/501. Hallazgos:
-- La página es una SPA que carga "Posiciones" vía JavaScript, no está en el
-  HTML inicial — un fetch simple no trae los datos.
-- Existe un subdominio interno.ligapro.uy que sugiere una API propia detrás,
-  pero no se pudo confirmar su estructura sin herramientas de inspección de
-  red en navegador real.
-- El usuario mencionó una posible herramienta de "generar imagen para CM" en
-  el sitio (para exportar la tabla como imagen) que podría revelar una API
-  con los datos en crudo antes de renderizarlos — no se pudo investigar a
-  fondo en esta sesión por limitaciones de las herramientas de fetch estático.
-
-PRÓXIMO PASO (cuando se retome): usar Claude para Chrome (extensión de
-navegador) para abrir el sitio real, ir a la pestaña Network de DevTools, y
-ver qué requests dispara la pestaña "Posiciones" o la herramienta de exportar
-imagen — si hay una API JSON identificable ahí, se puede armar un script
-Python (mismo patrón que sincronizar_stats.py) para automatizar la
-sincronización con config.league_table en Supabase. Si no hay API accesible,
-la alternativa es un parser de texto pegado en el admin en vez de carga
-manual campo por campo.
-
-Mientras tanto, la tabla de Liga vieja de Apertura sigue visible en el home
-sin actualizar — sigue pendiente sacarla/resetearla manualmente (ítem ya
-anotado en el backlog de la sesión anterior).
+PENDIENTE AL CIERRE DE HOY:
+- Confirmar fix convertUpcoming() con partido real — este domingo.
+- Fix botones modal Recordatorio de Cuota mal alineados en mobile (Cancelar
+  cortado, botones desproporcionados).
+- Revisar sección Reportes cuando arranque el Intermedio con datos reales.
+- Generador de recordatorio de pago por saldo — en pausa hasta definir
+  manejo de fechas de corte.
+- Desktop UX — revisión general pendiente de relevar.
+- Web pública — secciones sin terminar, trabajo aparte para cuando cerremos
+  el admin.
+- Trazabilidad creadoPor/editadoPor — requiere sesión de diseño propia.
+- Unificar sistemas de normalización de nombres (admin.js vs db.js).
+- data/players.json y rosterBase desactualizados (afectan home).
+- render.yaml/Procfile — confirmar si son código muerto.
+- Tabla de Liga vieja de Apertura en el home — resetear cuando arranque
+  la Copa y se confirmen los equipos de fase de grupos.
+- Filtro por torneo en Jugadores — dejado para cuando haya historial
+  completo por partido (2021-2025 sin desglose por partido todavía).
+- Automatización tabla de posiciones ligapro.uy — investigar con Claude
+  para Chrome (pestaña Network para encontrar API interna).
