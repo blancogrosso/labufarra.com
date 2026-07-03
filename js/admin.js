@@ -2603,12 +2603,12 @@ function showRecordatorioCuotaModal() {
                 <input type="time" id="cuotaFechaLimiteHora" value="16:00">
             </div>
         </div>
-        <div class="form-actions">
-            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-secondary" onclick="copiarRecordatorioCuotaTexto()">
+        <div class="form-actions" style="flex-wrap:wrap; gap:0.5rem;">
+            <button class="btn btn-secondary btn-sm" style="white-space:nowrap; padding:8px 10px; font-size:0.68rem; letter-spacing:0.5px;" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-secondary btn-sm" style="white-space:nowrap; padding:8px 10px; font-size:0.68rem; letter-spacing:0.5px;" onclick="copiarRecordatorioCuotaTexto()">
                 <i class="ph-bold ph-copy"></i> Copiar texto
             </button>
-            <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="enviarRecordatorioCuotaWhatsApp()">
+            <button class="btn btn-primary btn-sm" style="white-space:nowrap; padding:8px 10px; font-size:0.68rem; letter-spacing:0.5px; width:auto; background:#25D366; color:#000;" onclick="enviarRecordatorioCuotaWhatsApp()">
                 <i class="ph-bold ph-whatsapp-logo"></i> Abrir WhatsApp y Enviar
             </button>
         </div>
