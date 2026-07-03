@@ -232,7 +232,7 @@ function switchTab(tabName) {
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById(`tab-${tabName}`).style.display = 'block';
 
-    if (tabName === 'notificaciones') loadNotifications();
+    if (tabName === 'reportes') renderReportes();
 }
 
 // ─── ROSTER ───
@@ -2341,38 +2341,6 @@ function setUpcomingTime(val) {
     }
 }
 
-async function loadNotifications() {
-    const list = document.getElementById('notificationsList');
-    if (!list) return;
-    
-    try {
-        const data = await spFetch('notifications?order=created_at.desc&limit=15', 'GET');
-        if (!data || data.length === 0) {
-            list.innerHTML = '<div class="empty-state"><p>No hay mensajes enviados.</p></div>';
-            return;
-        }
-
-        list.innerHTML = data.map(n => `
-            <div class="panel" style="margin-bottom:0.8rem; background:rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
-                <div style="flex:1">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem">
-                        <strong style="color:var(--blue)">${n.title}</strong>
-                        <span style="font-size:0.75rem; color:var(--text-dim)">${new Date(n.created_at || n.date).toLocaleDateString()}</span>
-                    </div>
-                    <p style="font-size:0.85rem; margin:0">${n.body}</p>
-                </div>
-                <div class="action-group" style="display:flex; gap:0.4rem;">
-                    <button class="btn btn-icon btn-danger btn-sm" onclick="deleteNotification('${n.id}')">
-                        <i class="ph-bold ph-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    } catch (e) {
-        list.innerHTML = '<p style="color:var(--red); padding:1rem;">Error al cargar historial.</p>';
-    }
-}
-
 async function broadcastPush() {
     const title = document.getElementById('pushTitle').value.trim();
     const body = document.getElementById('pushBody').value.trim();
@@ -2421,16 +2389,6 @@ function toggleFinancesList(e) {
     if (btn) btn.innerHTML = isHidden ? '<i class="ph-bold ph-caret-up"></i>' : '<i class="ph-bold ph-caret-down"></i>';
 }
 
-async function deleteNotification(id) {
-    confirmAction('Eliminar Historial', '¿Eliminar este mensaje del historial de notificaciones?', async () => {
-        const res = await spFetch(`notifications?id=eq.${id}`, 'DELETE');
-        if (res !== null) {
-            toast('Mensaje eliminado ✓', 'success');
-            loadNotifications();
-        }
-    }, 'Eliminar', 'danger');
-}
-
 let financeOrderAsc = false;
 function toggleFinanceOrder(e) {
     if (e) e.stopPropagation();
@@ -2443,13 +2401,158 @@ function toggleFinanceOrder(e) {
     renderFinances();
 }
 
-function toggleNotificationsList() {
-    const wrapper = document.getElementById("notificationsList");
-    const btn = document.getElementById("toggleNotificationsBtn");
-    if (!wrapper) return;
-    const isHidden = (wrapper.style.display === "none");
-    wrapper.style.display = isHidden ? "block" : "none";
-    if (btn) btn.innerHTML = isHidden ? '<i class="ph-bold ph-caret-up"></i>' : '<i class="ph-bold ph-caret-down"></i>';
+// ─── REPORTES ───
+let currentReportTorneo = null;
+let currentReportType = 'asistencia';
+
+function get2026Matches() {
+    return (matchesData || []).filter(m => parseInt(m.año) >= 2026);
+}
+
+function renderReportes() {
+    const matches = get2026Matches();
+    const torneos = [...new Set(matches.map(m => m.torneo).filter(Boolean))];
+    // Default: torneo del partido más reciente (matchesData ya viene ordenado por fecha desc)
+    if (!currentReportTorneo || !torneos.includes(currentReportTorneo)) {
+        currentReportTorneo = matches[0]?.torneo || torneos[0] || null;
+    }
+
+    const filtersContainer = document.getElementById('reportTorneoFilters');
+    if (filtersContainer) {
+        filtersContainer.innerHTML = torneos.map(t =>
+            `<button type="button" class="filter-pill ${t === currentReportTorneo ? 'active' : ''}" onclick="selectReportTorneo('${t}')">${t}</button>`
+        ).join('');
+    }
+
+    document.querySelectorAll('#reportTypeToggle .filter-pill').forEach(b =>
+        b.classList.toggle('active', b.dataset.reportType === currentReportType)
+    );
+
+    renderReportContent();
+}
+
+function selectReportTorneo(torneo) {
+    currentReportTorneo = torneo;
+    renderReportes();
+}
+
+function selectReportType(type) {
+    currentReportType = type;
+    renderReportes();
+}
+
+function getReportMatches() {
+    return get2026Matches().filter(m => m.torneo === currentReportTorneo);
+}
+
+function playerDisplayName(key) {
+    const mapping = (window.PLAYER_MAP || {})[key];
+    return mapping ? mapping.fullName : key;
+}
+
+function renderReportContent() {
+    const matches = getReportMatches();
+    const container = document.getElementById('reportContent');
+    if (!container) return;
+    if (matches.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay partidos para este torneo.</p></div>';
+        return;
+    }
+    container.innerHTML = currentReportType === 'asistencia'
+        ? buildAsistenciaHTML(matches)
+        : buildDetalleHTML(matches);
+}
+
+function buildAsistenciaCounts(matches) {
+    const counts = {};
+    matches.forEach(m => {
+        Object.keys(m.jugadores || {}).forEach(key => {
+            if (key.startsWith('__')) return;
+            counts[key] = (counts[key] || 0) + 1;
+        });
+    });
+    return counts;
+}
+
+function buildAsistenciaHTML(matches) {
+    const counts = buildAsistenciaCounts(matches);
+    const total = matches.length;
+    const rows = Object.entries(counts)
+        .map(([key, pj]) => ({ key, pj, pct: Math.round(pj / total * 100) }))
+        .sort((a, b) => b.pj - a.pj);
+
+    return `
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+            <thead><tr style="text-align:left; border-bottom:1px solid var(--border);">
+                <th style="padding:8px 4px;">Jugador</th><th>PJ</th><th>Total</th><th>%</th>
+            </tr></thead>
+            <tbody>
+                ${rows.map(r => `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:8px 4px;">${playerDisplayName(r.key)}</td>
+                        <td>${r.pj}</td><td>${total}</td><td>${r.pct}%</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+function buildDetalleHTML(matches) {
+    return matches.map(m => {
+        const jugadores = Object.entries(m.jugadores || {}).filter(([k]) => !k.startsWith('__'));
+        return `
+            <details class="panel" style="margin-bottom:0.75rem;">
+                <summary style="cursor:pointer; display:flex; justify-content:space-between; font-weight:700;">
+                    <span>${m.fecha} · vs ${m.rival}</span><span>${m.gf} - ${m.gc}</span>
+                </summary>
+                <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.3rem; font-size:0.85rem;">
+                    ${jugadores.map(([key, d]) => `
+                        <div>${playerDisplayName(key)}
+                            ${d.goles ? ` ⚽${d.goles}` : ''}${d.asistencias ? ` 🅰${d.asistencias}` : ''}${d.amarillas ? ` 🟨${d.amarillas}` : ''}${d.rojas ? ` 🟥${d.rojas}` : ''}${d.mvp ? ' ⭐MVP' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </details>
+        `;
+    }).join('');
+}
+
+function buildReportText() {
+    const matches = getReportMatches();
+    let text = `*LA BUFARRA - ${currentReportType === 'asistencia' ? 'Reporte de Asistencia' : 'Detalle de Partidos'}*\nTorneo: ${currentReportTorneo}\n\n`;
+
+    if (currentReportType === 'asistencia') {
+        const counts = buildAsistenciaCounts(matches);
+        const total = matches.length;
+        Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([key, pj], i) => {
+                text += `${i + 1}. ${playerDisplayName(key)} — ${pj}/${total} (${Math.round(pj / total * 100)}%)\n`;
+            });
+    } else {
+        matches.forEach(m => {
+            text += `📅 ${m.fecha} vs ${m.rival}: ${m.gf}-${m.gc}\n`;
+            Object.entries(m.jugadores || {}).forEach(([key, d]) => {
+                if (key.startsWith('__')) return;
+                if (d.goles) text += `⚽ ${playerDisplayName(key)} (${d.goles})\n`;
+                if (d.mvp) text += `⭐ MVP: ${playerDisplayName(key)}\n`;
+            });
+            text += '\n';
+        });
+    }
+
+    return text;
+}
+
+function copyReportText() {
+    navigator.clipboard.writeText(buildReportText())
+        .then(() => toast('Reporte copiado ✓', 'success'))
+        .catch(() => toast('No se pudo copiar', 'error'));
+}
+
+function sendReportWhatsApp() {
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(buildReportText()), '_blank');
 }
 
 function fillFromLastMatch() {

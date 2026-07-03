@@ -74,8 +74,8 @@
             <button class="tab-btn" data-tab="finanzas" onclick="switchTab('finanzas')">
                 <i class="ph-bold ph-wallet"></i> Finanzas
             </button>
-            <button class="tab-btn" data-tab="notificaciones" onclick="switchTab('notificaciones')">
-                <i class="ph-bold ph-bell-ringing"></i> Notificaciones
+            <button class="tab-btn" data-tab="reportes" onclick="switchTab('reportes')">
+                <i class="ph-bold ph-chart-bar"></i> Reportes
             </button>
             <button class="tab-btn" data-tab="liga" onclick="switchTab('liga')">
                 <i class="ph-bold ph-ranking"></i> Liga
@@ -381,12 +381,12 @@
         </div>
     </div>
     
-    <!-- ═══ TAB: NOTIFICACIONES ═══ -->
-    <section id="tab-notificaciones" class="tab-content">
+    <!-- ═══ TAB: REPORTES ═══ -->
+    <section id="tab-reportes" class="tab-content">
         <div class="panel-header">
             <h2><i class="ph-bold ph-whatsapp-logo"></i> Difusión por WhatsApp</h2>
         </div>
-        
+
         <div class="panel" style="margin-bottom: 2rem; border-left: 4px solid #25D366;">
             <h3><i class="ph-bold ph-paper-plane-tilt"></i> Generar Aviso para el Grupo</h3>
             <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">Creá el mensaje y el sistema abrirá tu aplicación de WhatsApp (o Web) lista para que elijas el grupo de La Bufarra y mandes la info al instante, 100% gratis.</p>
@@ -408,15 +408,27 @@
                 <i class="ph-bold ph-whatsapp-logo"></i> Abrir WhatsApp y Enviar
             </button>
         </div>
+
+        <div class="panel-header" style="margin-top:2rem;">
+            <h2><i class="ph-bold ph-chart-bar"></i> Reportes 2026</h2>
+        </div>
         <div class="panel">
-            <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
-                <h3 style="margin:0"><i class="ph-bold ph-clock-counter-clockwise"></i> Historial Reciente</h3>
-                <button class="btn btn-icon btn-secondary" id="toggleNotificationsBtn" onclick="toggleNotificationsList()">
-                    <i class="ph-bold ph-caret-up"></i>
-                </button>
+            <div id="reportTorneoFilters" class="quick-pills" style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;"></div>
+
+            <div id="reportTypeToggle" style="display:flex; gap:0.5rem; margin-bottom:1.5rem;">
+                <button type="button" class="filter-pill" data-report-type="asistencia" onclick="selectReportType('asistencia')">Asistencia por jugador</button>
+                <button type="button" class="filter-pill" data-report-type="detalle" onclick="selectReportType('detalle')">Detalle por partido</button>
             </div>
-            <div id="notificationsList" style="min-height: 100px;">
-                <div class="empty-state"><p>Cargando historial...</p></div>
+
+            <div id="reportContent"><div class="empty-state"><p>Cargando reporte...</p></div></div>
+
+            <div style="display:flex; justify-content:center; gap:0.75rem; margin-top:1.5rem; flex-wrap:wrap;">
+                <button class="btn btn-secondary" onclick="copyReportText()">
+                    <i class="ph-bold ph-copy"></i> Copiar texto
+                </button>
+                <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="sendReportWhatsApp()">
+                    <i class="ph-bold ph-whatsapp-logo"></i> Enviar por WhatsApp
+                </button>
             </div>
         </div>
     </section>
