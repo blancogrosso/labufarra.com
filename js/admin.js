@@ -701,35 +701,10 @@ async function saveMatch() {
         loadMatches();
         loadUpcoming(); // Refrescar próximos por si se borró
         loadPlayers();
-        
-        // Preguntar por WhatsApp usando modal para evitar parpadeo
-        const matchObjFinal = { ...matchObj };
-        setTimeout(() => {
-            openModal('Partido Guardado', `
-                <div style="text-align:center; padding: 1rem 0;">
-                    <i class="ph-bold ph-whatsapp-logo" style="font-size:3rem; color:#25D366; margin-bottom:1rem; display:block;"></i>
-                    <p>El partido se guardó con éxito.</p>
-                    <p style="margin-top:1rem;"><strong>¿Querés avisar de estos cambios al grupo de WhatsApp?</strong></p>
-                </div>
-                <div class="form-actions" style="justify-content:center; gap:1rem;">
-                    <button class="btn btn-secondary" onclick="closeModal()">No, solo guardar</button>
-                    <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="closeModal(); notifyWhatsAppMatch('${encodeURIComponent(JSON.stringify(matchObjFinal))}', ${!editingMatchId})">
-                        <i class="ph-bold ph-whatsapp-logo"></i> SÍ, AVISAR
-                    </button>
-                </div>
-            `);
-        }, 300);
     } else {
         console.error("Fallo al guardar partido:", matchObj);
         toast('Error al guardar en la nube. Revisá conexión.', 'error');
     }
-}
-
-function notifyWhatsAppMatch(matchObjJson, isNew) {
-    const match = JSON.parse(decodeURIComponent(matchObjJson));
-    const verb = isNew ? '¡Nuevo partido cargado!' : 'Atención: Hubo una corrección en las páginas de estadísticas del último partido.';
-    const text = `*La Bufarra - Panel Estadístico*\n${verb}\n\n*Rival:* ${match.rival}\n*Resultado:* La Bufarra ${match.gf} - ${match.gc} ${match.rival}\n\nRevisá los puntos en labufarra.com ⚽`;
-    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
 }
 
 function editMatch(matchId) {
@@ -1248,35 +1223,7 @@ async function saveUpcoming(editId) {
         const capturedEditId = editId; // Capture before potential reset
         closeModal();
         await loadUpcoming();
-        
-        const capturedData = { ...data };
-        const isNew = !editId;
-        setTimeout(() => {
-            openModal('Próximo Partido Guardado', `
-                <div style="text-align:center; padding: 1rem 0;">
-                    <i class="ph-bold ph-whatsapp-logo" style="font-size:3rem; color:#25D366; margin-bottom:1rem; display:block;"></i>
-                    <p>El próximo encuentro se agendó correctamente.</p>
-                    <p style="margin-top:1rem;"><strong>¿Querés avisar de este partido al grupo de WhatsApp?</strong></p>
-                </div>
-                <div class="form-actions" style="justify-content:center; gap:1rem;">
-                    <button class="btn btn-secondary" onclick="closeModal()">No, solo guardar</button>
-                    <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="closeModal(); notifyWhatsAppUpcoming('${encodeURIComponent(JSON.stringify(capturedData))}', ${isNew})">
-                        <i class="ph-bold ph-whatsapp-logo"></i> SÍ, AVISAR
-                    </button>
-                </div>
-            `);
-        }, 300);
     }
-}
-
-function notifyWhatsAppUpcoming(dataJson, isNew) {
-    const data = JSON.parse(decodeURIComponent(dataJson));
-    const verb = isNew ? '¡Atención banda, hay fecha confirmada!' : 'Atención: Hubo un cambio en los detalles del próximo partido.';
-    const d = data.fecha ? data.fecha.split('-').reverse().join('/') : 'A confirmar';
-    const h = data.hora ? data.hora + ' HS' : 'A confirmar';
-    const l = data.lugar ? data.lugar : 'A confirmar';
-    const text = `*La Bufarra - Próxima Fecha*\n${verb}\n\n*Rival:* ${data.rival}\n*Fecha:* ${d}\n*Hora:* ${h}\n*Sede:* ${l}\n\nPoné en labufarra.com si vas ⚽`;
-    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
 }
 
 function editUpcoming(id) {
@@ -2450,15 +2397,9 @@ window.setPushTemplate = function(type) {
     const tip = document.getElementById('waPollTip');
     if (tip) tip.style.display = 'block';
     
-    if (type === 'horario') {
-        titleInput.value = '🕒 HORARIO CONFIRMADO';
-        bodyInput.value = '¡Banda! Ya tenemos el detalle de la próxima fecha:\n\n📅 Fecha: \n⏰ Hora: \n📍 Sede: \n\nConfirmar asistencia en la web.';
-    } else if (type === 'cuota') {
+    if (type === 'cuota') {
         titleInput.value = '💰 RECORDATORIO DE PAGO';
         bodyInput.value = '¡Hola todos! Les recordamos que estamos en fecha de pago mensual de la cuota. \n\n💵 Monto: $ \n🏦 Alias/Transferencia: \n\nCualquier duda avisen.';
-    } else if (type === 'convocatoria') {
-        titleInput.value = '📋 CONVOCATORIA';
-        bodyInput.value = '¡Buenas! Sale la lista para el próximo partido. Confirmen disponibilidad en la web hoy mismo para organizar el equipo.';
     }
 };
 
