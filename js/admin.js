@@ -2166,6 +2166,68 @@ async function fetchAllCierres() {
     return (data || []).map(d => d.value);
 }
 
+function groupByCategoria(movimientos) {
+    const grupos = {};
+    movimientos.forEach(t => {
+        const cat = t.categoria || 'Sin categoría';
+        grupos[cat] = (grupos[cat] || 0) + (parseFloat(t.monto) || 0);
+    });
+    return grupos;
+}
+
+function buildResumen(movimientos) {
+    const ingresosMovs = movimientos.filter(t => t.tipo === 'ingreso');
+    const egresosMovs = movimientos.filter(t => t.tipo !== 'ingreso');
+    const ingresos = ingresosMovs.reduce((s, t) => s + (parseFloat(t.monto) || 0), 0);
+    const egresos = egresosMovs.reduce((s, t) => s + (parseFloat(t.monto) || 0), 0);
+    return {
+        ingresos, egresos, balance: ingresos - egresos,
+        ingresosPorCategoria: groupByCategoria(ingresosMovs),
+        egresosPorCategoria: groupByCategoria(egresosMovs)
+    };
+}
+
+function renderCategoriaRows(grupo) {
+    const entries = Object.entries(grupo).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) {
+        return '<div class="empty-state" style="padding:0.5rem;"><p>Sin movimientos</p></div>';
+    }
+    return entries.map(([cat, monto]) => `
+        <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:0.82rem;">
+            <span>${cat}</span><span>$${monto.toLocaleString()}</span>
+        </div>
+    `).join('');
+}
+
+function renderResumenHTML(resumen) {
+    return `
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.8rem; margin-bottom:1.2rem">
+            <div style="text-align:center; background:rgba(0,255,136,0.07); border-radius:8px; padding:0.8rem">
+                <div style="color:var(--green); font-size:1.1rem; font-weight:700">+$${resumen.ingresos.toLocaleString()}</div>
+                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Ingresos</div>
+            </div>
+            <div style="text-align:center; background:rgba(255,80,80,0.07); border-radius:8px; padding:0.8rem">
+                <div style="color:var(--red); font-size:1.1rem; font-weight:700">-$${resumen.egresos.toLocaleString()}</div>
+                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Egresos</div>
+            </div>
+            <div style="text-align:center; background:rgba(255,255,255,0.04); border-radius:8px; padding:0.8rem">
+                <div style="color:${resumen.balance >= 0 ? 'var(--green)' : 'var(--red)'}; font-size:1.1rem; font-weight:700">${resumen.balance >= 0 ? '+' : ''}$${resumen.balance.toLocaleString()}</div>
+                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Balance</div>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div>
+                <div style="color:var(--red); font-weight:700; margin-bottom:0.5rem; font-size:0.85rem;">Egresos por categoría</div>
+                ${renderCategoriaRows(resumen.egresosPorCategoria)}
+            </div>
+            <div>
+                <div style="color:var(--green); font-weight:700; margin-bottom:0.5rem; font-size:0.85rem;">Ingresos por categoría</div>
+                ${renderCategoriaRows(resumen.ingresosPorCategoria)}
+            </div>
+        </div>
+    `;
+}
+
 async function loadCierresList() {
     const container = document.getElementById('cierresList');
     if (!container) return;
@@ -2179,10 +2241,15 @@ async function loadCierresList() {
     cierres.sort((a, b) => (b.fechaCierre || '').localeCompare(a.fechaCierre || ''));
 
     container.innerHTML = cierres.map(c => `
-        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.85rem;">
-            <span>${c.nombre}</span>
-            <span style="color:var(--text-muted)">${formatDateForUI(c.fechaCierre)}</span>
-        </div>
+        <details class="panel" style="margin-bottom:0.6rem;">
+            <summary style="cursor:pointer; display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700;">
+                <span>${c.nombre}</span>
+                <span style="color:var(--text-muted); font-weight:400;">${formatDateForUI(c.fechaCierre)}</span>
+            </summary>
+            <div style="margin-top:1rem;">
+                ${renderResumenHTML(buildResumen(c.transacciones || []))}
+            </div>
+        </details>
     `).join('');
 }
 
@@ -2195,6 +2262,11 @@ function parseFinanceDate(fecha) {
         return new Date(parseInt(fullYear), parseInt(m) - 1, parseInt(d)).getTime() || 0;
     }
     return new Date(str).getTime() || 0;
+}
+
+function formatDateUIPadded(iso) {
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
 }
 
 let currentInformeData = null;
@@ -2214,21 +2286,13 @@ async function generarInformePeriodo() {
         ...(financesData.transacciones || [])
     ];
 
-    const movimientos = todasTransacciones
-        .filter(t => {
-            const ts = parseFinanceDate(t.fecha);
-            return ts >= desdeTs && ts <= hastaTs;
-        })
-        .sort((a, b) => parseFinanceDate(a.fecha) - parseFinanceDate(b.fecha));
-
-    let ingresos = 0, egresos = 0;
-    movimientos.forEach(t => {
-        const m = parseFloat(t.monto) || 0;
-        if (t.tipo === 'ingreso') ingresos += m; else egresos += m;
+    const movimientos = todasTransacciones.filter(t => {
+        const ts = parseFinanceDate(t.fecha);
+        return ts >= desdeTs && ts <= hastaTs;
     });
-    const balance = ingresos - egresos;
 
-    currentInformeData = { desde: desdeVal, hasta: hastaVal, movimientos, ingresos, egresos, balance };
+    const resumen = buildResumen(movimientos);
+    currentInformeData = { desde: desdeVal, hasta: hastaVal, resumen };
 
     const container = document.getElementById('informeResultado');
     if (movimientos.length === 0) {
@@ -2237,37 +2301,17 @@ async function generarInformePeriodo() {
     }
 
     container.innerHTML = `
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.8rem; margin-bottom:1.2rem">
-            <div style="text-align:center; background:rgba(0,255,136,0.07); border-radius:8px; padding:0.8rem">
-                <div style="color:var(--green); font-size:1.1rem; font-weight:700">+$${ingresos.toLocaleString()}</div>
-                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Ingresos</div>
-            </div>
-            <div style="text-align:center; background:rgba(255,80,80,0.07); border-radius:8px; padding:0.8rem">
-                <div style="color:var(--red); font-size:1.1rem; font-weight:700">-$${egresos.toLocaleString()}</div>
-                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Egresos</div>
-            </div>
-            <div style="text-align:center; background:rgba(255,255,255,0.04); border-radius:8px; padding:0.8rem">
-                <div style="color:${balance >= 0 ? 'var(--green)' : 'var(--red)'}; font-size:1.1rem; font-weight:700">${balance >= 0 ? '+' : ''}$${balance.toLocaleString()}</div>
-                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Balance</div>
-            </div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:0.5rem;">
+            <button class="btn btn-icon btn-secondary btn-sm" onclick="cerrarInforme()" title="Cerrar informe">
+                <i class="ph-bold ph-x"></i>
+            </button>
         </div>
-        <div style="margin-bottom:1.2rem;">
-            ${movimientos.map(t => {
-                const isIngreso = t.tipo?.toLowerCase() === 'ingreso';
-                return `
-                <div class="transaction-item">
-                    <div class="transaction-info">
-                        <div class="desc">${t.descripcion || t.detalle || 'Sin descripción'}</div>
-                        <div class="cat">${t.categoria || ''} · ${t.fecha || ''}</div>
-                    </div>
-                    <div class="transaction-amount ${isIngreso ? 'ingreso' : 'egreso'}">
-                        ${isIngreso ? '+' : '-'}$${(parseFloat(t.monto) || 0).toLocaleString()}
-                    </div>
-                </div>
-            `;
-            }).join('')}
+        ${renderResumenHTML(resumen)}
+        <div class="form-group" style="margin-top:1.2rem;">
+            <label>Observaciones</label>
+            <textarea id="informeObservaciones" rows="2" placeholder="Observaciones opcionales..."></textarea>
         </div>
-        <div style="display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+        <div style="display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap; margin-top:0.5rem;">
             <button class="btn btn-secondary" onclick="copiarInformeTexto()">
                 <i class="ph-bold ph-copy"></i> Copiar para WhatsApp
             </button>
@@ -2278,18 +2322,30 @@ async function generarInformePeriodo() {
     `;
 }
 
+function cerrarInforme() {
+    document.getElementById('informeResultado').innerHTML = '';
+    currentInformeData = null;
+}
+
 function buildInformeText() {
     if (!currentInformeData) return '';
-    const { desde, hasta, movimientos, ingresos, egresos, balance } = currentInformeData;
-    let text = `*LA BUFARRA - Informe de Período*\n${formatDateForUI(desde)} al ${formatDateForUI(hasta)}\n\n`;
-    text += `Ingresos: $${ingresos.toLocaleString()}\n`;
-    text += `Egresos: $${egresos.toLocaleString()}\n`;
-    text += `Balance: $${balance.toLocaleString()}\n\n`;
-    text += `Movimientos:\n`;
-    movimientos.forEach(t => {
-        const isIngreso = t.tipo?.toLowerCase() === 'ingreso';
-        text += `${t.fecha} [${isIngreso ? 'Ingreso' : 'Egreso'}] ${t.categoria || ''} - ${t.descripcion || t.detalle || 'Sin descripción'}: ${isIngreso ? '+' : '-'}$${(parseFloat(t.monto) || 0).toLocaleString()}\n`;
-    });
+    const { desde, hasta, resumen } = currentInformeData;
+    const periodo = `${formatDateUIPadded(desde)} - ${formatDateUIPadded(hasta)}`;
+    const catLines = (grupo) => {
+        const entries = Object.entries(grupo).sort((a, b) => b[1] - a[1]);
+        if (entries.length === 0) return '(sin movimientos)';
+        return entries.map(([cat, monto]) => `$${monto.toLocaleString()} ${cat}`).join('\n');
+    };
+
+    let text = `💵 *INFORME ECONÓMICO ${periodo}*\n`;
+    text += `🔴 GASTOS TOTAL: $${resumen.egresos.toLocaleString()}\n`;
+    text += `Incluye:\n${catLines(resumen.egresosPorCategoria)}\n`;
+    text += `🟢 INGRESOS TOTAL: $${resumen.ingresos.toLocaleString()}\n`;
+    text += `Incluye:\n${catLines(resumen.ingresosPorCategoria)}\n`;
+    text += `🏦 SALDO: $${resumen.balance.toLocaleString()}`;
+
+    const obs = document.getElementById('informeObservaciones')?.value.trim();
+    if (obs) text += `\n\n(Nota: ${obs})`;
     return text;
 }
 
