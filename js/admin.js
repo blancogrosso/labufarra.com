@@ -995,11 +995,15 @@ function renderFilteredPlayers(year) {
     const playersObj = playersData[year] || {};
     let players = Object.values(playersObj);
     
-    // Apply search filter (Matching names, full names, and aliases)
+    // Apply search filter (Matching key, full names, and aliases via PLAYER_MAP)
     if (currentPlayerSearch) {
         players = players.filter(p => {
-            const normName = (p.player_name || p.nombre || '').toLowerCase();
-            return normName.includes(currentPlayerSearch);
+            const key = p.player_name || p.nombre || p.PLAYER || '';
+            const mapping = (window.PLAYER_MAP || {})[key] || {};
+            const searchTargets = [key, mapping.fullName || '', ...(mapping.aliases || [])]
+                .join(' ')
+                .toLowerCase();
+            return searchTargets.includes(currentPlayerSearch);
         });
     }
 
@@ -1012,7 +1016,9 @@ function renderFilteredPlayers(year) {
     const sorted = players.sort((a, b) => (b.pj || b.PJ || 0) - (a.pj || a.PJ || 0));
     
     container.innerHTML = sorted.map(p => {
-        const nombre = p.player_name || p.nombre || p.PLAYER || 'Sin nombre';
+        const key = p.player_name || p.nombre || p.PLAYER || 'Sin nombre';
+        const mapping = (window.PLAYER_MAP || {})[key];
+        const nombre = mapping ? mapping.fullName : key;
         const pj = p.pj || p.PJ || 0;
         const pg = p.pg || p.PG || 0;
         const pe = p.pe || p.PE || 0;
@@ -1028,7 +1034,7 @@ function renderFilteredPlayers(year) {
             <div class="player-stat-card">
                 <div class="name" style="display:flex; justify-content:space-between; align-items:center;">
                     <span>${nombre}</span>
-                    <button class="btn btn-icon btn-sm" onclick="openEditPlayerModal('${nombre}')" style="background:transparent; color:var(--text-muted);">
+                    <button class="btn btn-icon btn-sm" onclick="openEditPlayerModal('${key}')" style="background:transparent; color:var(--text-muted);">
                         <i class="ph-bold ph-pencil-simple"></i>
                     </button>
                 </div>
