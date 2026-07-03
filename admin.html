@@ -303,15 +303,45 @@
                 <div id="financesListWrapper" style="display:none; margin-top:1rem; border-top:1px solid rgba(255,255,255,0.05); padding-top:1rem;">
                     <div id="transaccionesList"></div>
                 </div>
+
+                <!-- Cierre de Período -->
+                <div style="border-top:1px solid rgba(255,255,255,0.08); margin-top:1.5rem; padding-top:1.5rem;">
+                    <div class="panel-header" style="align-items:center;">
+                        <div class="panel-title" style="margin:0;">Cierre de Período</div>
+                        <button class="btn btn-danger btn-sm" onclick="showCierreModal()">
+                            <i class="ph-bold ph-archive"></i> Crear Cierre
+                        </button>
+                    </div>
+                    <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 1rem;">
+                        Archiva los movimientos actuales y reinicia el período para el nuevo torneo.
+                    </p>
+
+                    <div id="cierresList" style="margin-bottom:1.5rem;"><div class="empty-state"><p>Cargando cierres...</p></div></div>
+
+                    <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:1.2rem;">
+                        <div class="panel-title" style="margin-bottom:0.8rem;">Generar Informe de Período</div>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr auto; align-items:end; gap:0.6rem;">
+                            <div class="form-group" style="margin:0"><label>Desde</label><input type="date" id="informeDesde"></div>
+                            <div class="form-group" style="margin:0"><label>Hasta</label><input type="date" id="informeHasta"></div>
+                            <button class="btn btn-primary btn-sm" onclick="generarInformePeriodo()" style="margin-bottom:0.4rem;">Generar informe</button>
+                        </div>
+                        <div id="informeResultado" style="margin-top:1.2rem;"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Cuotas -->
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">Cuotas por Jugador</div>
-                    <button class="btn btn-secondary btn-sm" onclick="showRosterManager()">
-                        <i class="ph-bold ph-pencil"></i> Administrar Plantel
-                    </button>
+                    <div style="display:flex; gap:0.4rem;">
+                        <button class="btn btn-secondary btn-sm" onclick="showCuotaConfigModal()">
+                            <i class="ph-bold ph-gear"></i> Config. Cuotas
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="showRosterManager()">
+                            <i class="ph-bold ph-pencil"></i> Administrar Plantel
+                        </button>
+                    </div>
                 </div>
                 <div class="cuotas-wrapper">
                     <table class="cuotas-table" id="cuotasTable">
@@ -340,43 +370,6 @@
                     </button>
                 </div>
                 <div id="deadlinesList"></div>
-            </div>
-
-            <!-- Configuración de Cuotas del Torneo -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">Configuración de Cuotas del Torneo</div>
-                </div>
-                <div class="form-grid cuota-objetivo-grid" style="align-items:end;margin-bottom:1.2rem">
-                    <div class="form-group" style="margin:0">
-                        <label>Cuota objetivo</label>
-                        <input type="number" id="cuotaObjetivoInput" min="0" placeholder="2970">
-                    </div>
-                    <button class="btn btn-secondary btn-sm" onclick="saveCuotaObjetivo()" style="margin-bottom:0.4rem">Guardar</button>
-                    <button class="btn btn-primary btn-sm" onclick="aplicarCuotaATodos()" style="margin-bottom:0.4rem">Aplicar a todos</button>
-                </div>
-                <div>
-                    <label style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;display:block">Precios rápidos del modal de pago</label>
-                    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end;gap:0.5rem">
-                        <div class="form-group" style="margin:0"><input type="number" id="precioRapido1" min="0" placeholder="495"></div>
-                        <div class="form-group" style="margin:0"><input type="number" id="precioRapido2" min="0" placeholder="990"></div>
-                        <div class="form-group" style="margin:0"><input type="number" id="precioRapido3" min="0" placeholder="2970"></div>
-                        <button class="btn btn-secondary btn-sm" onclick="savePreciosRapidos()" style="margin-bottom:0.4rem">Guardar</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cierre de Período -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">Cierre de Período</div>
-                    <button class="btn btn-danger btn-sm" onclick="showCierreModal()">
-                        <i class="ph-bold ph-archive"></i> Crear Cierre
-                    </button>
-                </div>
-                <p style="color:var(--text-muted); font-size:0.85rem; margin:0">
-                    Archiva los movimientos actuales y reinicia el período para el nuevo torneo.
-                </p>
             </div>
         </div>
     </div>

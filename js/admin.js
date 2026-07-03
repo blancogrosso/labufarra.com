@@ -1240,6 +1240,7 @@ async function loadFinances() {
         financesData = { cuotas:{}, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
     }
     renderFinances();
+    loadCierresList();
 }
 
 function renderFinances() {
@@ -1248,12 +1249,32 @@ function renderFinances() {
     renderMultas();
     renderTransacciones();
     renderDeadlines();
-    
-    document.getElementById('cuotaObjetivoInput').value = financesData.cuotaObjetivo || 2970;
+}
+
+function showCuotaConfigModal() {
     const pr = financesData.preciosRapidos || [495, 990, 2970];
-    document.getElementById('precioRapido1').value = pr[0];
-    document.getElementById('precioRapido2').value = pr[1];
-    document.getElementById('precioRapido3').value = pr[2];
+    openModal('Configuración de Cuotas del Torneo', `
+        <div class="form-grid cuota-objetivo-grid" style="align-items:end;margin-bottom:1.2rem">
+            <div class="form-group" style="margin:0">
+                <label>Cuota objetivo</label>
+                <input type="number" id="cuotaObjetivoInput" min="0" placeholder="2970" value="${financesData.cuotaObjetivo || 2970}">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="saveCuotaObjetivo()" style="margin-bottom:0.4rem">Guardar</button>
+            <button class="btn btn-primary btn-sm" onclick="aplicarCuotaATodos()" style="margin-bottom:0.4rem">Aplicar a todos</button>
+        </div>
+        <div>
+            <label style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;display:block">Precios rápidos del modal de pago</label>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end;gap:0.5rem">
+                <div class="form-group" style="margin:0"><input type="number" id="precioRapido1" min="0" placeholder="495" value="${pr[0]}"></div>
+                <div class="form-group" style="margin:0"><input type="number" id="precioRapido2" min="0" placeholder="990" value="${pr[1]}"></div>
+                <div class="form-group" style="margin:0"><input type="number" id="precioRapido3" min="0" placeholder="2970" value="${pr[2]}"></div>
+                <button class="btn btn-secondary btn-sm" onclick="savePreciosRapidos()" style="margin-bottom:0.4rem">Guardar</button>
+            </div>
+        </div>
+        <div class="form-actions" style="margin-top:1.2rem;">
+            <button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+        </div>
+    `);
 }
 
 function renderBalance() {
@@ -2136,6 +2157,150 @@ async function confirmarCierre() {
     closeModal();
     toast(`Cierre "${nombre}" creado. Período reiniciado.`, 'success');
     renderFinances();
+    loadCierresList();
+}
+
+// ─── CIERRES ARCHIVADOS E INFORME DE PERÍODO ───
+async function fetchAllCierres() {
+    const data = await spFetch('config?key=like.finances_cierre_*', 'GET', null, 'key,value');
+    return (data || []).map(d => d.value);
+}
+
+async function loadCierresList() {
+    const container = document.getElementById('cierresList');
+    if (!container) return;
+
+    const cierres = await fetchAllCierres();
+    if (!cierres || cierres.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay cierres archivados</p></div>';
+        return;
+    }
+
+    cierres.sort((a, b) => (b.fechaCierre || '').localeCompare(a.fechaCierre || ''));
+
+    container.innerHTML = cierres.map(c => `
+        <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.85rem;">
+            <span>${c.nombre}</span>
+            <span style="color:var(--text-muted)">${formatDateForUI(c.fechaCierre)}</span>
+        </div>
+    `).join('');
+}
+
+function parseFinanceDate(fecha) {
+    if (!fecha) return 0;
+    const str = String(fecha);
+    if (str.includes('/')) {
+        const [d, m, y] = str.split('/');
+        const fullYear = y.length === 2 ? '20' + y : y;
+        return new Date(parseInt(fullYear), parseInt(m) - 1, parseInt(d)).getTime() || 0;
+    }
+    return new Date(str).getTime() || 0;
+}
+
+let currentInformeData = null;
+
+async function generarInformePeriodo() {
+    const desdeVal = document.getElementById('informeDesde').value;
+    const hastaVal = document.getElementById('informeHasta').value;
+    if (!desdeVal || !hastaVal) { toast('Elegí ambas fechas', 'error'); return; }
+
+    const desdeTs = new Date(desdeVal).getTime();
+    const hastaTs = new Date(hastaVal).getTime();
+    if (desdeTs > hastaTs) { toast('El rango de fechas es inválido', 'error'); return; }
+
+    const cierres = await fetchAllCierres();
+    const todasTransacciones = [
+        ...cierres.flatMap(c => c.transacciones || []),
+        ...(financesData.transacciones || [])
+    ];
+
+    const movimientos = todasTransacciones
+        .filter(t => {
+            const ts = parseFinanceDate(t.fecha);
+            return ts >= desdeTs && ts <= hastaTs;
+        })
+        .sort((a, b) => parseFinanceDate(a.fecha) - parseFinanceDate(b.fecha));
+
+    let ingresos = 0, egresos = 0;
+    movimientos.forEach(t => {
+        const m = parseFloat(t.monto) || 0;
+        if (t.tipo === 'ingreso') ingresos += m; else egresos += m;
+    });
+    const balance = ingresos - egresos;
+
+    currentInformeData = { desde: desdeVal, hasta: hastaVal, movimientos, ingresos, egresos, balance };
+
+    const container = document.getElementById('informeResultado');
+    if (movimientos.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay movimientos en ese rango</p></div>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.8rem; margin-bottom:1.2rem">
+            <div style="text-align:center; background:rgba(0,255,136,0.07); border-radius:8px; padding:0.8rem">
+                <div style="color:var(--green); font-size:1.1rem; font-weight:700">+$${ingresos.toLocaleString()}</div>
+                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Ingresos</div>
+            </div>
+            <div style="text-align:center; background:rgba(255,80,80,0.07); border-radius:8px; padding:0.8rem">
+                <div style="color:var(--red); font-size:1.1rem; font-weight:700">-$${egresos.toLocaleString()}</div>
+                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Egresos</div>
+            </div>
+            <div style="text-align:center; background:rgba(255,255,255,0.04); border-radius:8px; padding:0.8rem">
+                <div style="color:${balance >= 0 ? 'var(--green)' : 'var(--red)'}; font-size:1.1rem; font-weight:700">${balance >= 0 ? '+' : ''}$${balance.toLocaleString()}</div>
+                <div style="color:var(--text-muted); font-size:0.78rem; margin-top:2px">Balance</div>
+            </div>
+        </div>
+        <div style="margin-bottom:1.2rem;">
+            ${movimientos.map(t => {
+                const isIngreso = t.tipo?.toLowerCase() === 'ingreso';
+                return `
+                <div class="transaction-item">
+                    <div class="transaction-info">
+                        <div class="desc">${t.descripcion || t.detalle || 'Sin descripción'}</div>
+                        <div class="cat">${t.categoria || ''} · ${t.fecha || ''}</div>
+                    </div>
+                    <div class="transaction-amount ${isIngreso ? 'ingreso' : 'egreso'}">
+                        ${isIngreso ? '+' : '-'}$${(parseFloat(t.monto) || 0).toLocaleString()}
+                    </div>
+                </div>
+            `;
+            }).join('')}
+        </div>
+        <div style="display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="copiarInformeTexto()">
+                <i class="ph-bold ph-copy"></i> Copiar para WhatsApp
+            </button>
+            <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="enviarInformeWhatsApp()">
+                <i class="ph-bold ph-whatsapp-logo"></i> Enviar por WhatsApp
+            </button>
+        </div>
+    `;
+}
+
+function buildInformeText() {
+    if (!currentInformeData) return '';
+    const { desde, hasta, movimientos, ingresos, egresos, balance } = currentInformeData;
+    let text = `*LA BUFARRA - Informe de Período*\n${formatDateForUI(desde)} al ${formatDateForUI(hasta)}\n\n`;
+    text += `Ingresos: $${ingresos.toLocaleString()}\n`;
+    text += `Egresos: $${egresos.toLocaleString()}\n`;
+    text += `Balance: $${balance.toLocaleString()}\n\n`;
+    text += `Movimientos:\n`;
+    movimientos.forEach(t => {
+        const isIngreso = t.tipo?.toLowerCase() === 'ingreso';
+        text += `${t.fecha} [${isIngreso ? 'Ingreso' : 'Egreso'}] ${t.categoria || ''} - ${t.descripcion || t.detalle || 'Sin descripción'}: ${isIngreso ? '+' : '-'}$${(parseFloat(t.monto) || 0).toLocaleString()}\n`;
+    });
+    return text;
+}
+
+function copiarInformeTexto() {
+    navigator.clipboard.writeText(buildInformeText())
+        .then(() => toast('Informe copiado ✓', 'success'))
+        .catch(() => toast('No se pudo copiar', 'error'));
+}
+
+function enviarInformeWhatsApp() {
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(buildInformeText()), '_blank');
 }
 
 // ─── MODAL ───
