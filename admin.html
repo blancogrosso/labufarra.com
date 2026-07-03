@@ -392,10 +392,7 @@
                 <textarea id="pushBody" rows="4" placeholder="Escribí acá el mensaje para avisarle a los jugadores..."></textarea>
             </div>
             <div class="quick-pills" style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="setPushTemplate('cuota')">💰 Recordatorio Cuota</button>
-            </div>
-            <div id="waPollTip" style="font-size:0.75rem; color:#25D366; margin-bottom:1rem; display:none;">
-                <i class="ph-bold ph-info"></i> <b>Tip:</b> Una vez en WhatsApp, podés convertir este mensaje en una encuesta tocando el clip 📎 > Encuesta.
+                <button type="button" class="btn btn-secondary btn-sm" onclick="showRecordatorioCuotaModal()">💰 Recordatorio Cuota</button>
             </div>
             <button class="btn btn-primary" style="background:#25D366; color:#000; font-weight:800;" onclick="broadcastPush()">
                 <i class="ph-bold ph-whatsapp-logo"></i> Abrir WhatsApp y Enviar

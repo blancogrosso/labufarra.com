@@ -2580,17 +2580,75 @@ async function broadcastPush() {
     toast('Abriendo WhatsApp...', 'success');
 }
 
-window.setPushTemplate = function(type) {
-    const titleInput = document.getElementById('pushTitle');
-    const bodyInput = document.getElementById('pushBody');
-    const tip = document.getElementById('waPollTip');
-    if (tip) tip.style.display = 'block';
-    
-    if (type === 'cuota') {
-        titleInput.value = '💰 RECORDATORIO DE PAGO';
-        bodyInput.value = '¡Hola todos! Les recordamos que estamos en fecha de pago mensual de la cuota. \n\n💵 Monto: $ \n🏦 Alias/Transferencia: \n\nCualquier duda avisen.';
-    }
-};
+let cuotaMontoRowIdx = 0;
+
+function showRecordatorioCuotaModal() {
+    const pr = financesData.preciosRapidos || [495, 990, 2970];
+    cuotaMontoRowIdx = 0;
+    openModal('Recordatorio de Cuota', `
+        <div class="form-group">
+            <label>Monto(s)</label>
+            <div id="cuotaMontosContainer">${renderMontoRow(pr, 0)}</div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="agregarMontoRow()" style="margin-top:0.5rem;">
+                <i class="ph-bold ph-plus"></i> Agregar otro monto
+            </button>
+        </div>
+        <div class="form-group">
+            <label>Lista de @</label>
+            <textarea id="cuotaListaArrobas" rows="2" placeholder="@nombre1 @nombre2 ..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Fecha límite</label>
+            <input type="text" id="cuotaFechaLimite" placeholder="ej: 10 julio 18hs">
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" style="background:#25D366; color:#000;" onclick="enviarRecordatorioCuota()">
+                <i class="ph-bold ph-whatsapp-logo"></i> Abrir WhatsApp y Enviar
+            </button>
+        </div>
+    `);
+}
+
+function renderMontoRow(preciosRapidos, idx) {
+    cuotaMontoRowIdx = Math.max(cuotaMontoRowIdx, idx + 1);
+    return `
+        <div class="cuota-monto-row" data-idx="${idx}" style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.6rem; flex-wrap:wrap;">
+            ${preciosRapidos.map(p => `<button type="button" class="btn btn-secondary btn-sm" onclick="setMontoValue(${idx}, ${p})">$${p}</button>`).join('')}
+            <input type="number" min="0" class="cuota-monto-input" id="cuotaMonto_${idx}" placeholder="Monto libre" style="width:120px;">
+            ${idx > 0 ? `<button type="button" class="btn btn-icon btn-danger btn-sm" onclick="quitarMontoRow(${idx})"><i class="ph-bold ph-x"></i></button>` : ''}
+        </div>
+    `;
+}
+
+function setMontoValue(idx, val) {
+    document.getElementById(`cuotaMonto_${idx}`).value = val;
+}
+
+function agregarMontoRow() {
+    const pr = financesData.preciosRapidos || [495, 990, 2970];
+    document.getElementById('cuotaMontosContainer').insertAdjacentHTML('beforeend', renderMontoRow(pr, cuotaMontoRowIdx));
+}
+
+function quitarMontoRow(idx) {
+    document.querySelector(`.cuota-monto-row[data-idx="${idx}"]`)?.remove();
+}
+
+function enviarRecordatorioCuota() {
+    const montos = Array.from(document.querySelectorAll('.cuota-monto-input'))
+        .map(el => el.value.trim())
+        .filter(v => v !== '');
+    if (montos.length === 0) { toast('Ingresá al menos un monto', 'error'); return; }
+
+    const arrobas = document.getElementById('cuotaListaArrobas').value.trim();
+    const fechaLimite = document.getElementById('cuotaFechaLimite').value.trim();
+    const montoLines = montos.map(m => `💵 Monto: *$${m}*`).join('\n');
+
+    const text = `*💰 RECORDATORIO DE PAGO*\n${montoLines}\n\n${arrobas}\n\n🏦 OCA: 8038866\n🛑 _FECHA LÍMITE: ${fechaLimite}_\nCualquier duda avisen.`;
+
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(text), '_blank');
+    closeModal();
+}
 
 function setTime(val) {
     const input = document.getElementById('mHora');
