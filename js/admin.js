@@ -2402,24 +2402,46 @@ function toggleFinanceOrder(e) {
 }
 
 // ─── REPORTES ───
+let currentReportYear = null;
 let currentReportTorneo = null;
-let currentReportType = 'asistencia';
+let currentReportType = 'jugador'; // 'jugador' | 'partido' | 'detalle'
 
-function get2026Matches() {
-    return (matchesData || []).filter(m => parseInt(m.año) >= 2026);
+function getReportsBaseMatches() {
+    return (matchesData || []).filter(m => parseInt(m.año) >= 2026 && m.torneo !== 'Pretemporada');
+}
+
+function parseFechaUI(fecha) {
+    const parts = (fecha || '').split('/');
+    if (parts.length !== 3) return 0;
+    const [d, mo, y] = parts.map(Number);
+    return new Date(y, mo - 1, d).getTime();
 }
 
 function renderReportes() {
-    const matches = get2026Matches();
-    const torneos = [...new Set(matches.map(m => m.torneo).filter(Boolean))];
-    // Default: torneo del partido más reciente (matchesData ya viene ordenado por fecha desc)
-    if (!currentReportTorneo || !torneos.includes(currentReportTorneo)) {
-        currentReportTorneo = matches[0]?.torneo || torneos[0] || null;
+    const base = getReportsBaseMatches();
+
+    const years = [...new Set(base.map(m => m.año).filter(Boolean))].sort().reverse();
+    if (!currentReportYear || !years.includes(currentReportYear)) {
+        currentReportYear = years[0] || null;
     }
 
-    const filtersContainer = document.getElementById('reportTorneoFilters');
-    if (filtersContainer) {
-        filtersContainer.innerHTML = torneos.map(t =>
+    const yearMatches = base.filter(m => m.año === currentReportYear);
+    const torneos = [...new Set(yearMatches.map(m => m.torneo).filter(Boolean))];
+    // Default: torneo del partido más reciente del año (matchesData viene ordenado por fecha desc)
+    if (!currentReportTorneo || !torneos.includes(currentReportTorneo)) {
+        currentReportTorneo = yearMatches[0]?.torneo || torneos[0] || null;
+    }
+
+    const yearFilters = document.getElementById('reportYearFilters');
+    if (yearFilters) {
+        yearFilters.innerHTML = years.map(y =>
+            `<button type="button" class="filter-pill ${y === currentReportYear ? 'active' : ''}" onclick="selectReportYear('${y}')">${y}</button>`
+        ).join('');
+    }
+
+    const torneoFilters = document.getElementById('reportTorneoFilters');
+    if (torneoFilters) {
+        torneoFilters.innerHTML = torneos.map(t =>
             `<button type="button" class="filter-pill ${t === currentReportTorneo ? 'active' : ''}" onclick="selectReportTorneo('${t}')">${t}</button>`
         ).join('');
     }
@@ -2429,6 +2451,12 @@ function renderReportes() {
     );
 
     renderReportContent();
+}
+
+function selectReportYear(year) {
+    currentReportYear = year;
+    currentReportTorneo = null; // recalcular default dentro del nuevo año
+    renderReportes();
 }
 
 function selectReportTorneo(torneo) {
@@ -2442,7 +2470,9 @@ function selectReportType(type) {
 }
 
 function getReportMatches() {
-    return get2026Matches().filter(m => m.torneo === currentReportTorneo);
+    return getReportsBaseMatches()
+        .filter(m => m.año === currentReportYear && m.torneo === currentReportTorneo)
+        .sort((a, b) => parseFechaUI(a.fecha) - parseFechaUI(b.fecha));
 }
 
 function playerDisplayName(key) {
@@ -2458,9 +2488,13 @@ function renderReportContent() {
         container.innerHTML = '<div class="empty-state"><p>No hay partidos para este torneo.</p></div>';
         return;
     }
-    container.innerHTML = currentReportType === 'asistencia'
-        ? buildAsistenciaHTML(matches)
-        : buildDetalleHTML(matches);
+    if (currentReportType === 'jugador') {
+        container.innerHTML = buildAsistenciaHTML(matches);
+    } else if (currentReportType === 'partido') {
+        container.innerHTML = buildAsistenciaPartidoHTML(matches);
+    } else {
+        container.innerHTML = buildDetalleHTML(matches);
+    }
 }
 
 function buildAsistenciaCounts(matches) {
@@ -2498,31 +2532,77 @@ function buildAsistenciaHTML(matches) {
     `;
 }
 
-function buildDetalleHTML(matches) {
+// Jugadores distintos que estuvieron disponibles/aparecieron en el conjunto filtrado
+function getAvailablePlayerCount(matches) {
+    return Object.keys(buildAsistenciaCounts(matches)).length;
+}
+
+function buildAsistenciaPartidoHTML(matches) {
+    const denom = getAvailablePlayerCount(matches);
     return matches.map(m => {
         const jugadores = Object.entries(m.jugadores || {}).filter(([k]) => !k.startsWith('__'));
+        const pj = jugadores.length;
         return `
             <details class="panel" style="margin-bottom:0.75rem;">
                 <summary style="cursor:pointer; display:flex; justify-content:space-between; font-weight:700;">
-                    <span>${m.fecha} · vs ${m.rival}</span><span>${m.gf} - ${m.gc}</span>
+                    <span>${m.instancia || ''} vs ${m.rival}</span><span>${pj}/${denom}</span>
                 </summary>
                 <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.3rem; font-size:0.85rem;">
-                    ${jugadores.map(([key, d]) => `
-                        <div>${playerDisplayName(key)}
-                            ${d.goles ? ` ⚽${d.goles}` : ''}${d.asistencias ? ` 🅰${d.asistencias}` : ''}${d.amarillas ? ` 🟨${d.amarillas}` : ''}${d.rojas ? ` 🟥${d.rojas}` : ''}${d.mvp ? ' ⭐MVP' : ''}
-                        </div>
-                    `).join('')}
+                    ${jugadores.map(([key]) => `<div>${playerDisplayName(key)}</div>`).join('')}
                 </div>
             </details>
         `;
     }).join('');
 }
 
+function buildTorneoRecord(matches) {
+    return matches.reduce((acc, m) => {
+        acc.pj++;
+        const gf = parseInt(m.gf), gc = parseInt(m.gc);
+        if (gf > gc) acc.pg++;
+        else if (gf < gc) acc.pp++;
+        else acc.pe++;
+        return acc;
+    }, { pj: 0, pg: 0, pe: 0, pp: 0 });
+}
+
+function matchResultEmoji(m) {
+    const gf = parseInt(m.gf), gc = parseInt(m.gc);
+    if (gf > gc) return '✅';
+    if (gf < gc) return '❌';
+    return '✴️';
+}
+
+function buildDetalleHTML(matches) {
+    const r = buildTorneoRecord(matches);
+    const header = `<div style="font-weight:900; text-transform:uppercase; margin-bottom:1rem;">${currentReportTorneo} ${r.pj}PJ ${r.pg}PG ${r.pe}PE ${r.pp}PP</div>`;
+
+    const cards = matches.map(m => {
+        const destacados = Object.entries(m.jugadores || {})
+            .filter(([k, d]) => !k.startsWith('__') && (d.goles > 0 || d.mvp));
+        return `
+            <details class="panel" style="margin-bottom:0.75rem;">
+                <summary style="cursor:pointer; display:flex; justify-content:space-between; font-weight:700;">
+                    <span>${m.instancia || ''} 🆚 ${m.rival} (${m.gf}-${m.gc})</span><span>${matchResultEmoji(m)}</span>
+                </summary>
+                <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.3rem; font-size:0.85rem;">
+                    ${destacados.map(([key, d]) => `
+                        <div>${playerDisplayName(key)}${d.goles ? ` ⚽${d.goles}` : ''}${d.mvp ? ' ⭐' : ''}</div>
+                    `).join('')}
+                </div>
+            </details>
+        `;
+    }).join('');
+
+    return header + cards;
+}
+
 function buildReportText() {
     const matches = getReportMatches();
-    let text = `*LA BUFARRA - ${currentReportType === 'asistencia' ? 'Reporte de Asistencia' : 'Detalle de Partidos'}*\nTorneo: ${currentReportTorneo}\n\n`;
+    const titles = { jugador: 'Reporte de Asistencia por Jugador', partido: 'Reporte de Asistencia por Partido', detalle: 'Detalle de Partidos' };
+    let text = `*LA BUFARRA - ${titles[currentReportType]}*\nTorneo: ${currentReportTorneo}\n\n`;
 
-    if (currentReportType === 'asistencia') {
+    if (currentReportType === 'jugador') {
         const counts = buildAsistenciaCounts(matches);
         const total = matches.length;
         Object.entries(counts)
@@ -2530,9 +2610,21 @@ function buildReportText() {
             .forEach(([key, pj], i) => {
                 text += `${i + 1}. ${playerDisplayName(key)} — ${pj}/${total} (${Math.round(pj / total * 100)}%)\n`;
             });
-    } else {
+    } else if (currentReportType === 'partido') {
+        const denom = getAvailablePlayerCount(matches);
+        let sum = 0;
         matches.forEach(m => {
-            text += `📅 ${m.fecha} vs ${m.rival}: ${m.gf}-${m.gc}\n`;
+            const pj = Object.keys(m.jugadores || {}).filter(k => !k.startsWith('__')).length;
+            sum += pj;
+            text += `${m.instancia || ''} vs ${m.rival} — ${pj}/${denom}\n`;
+        });
+        const avg = matches.length ? (sum / matches.length).toFixed(1) : '0.0';
+        text += `\nPromedio de asistencia: ${avg}/${denom}\n`;
+    } else {
+        const r = buildTorneoRecord(matches);
+        text += `*${currentReportTorneo} ${r.pj}PJ ${r.pg}PG ${r.pe}PE ${r.pp}PP*\n\n`;
+        matches.forEach(m => {
+            text += `${m.instancia || ''} 🆚 ${m.rival} (${m.gf}-${m.gc}) ${matchResultEmoji(m)}\n`;
             Object.entries(m.jugadores || {}).forEach(([key, d]) => {
                 if (key.startsWith('__')) return;
                 if (d.goles) text += `⚽ ${playerDisplayName(key)} (${d.goles})\n`;
