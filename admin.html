@@ -458,9 +458,12 @@
             <div id="leagueTableAdminContainer">
                 <div class="empty-state"><p>Cargando posiciones...</p></div>
             </div>
-            <div style="margin-top: 1.5rem; text-align:center;">
+            <div style="margin-top: 1.5rem; text-align:center; display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
                 <button class="btn btn-secondary btn-sm" onclick="addLeagueTeam()">
                     <i class="ph-bold ph-plus"></i> Añadir Equipo
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="resetLeagueTable()">
+                    <i class="ph-bold ph-arrow-counter-clockwise"></i> Reiniciar tabla
                 </button>
             </div>
         </div>

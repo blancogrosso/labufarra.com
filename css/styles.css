@@ -336,16 +336,45 @@ header.scrolled {
 
 /* Hero Section */
 .hero {
-  padding-top: 8rem;
-  padding-bottom: 6rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
   position: relative;
+  overflow: hidden;
+  padding: 0;
   background-color: var(--bg-main);
-  min-height: 85vh;
   z-index: 1;
+}
+
+.hero-slider {
+  position: relative;
+  width: 100%;
+}
+
+.hero-slide {
+  display: none;
+  width: 100%;
+}
+
+.hero-slide.active {
+  display: block;
+}
+
+.hero-slide picture {
+  display: block;
+  width: 100%;
+}
+
+.hero-slide img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1920 / 900;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .hero-slide img {
+    aspect-ratio: 768 / 700;
+    object-fit: contain;
+  }
 }
 
 /* Secondary Pages Hero */

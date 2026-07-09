@@ -1748,6 +1748,20 @@ window.saveLeagueTable = async function() {
     }
 };
 
+window.resetLeagueTable = function() {
+    confirmAction(
+        'Reiniciar Tabla',
+        '¿Estás seguro de vaciar la tabla de posiciones? Se van a borrar todos los equipos cargados y se guardará la tabla vacía en la web. Esta acción no se puede deshacer.',
+        async () => {
+            adminLeagueTeams = [];
+            renderLeagueTableAdmin();
+            await saveLeagueTable();
+        },
+        'Reiniciar',
+        'danger'
+    );
+};
+
 async function loadLeagueConfigAdmin() {
     try {
         const res = await spFetch('config?key=eq.league_config', 'GET', null, 'value');

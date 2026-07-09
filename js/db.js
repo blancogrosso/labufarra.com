@@ -901,6 +901,7 @@ async function renderLeagueTable(expanded = false) {
     if (!container) return;
 
     let teams = [];
+    let leagueTableFetchedOk = false;
 
     const fetchTeams = fetch('https://hmaqdzkpjkxamggaiypo.supabase.co/rest/v1/config?key=eq.league_table&select=value', {
         headers: {
@@ -917,8 +918,9 @@ async function renderLeagueTable(expanded = false) {
     try {
         if (teamsRes && teamsRes.ok) {
             const data = await teamsRes.json();
-            if (data && data.length > 0 && data[0].value) {
+            if (data && data.length > 0 && Array.isArray(data[0].value)) {
                 teams = data[0].value;
+                leagueTableFetchedOk = true;
             }
         }
     } catch(e) { console.warn("DB: Falló carga de tabla Supabase, intentando fallback"); }
@@ -937,14 +939,14 @@ async function renderLeagueTable(expanded = false) {
         }
     }
 
-    if (!teams || teams.length === 0) {
+    if (!leagueTableFetchedOk && (!teams || teams.length === 0)) {
         try {
             const res = await fetch('data/league_table.json?v=' + Date.now());
             if (res.ok) teams = await res.json();
         } catch(e) {}
     }
 
-    if (!teams || teams.length === 0) {
+    if (!leagueTableFetchedOk && (!teams || teams.length === 0)) {
         teams = [
             { pos: 1, name: "La Costa FC", pj: 2, pts: 6 },
             { pos: 2, name: "Berges FC (Dom)", pj: 2, pts: 6 },
@@ -979,7 +981,7 @@ async function renderLeagueTable(expanded = false) {
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                ${displayTeams.map(t => {
+                ${teams.length === 0 ? `<div style="text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.9rem;">Sin equipos cargados todavía.</div>` : displayTeams.map(t => {
                     const isBufarra = t.highlighted;
                     const shield = isBufarra ? 'img/logo/ESCUDO_BUFARRA.png' : getRivalShield(t.name);
                     
@@ -1002,9 +1004,11 @@ async function renderLeagueTable(expanded = false) {
                 }).join('')}
             </div>
 
+            ${teams.length > 4 ? `
             <div style="text-align:center; margin-top: 2rem; color:var(--text-muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:3px; font-weight:800; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;">
                 <i class="ph-bold ${expanded ? 'ph-caret-up' : 'ph-caret-down'}" style="margin-right: 8px; font-size: 1.2rem;"></i> ${expanded ? 'Cerrar tabla' : 'Ver tabla completa'}
             </div>
+            ` : ''}
         </div>
     `;
 
