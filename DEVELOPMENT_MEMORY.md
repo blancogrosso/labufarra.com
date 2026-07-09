@@ -246,3 +246,62 @@ PENDIENTE AL CIERRE DE HOY:
   completo por partido (2021-2025 sin desglose por partido todavía).
 - Automatización tabla de posiciones ligapro.uy — investigar con Claude
   para Chrome (pestaña Network para encontrar API interna).
+
+## Sesión — Home: Liga, Hero, Plantel 2026, Secciones (Jul 2026)
+
+RESUELTO:
+- Escudos de Falta Envido, La Calidad FC y Alta Gama agregados a 
+  img/escudos/ — matchean automáticamente con getRivalShield().
+- Hero banner: carpetas img/banners/desktop/ y img/banners/mobile/ 
+  pobladas con archivos reales. CSS del hero rediseñado para slider 
+  (aspect-ratio por breakpoint, sin marcos negros).
+- Fix padding-top del hero para despejar header en desktop (90px) y 
+  mobile (140px, header apilado en dos filas).
+- Fix resultado último partido en mobile: font-size reducido en 
+  .vs-badge y .team-name, scopeado a #homeLatestMatches/#nextMatchCard.
+- Título de tabla y Fixture Modal: ya no hardcodeados. Nueva key 
+  league_config en Supabase (RLS actualizado para incluirla). Admin 
+  sección Liga tiene panel "Torneo Activo" con selector derivado de 
+  matches + upcoming, input de título libre, guardado con upsert. Home 
+  lee league_config para título de tabla y filtro del Fixture Modal 
+  (usa torneo_base para jugados, torneo para próximos, con filtro de 
+  año 2026).
+- Fix bug openFixtureModal(): filtrado viejo por substring "apertura" 
+  reemplazado por comparación exacta contra torneoActivo + año 2026.
+- Tabla de posiciones admin: botón "Reiniciar tabla" (modal custom, 
+  conserva La Bufarra con pts/pj reseteados a 0, elimina el resto).
+- Toggle "Ver tabla completa" oculto automáticamente cuando hay ≤4 
+  equipos en la tabla.
+- Fix fallback renderLeagueTable(): distingue "Supabase respondió con 
+  array vacío a propósito" de "no hay fila en Supabase" — evita 
+  resucitar los 12 equipos hardcodeados del Apertura al reiniciar.
+- Plantel 2026: Rodríguez agregado (force-add, dorsal #6). Mateo/Reyes 
+  en una sola card (isStaff:true), getPlayerImage() maneja el slash. 
+  Tarjetas separadas en amarillas/rojas. Filtro por torneo derivado 
+  dinámicamente de allMatches (excluye Pretemporada). Secciones 
+  Entrenadores/Campeonatos/Historia deshabilitadas (nav-disabled, sin 
+  badge visible). Botón "VER TODOS LOS TORNEOS" y link "Historia" del 
+  footer también deshabilitados.
+
+LISTA DE FOTOS PENDIENTES (img/jugadores/):
+Anzuatte.jpg, Blanco.jpg, Bonilla.jpg, Colombo.jpg, De Leon.jpg, 
+Flores.jpg, Iza.jpg, Mari.jpg, Martinez.jpg, Menchaca.jpg, Molina.jpg, 
+Olarte.jpg, Pedemonte.jpg, Rodriguez.jpg, Sparkov.jpg, Mateo-Reyes.jpg
+(400x400px cuadrado, JPG, case-sensitive en Netlify)
+
+PENDIENTE:
+- Fotos de jugadores plantel 2026 (16 archivos listados arriba).
+- Fix mobile: header tapando hero y resultado en dos líneas — RESUELTO 
+  en esta sesión.
+- jugadores.html: revisar contador, igualarlo en estilo a partidos, 
+  fotos de acción por jugador.
+- partidos.html: mantener contador, replicar estilo de jugadores, 
+  corregir cards, revisar diseño detalle interno.
+- Confirmar fix convertUpcoming() con partido real — este domingo.
+- Desktop UX — revisión general pendiente.
+- Generador de recordatorio de pago por saldo — en pausa.
+- Trazabilidad creadoPor/editadoPor — requiere sesión de diseño.
+- Unificar sistemas de normalización de nombres (admin.js vs db.js).
+- data/players.json y rosterBase desactualizados (afectan home).
+- render.yaml/Procfile — confirmar si son código muerto.
+- Web pública: jugadores.html y partidos.html al 100% pendiente.
