@@ -377,6 +377,7 @@ header.scrolled {
   position: relative;
   overflow: hidden;
   padding: 0;
+  padding-top: 90px;
   background-color: var(--bg-main);
   z-index: 1;
 }
@@ -1094,6 +1095,27 @@ footer {
 }
 
 @media (max-width: 768px) {
+  .hero {
+    padding-top: 140px;
+  }
+
+  #homeLatestMatches .teams-display,
+  #nextMatchCard .teams-display {
+    gap: 0.5rem !important;
+  }
+
+  #homeLatestMatches .vs-badge,
+  #nextMatchCard .vs-badge {
+    font-size: 1.6rem !important;
+    padding: 0.5rem !important;
+  }
+
+  #homeLatestMatches .team-name,
+  #nextMatchCard .team-name {
+    font-size: 0.75rem !important;
+    letter-spacing: 0.5px !important;
+  }
+
   .hero h1 {
     font-size: clamp(2rem, 10vw, 3rem);
     padding: 0 1rem;
