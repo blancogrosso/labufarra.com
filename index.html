@@ -148,8 +148,11 @@
     <section id="plantel" class="container" style="padding: 6rem 0;">
         <h2 class="section-title" style="margin-bottom: 3.5rem; text-align: center; font-family: var(--font-display); font-weight: 800; font-size: 2.5rem; color: #fff;">PLANTEL 2026</h2>
 
+        <!-- Torneo Pills (poblado dinámicamente por JS) -->
+        <div id="plantelTorneoFilters" style="display:flex; justify-content:center; gap:0.5rem; margin-bottom: 1rem; flex-wrap: wrap;"></div>
+
         <!-- Filter Pills -->
-        <div style="display:flex; justify-content:center; gap:0.5rem; margin-bottom: 3.5rem; flex-wrap: wrap;">
+        <div id="plantelStatFilters" style="display:flex; justify-content:center; gap:0.5rem; margin-bottom: 3.5rem; flex-wrap: wrap;">
             <button class="filter-btn active" data-stat="general" onclick="filterPlantel('general', this)">General</button>
             <button class="filter-btn" data-stat="goles" onclick="filterPlantel('goles', this)">Goleadores</button>
             <button class="filter-btn" data-stat="asistencias" onclick="filterPlantel('asistencias', this)">Asistidores</button>

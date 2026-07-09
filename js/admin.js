@@ -1751,9 +1751,13 @@ window.saveLeagueTable = async function() {
 window.resetLeagueTable = function() {
     confirmAction(
         'Reiniciar Tabla',
-        '¿Estás seguro de vaciar la tabla de posiciones? Se van a borrar todos los equipos cargados y se guardará la tabla vacía en la web. Esta acción no se puede deshacer.',
+        '¿Estás seguro de reiniciar la tabla de posiciones? Se van a borrar todos los equipos rivales, conservando únicamente a La Bufarra con sus puntos y partidos jugados en 0. Esta acción no se puede deshacer.',
         async () => {
-            adminLeagueTeams = [];
+            adminLeagueTeams = adminLeagueTeams.filter(t => t.highlighted);
+            adminLeagueTeams.forEach(t => {
+                t.pj = 0;
+                t.pts = 0;
+            });
             renderLeagueTableAdmin();
             await saveLeagueTable();
         },

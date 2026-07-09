@@ -8,6 +8,8 @@ window.allPlayers = {};
 window.allUpcoming = [];
 window.dataLoaded = false;
 window.leagueConfig = null;
+window.currentPlantelTorneo = null;
+window.currentPlantelFilter = 'general';
 
 // Configuración de fuentes
 const SUPABASE_URL = "https://hmaqdzkpjkxamggaiypo.supabase.co";
@@ -449,6 +451,7 @@ function finishLoad(source) {
     safeRender(renderLastMatches, "Ultimo Partido");
     safeRender(renderNextMatch, "Proximo Partido");
     safeRender(renderLeagueTable, "Tabla");
+    safeRender(renderPlantelTorneoFilters, "Filtros Torneo Plantel");
     safeRender(() => renderPlantel2026('general'), "Plantel");
     safeRender(renderLogros, "Palmarés");
 
@@ -1027,11 +1030,40 @@ async function renderLeagueTable(expanded = false) {
 }
 
 function filterPlantel(type, btn) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    window.currentPlantelFilter = type;
+    document.querySelectorAll('#plantelStatFilters .filter-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
     renderPlantel2026(type);
 }
 window.filterPlantel = filterPlantel;
+
+function renderPlantelTorneoFilters() {
+    const container = document.getElementById('plantelTorneoFilters');
+    if (!container) return;
+
+    const matches2026 = (window.allMatches || []).filter(m => String(m.AÑO || '') === '2026');
+    const torneos = [...new Set(matches2026.map(m => m.torneo_base).filter(Boolean))];
+
+    if (torneos.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const current = window.currentPlantelTorneo;
+    container.innerHTML = `
+        <button class="filter-btn ${!current ? 'active' : ''}" onclick="selectPlantelTorneo(null, this)">General</button>
+        ${torneos.map(t => `<button class="filter-btn ${current === t ? 'active' : ''}" onclick="selectPlantelTorneo('${t}', this)">${t}</button>`).join('')}
+    `;
+}
+window.renderPlantelTorneoFilters = renderPlantelTorneoFilters;
+
+function selectPlantelTorneo(torneo, btn) {
+    window.currentPlantelTorneo = torneo;
+    document.querySelectorAll('#plantelTorneoFilters .filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderPlantel2026(window.currentPlantelFilter || 'general');
+}
+window.selectPlantelTorneo = selectPlantelTorneo;
 
 function handleSearchInput(input, btnId) {
     const btn = document.getElementById(btnId);
@@ -1066,10 +1098,18 @@ function renderPlantel2026(filter = 'general') {
         window.hasScrolledToTop = true;
     }
 
-    let players2026 = window.allPlayers['2026'] || [];
+    const torneoBase = window.currentPlantelTorneo || null;
+    let players2026;
+    if (torneoBase) {
+        // Vista por torneo: recalculamos en vivo solo con los partidos de ese torneo
+        const matches2026 = (window.allMatches || []).filter(m => String(m.AÑO || '') === '2026');
+        players2026 = calculateLiveStats(matches2026.filter(m => m.torneo_base === torneoBase));
+    } else {
+        players2026 = window.allPlayers['2026'] || [];
+    }
     let explicitStaff = [];
     const rawData = window.rawPlayersData ? window.rawPlayersData['2026'] : null;
-    
+
     // Si el array está vacío o no existe, forzamos la carga del roster base para que la Home nunca esté vacía
     if (!players2026 || players2026.length === 0) {
         console.warn("DB: allPlayers['2026'] vacío, generando roster de emergencia...");
@@ -1124,6 +1164,10 @@ function renderPlantel2026(filter = 'general') {
         players2026.push({ PLAYER: 'Pedemonte', PJ: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0 });
     }
 
+    if (!players2026.some(p => p.PLAYER.toUpperCase().includes('RODRIGUEZ'))) {
+        players2026.push({ PLAYER: 'Rodriguez', PJ: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0 });
+    }
+
     const statMap = { 'goles': 'GOLES', 'asistencias': 'ASISTENCIAS', 'tarjetas': 'tarjetas' };
 
     let players = players2026.filter(p => !p.isStaff && !staffNamesToForce.some(kw => (p.PLAYER || '').toUpperCase().includes(kw)));
@@ -1136,6 +1180,13 @@ function renderPlantel2026(filter = 'general') {
         seenStaff.add(name);
         return true;
     });
+
+    // Unificar Mateo y Reyes en una sola card compartida (no ocupan 2 lugares en la grilla)
+    const mateoReyesNames = ['MATEO', 'REYES'];
+    if (staff.some(s => mateoReyesNames.some(n => s.PLAYER.toUpperCase().includes(n)))) {
+        staff = staff.filter(s => !mateoReyesNames.some(n => s.PLAYER.toUpperCase().includes(n)));
+        staff.push({ PLAYER: 'Mateo / Reyes', PJ: 0, GOLES: 0, ASISTENCIAS: 0, AMARILLAS: 0, ROJAS: 0, isStaff: true });
+    }
 
     if (filter !== 'general') {
         // Solo mostrar si tienen al menos 1 en la estadística seleccionada
@@ -1193,9 +1244,16 @@ function renderPlantel2026(filter = 'general') {
                         <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">RO</small><span style="font-weight:700; color:#ff4d4d;">${p.ROJAS || 0}</span></div>
                     </div>
                 `;
+            } else if (filter === 'tarjetas') {
+                statDisplay = `
+                    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 5px; width: 100%; border-top:1px solid rgba(255,255,255,0.05); padding-top: 1rem; margin-top: 1rem;">
+                        <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">AMARILLAS</small><span style="font-weight:700; font-size:1.3rem; color:#ffd700;">${p.AMARILLAS || 0}</span></div>
+                        <div style="text-align:center;"><small style="display:block; font-size:0.55rem; color:var(--text-muted);">ROJAS</small><span style="font-weight:700; font-size:1.3rem; color:#ff4d4d;">${p.ROJAS || 0}</span></div>
+                    </div>
+                `;
             } else {
-                const val = filter === 'tarjetas' ? (parseInt(p.AMARILLAS||0)+parseInt(p.ROJAS||0)) : p[statMap[filter]]||0;
-                const label = filter === 'tarjetas' ? 'TARJ' : filter.toUpperCase();
+                const val = p[statMap[filter]] || 0;
+                const label = filter.toUpperCase();
                 statDisplay = `<div style="font-family:var(--font-display); font-size: 1.5rem; font-weight:900; color:var(--accent-primary); margin-top:1rem;">${val} <small style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">${label}</small></div>`;
             }
         }
