@@ -674,13 +674,13 @@ function openFixtureModal() {
 
     // 1. Get played matches for the active tournament (torneo_base = torneo sin la instancia)
     const played = (window.allMatches || []).filter(m =>
-        torneoActivo ? m.torneo_base === torneoActivo
+        torneoActivo ? (m.torneo_base === torneoActivo && m.AÑO === '2026')
                      : (String(m.AÑO || '').includes('2026') || String(m.FECHA || '').includes('2026'))
     );
 
     // 2. Get upcoming matches
     const upcoming = (window.allUpcoming || []).filter(u =>
-        torneoActivo ? u.torneo === torneoActivo
+        torneoActivo ? (u.torneo === torneoActivo && String(u.fecha || '').startsWith('2026'))
                      : String(u.fecha || '').includes('2026')
     );
     
