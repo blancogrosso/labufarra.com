@@ -7,6 +7,7 @@ window.allMatches = [];
 window.allPlayers = {};
 window.allUpcoming = [];
 window.dataLoaded = false;
+window.leagueConfig = null;
 
 // Configuración de fuentes
 const SUPABASE_URL = "https://hmaqdzkpjkxamggaiypo.supabase.co";
@@ -664,20 +665,23 @@ function openFixtureModal() {
     if (!modal || !container) return;
     
     let html = '';
-    
-    // TORNEO AUTORITATIVO: Apertura 2026
-    const CURRENT_TORNEO = "Apertura 2026";
-    
-    // 1. Get played matches for this tournament
-    const played = (window.allMatches || []).filter(m => 
-        (m.torneo || "").toLowerCase().includes("apertura 2026") || 
-        (m.torneo || "").toLowerCase().includes("apertura") && String(m.fecha).includes("2026")
+
+    // TORNEO ACTIVO: leído de league_config (seteado desde el admin). Sin config, fallback a "todo 2026".
+    const torneoActivo = window.leagueConfig?.torneoActivo || null;
+
+    const titleEl = document.getElementById('fixtureModalTitle');
+    if (titleEl) titleEl.textContent = torneoActivo || 'Fixture';
+
+    // 1. Get played matches for the active tournament (torneo_base = torneo sin la instancia)
+    const played = (window.allMatches || []).filter(m =>
+        torneoActivo ? m.torneo_base === torneoActivo
+                     : (String(m.AÑO || '').includes('2026') || String(m.FECHA || '').includes('2026'))
     );
-    
+
     // 2. Get upcoming matches
-    const upcoming = (window.allUpcoming || []).filter(u => 
-        (u.torneo || "").toLowerCase().includes("apertura 2026") || 
-        (u.torneo || "").toLowerCase().includes("apertura")
+    const upcoming = (window.allUpcoming || []).filter(u =>
+        torneoActivo ? u.torneo === torneoActivo
+                     : String(u.fecha || '').includes('2026')
     );
     
     // Robust date parser for fixture sorting (handles D/M/YYYY)
@@ -897,19 +901,41 @@ async function renderLeagueTable(expanded = false) {
     if (!container) return;
 
     let teams = [];
+
+    const fetchTeams = fetch('https://hmaqdzkpjkxamggaiypo.supabase.co/rest/v1/config?key=eq.league_table&select=value', {
+        headers: {
+            'apikey': 'sb_publishable_Vu_F-McwcDK4g2k8fU6w7A_p_Mva8-Y'
+        }
+    }).catch(() => null);
+
+    const fetchConfig = window.leagueConfig === null
+        ? fetch(`${SUPABASE_URL}/rest/v1/config?key=eq.league_config&select=value`, { headers: SP_HEADERS }).catch(() => null)
+        : Promise.resolve(null);
+
+    const [teamsRes, configRes] = await Promise.all([fetchTeams, fetchConfig]);
+
     try {
-        const res = await fetch('https://hmaqdzkpjkxamggaiypo.supabase.co/rest/v1/config?key=eq.league_table&select=value', {
-            headers: {
-                'apikey': 'sb_publishable_Vu_F-McwcDK4g2k8fU6w7A_p_Mva8-Y'
-            }
-        });
-        if (res.ok) {
-            const data = await res.json();
+        if (teamsRes && teamsRes.ok) {
+            const data = await teamsRes.json();
             if (data && data.length > 0 && data[0].value) {
                 teams = data[0].value;
             }
         }
     } catch(e) { console.warn("DB: Falló carga de tabla Supabase, intentando fallback"); }
+
+    if (window.leagueConfig === null) {
+        try {
+            if (configRes && configRes.ok) {
+                const cfgData = await configRes.json();
+                window.leagueConfig = (cfgData && cfgData.length > 0 && cfgData[0].value) ? cfgData[0].value : {};
+            } else {
+                window.leagueConfig = {};
+            }
+        } catch(e) {
+            console.warn("DB: Falló carga de league_config, usando fallback");
+            window.leagueConfig = {};
+        }
+    }
 
     if (!teams || teams.length === 0) {
         try {
@@ -948,7 +974,7 @@ async function renderLeagueTable(expanded = false) {
     let html = `
         <div class="glass-panel" id="tableWidget" style="cursor:pointer; padding: 2.5rem; transition: all 0.5s ease; border: ${expanded ? '2px solid var(--accent-primary)' : '1px solid var(--border-light)'}; box-shadow: ${expanded ? '0 0 50px var(--accent-glow)' : 'none'}; overflow: hidden;">
             <div style="text-align:center; margin-bottom: 2.5rem;">
-                <div style="font-family:var(--font-display); font-size:0.8rem; color:var(--accent-primary); letter-spacing:4px; font-weight:800; text-transform:uppercase;">Campaña Apertura 2026</div>
+                <div style="font-family:var(--font-display); font-size:0.8rem; color:var(--accent-primary); letter-spacing:4px; font-weight:800; text-transform:uppercase;">${window.leagueConfig?.tituloTabla || 'Tabla de Posiciones'}</div>
                 <h2 style="font-family:var(--font-display); font-size:2.2rem; font-weight:900; margin: 0.5rem 0;">TABLA DE POSICIONES</h2>
             </div>
 

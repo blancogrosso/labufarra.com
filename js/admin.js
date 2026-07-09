@@ -27,6 +27,7 @@ let playersData = {};
 let upcomingData = [];
 let financesData = { cuotas:{}, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
 let manualStatsData = {};
+let adminLeagueConfig = { torneoActivo: '', tituloTabla: '' };
 let editingMatchId = null;
 let currentTxFilter = 'all';
 let currentMatchSearch = '';
@@ -213,10 +214,12 @@ async function showApp() {
         loadPlayers(),
         loadUpcoming(),
         loadFinances(),
-        loadLeagueTableAdmin()
+        loadLeagueTableAdmin(),
+        loadLeagueConfigAdmin()
     ]);
-    
+
     renderLeagueTableAdmin();
+    renderLeagueConfigForm();
 
     // Recalcular automáticamente si no hay datos o hay inconsistencias
     if (Object.keys(playersData).length === 0) {
@@ -233,6 +236,7 @@ function switchTab(tabName) {
     document.getElementById(`tab-${tabName}`).style.display = 'block';
 
     if (tabName === 'reportes') renderReportes();
+    if (tabName === 'liga') renderLeagueConfigForm();
 }
 
 // ─── ROSTER ───
@@ -1741,6 +1745,47 @@ window.saveLeagueTable = async function() {
     if (res !== null) {
         toast('Tabla de la Liga guardada y en vivo ✓', 'success');
         renderLeagueTableAdmin();
+    }
+};
+
+async function loadLeagueConfigAdmin() {
+    try {
+        const res = await spFetch('config?key=eq.league_config', 'GET', null, 'value');
+        if (res && res.length > 0 && res[0].value) {
+            adminLeagueConfig = { torneoActivo: '', tituloTabla: '', ...res[0].value };
+        } else {
+            adminLeagueConfig = { torneoActivo: '', tituloTabla: '' };
+        }
+    } catch (e) {
+        console.error("Error cargando league_config", e);
+        adminLeagueConfig = { torneoActivo: '', tituloTabla: '' };
+    }
+}
+
+function renderLeagueConfigForm() {
+    const select = document.getElementById('leagueTorneoActivo');
+    const input = document.getElementById('leagueTituloTabla');
+    if (!select || !input) return;
+
+    const torneos = [...new Set([...matchesData, ...upcomingData].map(x => x.torneo).filter(Boolean))];
+
+    select.innerHTML = '<option value="">Seleccionar...</option>' +
+        torneos.map(t => `<option value="${t}" ${t === adminLeagueConfig.torneoActivo ? 'selected' : ''}>${t}</option>`).join('');
+
+    input.value = adminLeagueConfig.tituloTabla || '';
+}
+
+window.saveLeagueConfig = async function() {
+    const torneoActivo = document.getElementById('leagueTorneoActivo').value;
+    const tituloTabla = document.getElementById('leagueTituloTabla').value.trim();
+
+    const res = await spFetch('config', 'POST',
+        { key: 'league_config', value: { torneoActivo, tituloTabla } },
+        '*', { 'Prefer': 'resolution=merge-duplicates' });
+
+    if (res !== null) {
+        adminLeagueConfig = { torneoActivo, tituloTabla };
+        toast('Configuración de torneo guardada ✓', 'success');
     }
 };
 

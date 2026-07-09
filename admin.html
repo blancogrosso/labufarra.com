@@ -434,6 +434,25 @@
                 <i class="ph-bold ph-floppy-disk"></i> Guardar Tabla
             </button>
         </div>
+        <div class="panel" style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 1rem; font-size: 1rem;"><i class="ph-bold ph-flag-checkered"></i> Torneo Activo</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Torneo</label>
+                    <select id="leagueTorneoActivo"><option value="">Seleccionar...</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Título de la tabla (se muestra en el home)</label>
+                    <input type="text" id="leagueTituloTabla" placeholder="Ej: Fase de Grupos — Copa 2026">
+                </div>
+            </div>
+            <div style="margin-top: 1rem; text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="saveLeagueConfig()">
+                    <i class="ph-bold ph-floppy-disk"></i> Guardar configuración
+                </button>
+            </div>
+        </div>
+
         <div class="panel">
             <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom: 1.5rem;">Cargá de manera manual los puntos de los equipos de la Liga. La web oficial reflejará estos cambios inmediatamente al guardar.</p>
             <div id="leagueTableAdminContainer">
