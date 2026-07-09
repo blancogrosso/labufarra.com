@@ -336,7 +336,7 @@ function formatDateProperly(s) {
 function getPlayerImage(name) {
     if (!name) return "img/jugadores/default.jpg";
     // Mapeo básico para asegurar que usamos el nombre del archivo correcto
-    const filename = name.trim();
+    const filename = name.trim().split('/').map(p => p.trim()).join('-');
     return `img/jugadores/${filename}.jpg`;
 }
 
@@ -1042,7 +1042,7 @@ function renderPlantelTorneoFilters() {
     if (!container) return;
 
     const matches2026 = (window.allMatches || []).filter(m => String(m.AÑO || '') === '2026');
-    const torneos = [...new Set(matches2026.map(m => m.torneo_base).filter(Boolean))];
+    const torneos = [...new Set(matches2026.filter(m => m.torneo_base !== 'Pretemporada').map(m => m.torneo_base).filter(Boolean))];
 
     if (torneos.length === 0) {
         container.innerHTML = '';
@@ -1132,6 +1132,7 @@ function renderPlantel2026(filter = 'general') {
         "MOLINA": "#15",
         "OLARTE": "#2",
         "PEDEMONTE": "#10",
+        "RODRIGUEZ": "#6",
         "SPARKOV": "#9"
     };
 
