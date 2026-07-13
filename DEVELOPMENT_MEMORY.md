@@ -305,3 +305,37 @@ PENDIENTE:
 - data/players.json y rosterBase desactualizados (afectan home).
 - render.yaml/Procfile — confirmar si son código muerto.
 - Web pública: jugadores.html y partidos.html al 100% pendiente.
+
+## Sesión — Camisetas, Home fixes, Cleanup (Jul 2026)
+
+RESUELTO:
+- Nueva pestaña "Camisetas" en el admin: pedidos por comprador 
+  (tipo, manga, nombre, número, talle, precio automático), pagos 
+  parciales acumulativos, editar y eliminar pedidos, pago general 
+  bulk con botón 50%, totales generales (cobrado/pendiente/Umbro), 
+  botón "Copiar pedido para Umbro" (agrupado por tipo+manga, 
+  unificado sin desglose por talle, sin precios ni nombres). 
+  Persiste en Supabase key='camisetas'.
+- Secciones deshabilitadas (Entrenadores/Campeonatos/Historia): 
+  extendido a todos los archivos HTML del proyecto (jugadores.html, 
+  partidos.html, partido.html, rival.html, campeonatos.html, 
+  entrenadores.html, historia.html). Self-links de página actual 
+  se mantienen activos.
+- Limpieza de 120 archivos ._* de macOS del repo. .gitignore creado 
+  con regla ._* para evitar que vuelvan.
+- OneSignal anotado para próxima sesión: campanita de notificaciones 
+  push para seguidores externos + panel en admin para envíos 
+  puntuales.
+
+PENDIENTE:
+- OneSignal: crear cuenta antes de la próxima sesión de código.
+- Fotos de jugadores plantel 2026 (16 archivos en img/jugadores/).
+- jugadores.html: contador, fotos de acción, estilo.
+- partidos.html: contador, cards, detalle interno.
+- Confirmar fix convertUpcoming() — domingo.
+- Desktop UX pendiente de relevar.
+- Generador recordatorio de pago por saldo — en pausa.
+- Trazabilidad creadoPor/editadoPor.
+- Normalización de nombres unificada.
+- data/players.json y rosterBase desactualizados.
+- Web pública al 100% — trabajo futuro.
