@@ -326,8 +326,38 @@ RESUELTO:
 - OneSignal anotado para próxima sesión: campanita de notificaciones 
   push para seguidores externos + panel en admin para envíos 
   puntuales.
+- Bug de datos encontrado y resuelto en Reportes (admin): "Asistencia 
+  por partido" y "Asistencia por jugador" usaban como denominador la 
+  cantidad de jugadores distintos que aparecieron en los partidos 
+  filtrados (buildAsistenciaCounts), lo cual subestima el roster real 
+  en torneos con pocos partidos jugados. Fix en dos pasos (el primer 
+  intento fue parcialmente incorrecto y se corrigió en la misma 
+  sesión):
+  - "Asistencia por jugador" (buildAsistenciaHTML / buildReportText 
+    rama 'jugador'): el denominador correcto es matches.length (PJ 
+    sobre el total de partidos del torneo/año filtrado), NO el roster 
+    — se probó con roster.length y era conceptualmente incorrecto, 
+    revertido. Además ahora incluye con PJ=0 a los jugadores del 
+    roster de ese torneo que no jugaron ningún partido (antes solo 
+    listaba a quienes tenían ≥1 aparición).
+  - "Asistencia por partido" (buildAsistenciaPartidoHTML / 
+    buildReportText rama 'partido'): el denominador correcto sí es el 
+    tamaño del roster (cuántos podían ir a cada partido), pero el 
+    roster cambia con el tiempo — la variable global `roster` es solo 
+    el plantel ACTUAL (15, incluye a Rodríguez, alta post-Apertura). 
+    Se agregó ROSTER_EXCLUSIONES_POR_TORNEO + getRosterTorneo(torneo) 
+    en js/admin.js: mapa hardcodeado de jugadores a excluir por 
+    torneo viejo (hoy solo { 'Apertura': ['Rodriguez'] }, 14 en vez 
+    de 15). Cualquier torneo no listado usa el roster actual completo.
+  - getAvailablePlayerCount() (el approach original de "jugadores 
+    únicos que aparecieron") quedó eliminada por no usarse más.
 
 PENDIENTE:
+- ROSTER_EXCLUSIONES_POR_TORNEO es un mapa hardcodeado manual, no una 
+  fuente de verdad histórica real (no hay fecha de alta por jugador 
+  en el modelo de datos). Si se suman más jugadores a futuro, hay que 
+  actualizar el mapa a mano por cada torneo viejo afectado. Candidato 
+  a rediseñar con un campo real de "alta" por jugador si esto crece.
 - OneSignal: crear cuenta antes de la próxima sesión de código.
 - Fotos de jugadores plantel 2026 (16 archivos en img/jugadores/).
 - jugadores.html: contador, fotos de acción, estilo.
