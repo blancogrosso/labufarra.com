@@ -26,7 +26,7 @@ let matchesData = [];
 let playersData = {};
 let upcomingData = [];
 let financesData = { cuotas:{}, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
-let camisetasData = { pedidos: [], pagos: {} };
+let camisetasData = { pedidos: [], pagos: {}, pagadoUmbro: 0 };
 let manualStatsData = {};
 let adminLeagueConfig = { torneoActivo: '', tituloTabla: '' };
 let editingMatchId = null;
@@ -2428,9 +2428,9 @@ function enviarInformeWhatsApp() {
 async function loadCamisetas() {
     const data = await spFetch('config?key=eq.camisetas', 'GET', null, 'value');
     if (data && data[0]) {
-        camisetasData = data[0].value;
+        camisetasData = { pedidos: [], pagos: {}, pagadoUmbro: 0, ...data[0].value };
     } else {
-        camisetasData = { pedidos: [], pagos: {} };
+        camisetasData = { pedidos: [], pagos: {}, pagadoUmbro: 0 };
     }
     renderCamisetas();
 }
@@ -2448,20 +2448,37 @@ function calcularPrecioCamiseta(tipo, manga) {
     return 0;
 }
 
+function getResumenCompradores() {
+    const pedidos = camisetasData.pedidos || [];
+    const porComprador = {};
+    pedidos.forEach(p => {
+        if (!porComprador[p.comprador]) porComprador[p.comprador] = [];
+        porComprador[p.comprador].push(p);
+    });
+
+    return Object.entries(porComprador).map(([comprador, items]) => {
+        const total = items.reduce((sum, p) => sum + (p.precio || 0), 0);
+        const pagado = (camisetasData.pagos?.[comprador]?.pagado) || 0;
+        const saldo = total - pagado;
+        return { comprador, items, total, pagado, saldo };
+    });
+}
+
 function onCamisetaTipoChange() {
     const tipo = document.getElementById('fcTipo').value;
     const mangaGroup = document.getElementById('fcMangaGroup');
     mangaGroup.style.display = tipo === 'Short' ? 'none' : '';
 }
 
-function showPedidoCamisetaForm() {
+function showPedidoCamisetaForm(editId) {
+    const existing = editId ? (camisetasData.pedidos || []).find(p => p.id === editId) : null;
     const compradores = [...new Set((camisetasData.pedidos || []).map(p => p.comprador))];
 
-    openModal('Agregar Pedido', `
+    openModal(existing ? 'Editar Pedido' : 'Agregar Pedido', `
         <div class="form-grid" style="grid-template-columns:1fr 1fr">
             <div class="form-group" style="grid-column:1/-1">
                 <label>Comprador</label>
-                <input type="text" id="fcComprador" list="fcCompradoresList" placeholder="Nombre y apellido">
+                <input type="text" id="fcComprador" list="fcCompradoresList" placeholder="Nombre y apellido" value="${existing?.comprador || ''}">
                 <datalist id="fcCompradoresList">
                     ${compradores.map(c => `<option value="${c}">`).join('')}
                 </datalist>
@@ -2469,48 +2486,49 @@ function showPedidoCamisetaForm() {
             <div class="form-group">
                 <label>Tipo de prenda</label>
                 <select id="fcTipo" onchange="onCamisetaTipoChange()">
-                    <option value="Equipo completo">Equipo completo</option>
-                    <option value="Camiseta">Camiseta</option>
-                    <option value="Short">Short</option>
+                    <option value="Equipo completo" ${existing?.tipo === 'Equipo completo' ? 'selected' : ''}>Equipo completo</option>
+                    <option value="Camiseta" ${existing?.tipo === 'Camiseta' ? 'selected' : ''}>Camiseta</option>
+                    <option value="Short" ${existing?.tipo === 'Short' ? 'selected' : ''}>Short</option>
                 </select>
             </div>
             <div class="form-group" id="fcMangaGroup">
                 <label>Manga</label>
                 <select id="fcManga">
-                    <option value="Corta">Corta</option>
-                    <option value="Larga">Larga</option>
+                    <option value="Corta" ${existing?.manga === 'Corta' ? 'selected' : ''}>Corta</option>
+                    <option value="Larga" ${existing?.manga === 'Larga' ? 'selected' : ''}>Larga</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Nombre en la camiseta</label>
-                <input type="text" id="fcNombre" placeholder="Ej: PEREZ">
+                <input type="text" id="fcNombre" placeholder="Ej: PEREZ" value="${existing?.nombre || ''}">
             </div>
             <div class="form-group">
                 <label>Número</label>
-                <input type="number" id="fcNumero" min="0" placeholder="Ej: 10">
+                <input type="number" id="fcNumero" min="0" placeholder="Ej: 10" value="${existing?.numero || ''}">
             </div>
             <div class="form-group">
                 <label>Talle</label>
                 <select id="fcTalle">
-                    <option value="XS">XS</option>
-                    <option value="S">S</option>
-                    <option value="M">M</option>
-                    <option value="L">L</option>
-                    <option value="XL">XL</option>
-                    <option value="XXL">XXL</option>
+                    <option value="XS" ${existing?.talle === 'XS' ? 'selected' : ''}>XS</option>
+                    <option value="S" ${existing?.talle === 'S' ? 'selected' : ''}>S</option>
+                    <option value="M" ${existing?.talle === 'M' ? 'selected' : ''}>M</option>
+                    <option value="L" ${existing?.talle === 'L' ? 'selected' : ''}>L</option>
+                    <option value="XL" ${existing?.talle === 'XL' ? 'selected' : ''}>XL</option>
+                    <option value="XXL" ${existing?.talle === 'XXL' ? 'selected' : ''}>XXL</option>
                 </select>
             </div>
         </div>
         <div class="form-actions">
             <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-primary" style="width:auto" onclick="savePedidoCamiseta()">
+            <button class="btn btn-primary" style="width:auto" onclick="savePedidoCamiseta('${editId || ''}')">
                 <i class="ph-bold ph-floppy-disk"></i> Guardar
             </button>
         </div>
     `);
+    onCamisetaTipoChange();
 }
 
-async function savePedidoCamiseta() {
+async function savePedidoCamiseta(editId) {
     const comprador = document.getElementById('fcComprador').value.trim();
     const tipo = document.getElementById('fcTipo').value;
     const manga = tipo === 'Short' ? null : document.getElementById('fcManga').value;
@@ -2520,23 +2538,30 @@ async function savePedidoCamiseta() {
 
     if (!comprador) { toast('Ingresá el nombre del comprador', 'error'); return; }
 
-    const pedido = {
-        id: 'cm' + Date.now(),
-        comprador, tipo, manga, nombre, numero, talle,
-        precio: calcularPrecioCamiseta(tipo, manga)
-    };
+    const precio = calcularPrecioCamiseta(tipo, manga);
 
     if (!camisetasData.pedidos) camisetasData.pedidos = [];
-    camisetasData.pedidos.push(pedido);
+
+    if (editId) {
+        const idx = camisetasData.pedidos.findIndex(p => p.id === editId);
+        if (idx === -1) { toast('Pedido no encontrado', 'error'); return; }
+        camisetasData.pedidos[idx] = { ...camisetasData.pedidos[idx], comprador, tipo, manga, nombre, numero, talle, precio };
+    } else {
+        camisetasData.pedidos.push({ id: 'cm' + Date.now(), comprador, tipo, manga, nombre, numero, talle, precio });
+    }
 
     const res = await saveCamisetasData();
     if (res !== null) {
-        toast('Pedido agregado', 'success');
+        toast(editId ? 'Pedido actualizado' : 'Pedido agregado', 'success');
         closeModal();
         renderCamisetas();
     } else {
-        toast('Error al guardar el pedido, intentá de nuevo', 'error');
+        toast(editId ? 'Error al actualizar el pedido, intentá de nuevo' : 'Error al guardar el pedido, intentá de nuevo', 'error');
     }
+}
+
+function editPedidoCamiseta(id) {
+    showPedidoCamisetaForm(id);
 }
 
 function deletePedidoCamiseta(id) {
@@ -2588,27 +2613,101 @@ async function savePagoCamiseta(comprador) {
     }
 }
 
-function renderCamisetas() {
+function fillMitadSaldo(comprador, saldo) {
+    const input = document.querySelector(`.pago-general-input[data-comprador="${comprador}"]`);
+    if (input) input.value = Math.round(saldo / 2);
+}
+
+async function guardarPagosGenerales() {
+    const inputs = document.querySelectorAll('.pago-general-input');
+    let huboPagos = false;
+
+    inputs.forEach(inp => {
+        const monto = parseInt(inp.value) || 0;
+        if (monto > 0) {
+            const comprador = inp.dataset.comprador;
+            if (!camisetasData.pagos) camisetasData.pagos = {};
+            if (!camisetasData.pagos[comprador]) camisetasData.pagos[comprador] = { pagado: 0 };
+            camisetasData.pagos[comprador].pagado += monto;
+            huboPagos = true;
+        }
+    });
+
+    if (!huboPagos) { toast('Ingresá al menos un monto', 'error'); return; }
+
+    const res = await saveCamisetasData();
+    if (res !== null) {
+        toast('Pagos registrados', 'success');
+        renderCamisetas();
+    } else {
+        toast('Error al guardar los pagos, intentá de nuevo', 'error');
+    }
+}
+
+async function guardarPagadoUmbro() {
+    const monto = parseInt(document.getElementById('camPagadoUmbroInput').value) || 0;
+    camisetasData.pagadoUmbro = monto;
+
+    const res = await saveCamisetasData();
+    if (res !== null) {
+        toast('Pagado a Umbro actualizado', 'success');
+        renderCamisetas();
+    } else {
+        toast('Error al guardar, intentá de nuevo', 'error');
+    }
+}
+
+function renderTotalesCamisetas() {
+    const totalCobradoEl = document.getElementById('camTotalCobrado');
+    if (!totalCobradoEl) return;
+
+    const resumen = getResumenCompradores();
+    const totalCobrado = resumen.reduce((sum, r) => sum + r.pagado, 0);
+    const totalPendiente = resumen.reduce((sum, r) => sum + r.saldo, 0);
+    const totalPedidos = (camisetasData.pedidos || []).reduce((sum, p) => sum + (p.precio || 0), 0);
+    const pagadoUmbro = camisetasData.pagadoUmbro || 0;
+    const faltaUmbro = totalPedidos - pagadoUmbro;
+
+    totalCobradoEl.textContent = '$' + totalCobrado.toLocaleString();
+    document.getElementById('camTotalPendiente').textContent = '$' + totalPendiente.toLocaleString();
+    document.getElementById('camPagadoUmbro').textContent = '$' + pagadoUmbro.toLocaleString();
+    document.getElementById('camFaltaUmbro').textContent = '$' + faltaUmbro.toLocaleString();
+    document.getElementById('camPagadoUmbroInput').value = pagadoUmbro || '';
+}
+
+function renderPagoGeneralPanel() {
+    const container = document.getElementById('pagoGeneralList');
+    if (!container) return;
+
+    const pendientes = getResumenCompradores().filter(r => r.saldo > 0);
+    if (pendientes.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay saldos pendientes</p></div>';
+        return;
+    }
+
+    container.innerHTML = pendientes.map(r => `
+        <div class="transaction-item" style="align-items:center;">
+            <div class="transaction-info">
+                <div class="desc">${r.comprador}</div>
+                <div class="cat">Saldo pendiente: $${r.saldo.toLocaleString()}</div>
+            </div>
+            <input type="number" min="0" class="pago-general-input" data-comprador="${r.comprador}" placeholder="Monto" style="width:110px; margin-right:0.5rem;">
+            <button class="btn btn-secondary btn-sm" onclick="fillMitadSaldo('${r.comprador}', ${r.saldo})">50%</button>
+        </div>
+    `).join('');
+}
+
+function renderPedidosPorComprador() {
     const container = document.getElementById('camisetasList');
     if (!container) return;
 
-    const pedidos = camisetasData.pedidos || [];
-    if (pedidos.length === 0) {
+    const resumen = getResumenCompradores();
+    if (resumen.length === 0) {
         container.innerHTML = '<div class="empty-state"><p>No hay pedidos registrados</p></div>';
         return;
     }
 
-    const porComprador = {};
-    pedidos.forEach(p => {
-        if (!porComprador[p.comprador]) porComprador[p.comprador] = [];
-        porComprador[p.comprador].push(p);
-    });
-
-    container.innerHTML = Object.entries(porComprador).map(([comprador, items]) => {
-        const total = items.reduce((sum, p) => sum + (p.precio || 0), 0);
-        const pagado = (camisetasData.pagos?.[comprador]?.pagado) || 0;
-        const saldo = total - pagado;
-
+    container.innerHTML = resumen.map(({ comprador, items, total, pagado, saldo }) => {
         const itemsHtml = items.map(p => `
             <div class="transaction-item">
                 <div class="transaction-info">
@@ -2617,7 +2716,10 @@ function renderCamisetas() {
                 </div>
                 <div class="transaction-amount">$${(p.precio || 0).toLocaleString()}</div>
                 <div class="match-actions">
-                    <button class="btn btn-icon btn-danger btn-sm" onclick="deletePedidoCamiseta('${p.id}')">
+                    <button class="btn btn-icon btn-secondary btn-sm" onclick="editPedidoCamiseta('${p.id}')" title="Editar">
+                        <i class="ph-bold ph-pencil"></i>
+                    </button>
+                    <button class="btn btn-icon btn-danger btn-sm" onclick="deletePedidoCamiseta('${p.id}')" title="Eliminar">
                         <i class="ph-bold ph-trash"></i>
                     </button>
                 </div>
@@ -2641,6 +2743,12 @@ function renderCamisetas() {
             </div>
         `;
     }).join('');
+}
+
+function renderCamisetas() {
+    renderTotalesCamisetas();
+    renderPagoGeneralPanel();
+    renderPedidosPorComprador();
 }
 
 // ─── MODAL ───

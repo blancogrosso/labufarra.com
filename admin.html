@@ -474,6 +474,41 @@
 
     <!-- ═══ TAB: CAMISETAS ═══ -->
     <section id="tab-camisetas" class="tab-content" style="display:none;">
+        <!-- Resumen General -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Resumen General</div>
+            </div>
+            <div class="finance-grid" style="grid-template-columns:repeat(2,1fr);">
+                <div class="finance-mini-card">
+                    <div class="mini-val" id="camTotalCobrado" style="color:var(--green)">$0</div>
+                    <div class="mini-lbl">Total cobrado a jugadores</div>
+                </div>
+                <div class="finance-mini-card">
+                    <div class="mini-val" id="camTotalPendiente" style="color:var(--red)">$0</div>
+                    <div class="mini-lbl">Total pendiente de cobrar</div>
+                </div>
+                <div class="finance-mini-card">
+                    <div class="mini-val" id="camPagadoUmbro">$0</div>
+                    <div class="mini-lbl">Pagado a Umbro</div>
+                </div>
+                <div class="finance-mini-card">
+                    <div class="mini-val" id="camFaltaUmbro" style="color:var(--red)">$0</div>
+                    <div class="mini-lbl">Falta pagar a Umbro</div>
+                </div>
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr auto; align-items:end; margin-top:1rem;">
+                <div class="form-group" style="margin:0">
+                    <label>Editar pagado a Umbro</label>
+                    <input type="number" min="0" id="camPagadoUmbroInput" placeholder="0">
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="guardarPagadoUmbro()">
+                    <i class="ph-bold ph-floppy-disk"></i> Guardar
+                </button>
+            </div>
+        </div>
+
+        <!-- Agregar Pedido -->
         <div class="panel">
             <div class="panel-header">
                 <div class="panel-title">Pedido Grupal de Indumentaria</div>
@@ -486,6 +521,20 @@
             </p>
         </div>
 
+        <!-- Registrar Pago (general) -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Registrar Pago</div>
+            </div>
+            <div id="pagoGeneralList"><div class="empty-state"><p>Cargando saldos...</p></div></div>
+            <div style="margin-top:1rem; text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="guardarPagosGenerales()">
+                    <i class="ph-bold ph-floppy-disk"></i> Guardar pagos
+                </button>
+            </div>
+        </div>
+
+        <!-- Pedidos por Comprador -->
         <div class="panel">
             <div class="panel-header">
                 <div class="panel-title">Pedidos por Comprador</div>
