@@ -26,6 +26,7 @@ let matchesData = [];
 let playersData = {};
 let upcomingData = [];
 let financesData = { cuotas:{}, multas:[], transacciones:[], deadlines:[], cuotaObjetivo:2970 };
+let camisetasData = { pedidos: [], pagos: {} };
 let manualStatsData = {};
 let adminLeagueConfig = { torneoActivo: '', tituloTabla: '' };
 let editingMatchId = null;
@@ -215,7 +216,8 @@ async function showApp() {
         loadUpcoming(),
         loadFinances(),
         loadLeagueTableAdmin(),
-        loadLeagueConfigAdmin()
+        loadLeagueConfigAdmin(),
+        loadCamisetas()
     ]);
 
     renderLeagueTableAdmin();
@@ -2420,6 +2422,225 @@ function copiarInformeTexto() {
 
 function enviarInformeWhatsApp() {
     window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(buildInformeText()), '_blank');
+}
+
+// ─── CAMISETAS ───
+async function loadCamisetas() {
+    const data = await spFetch('config?key=eq.camisetas', 'GET', null, 'value');
+    if (data && data[0]) {
+        camisetasData = data[0].value;
+    } else {
+        camisetasData = { pedidos: [], pagos: {} };
+    }
+    renderCamisetas();
+}
+
+async function saveCamisetasData() {
+    return await spFetch('config', 'POST',
+        { key: 'camisetas', value: camisetasData },
+        '*', { 'Prefer': 'resolution=merge-duplicates' });
+}
+
+function calcularPrecioCamiseta(tipo, manga) {
+    if (tipo === 'Short') return 780;
+    if (tipo === 'Equipo completo') return manga === 'Larga' ? 2400 : 2300;
+    if (tipo === 'Camiseta') return manga === 'Larga' ? 1655 : 1555;
+    return 0;
+}
+
+function onCamisetaTipoChange() {
+    const tipo = document.getElementById('fcTipo').value;
+    const mangaGroup = document.getElementById('fcMangaGroup');
+    mangaGroup.style.display = tipo === 'Short' ? 'none' : '';
+}
+
+function showPedidoCamisetaForm() {
+    const compradores = [...new Set((camisetasData.pedidos || []).map(p => p.comprador))];
+
+    openModal('Agregar Pedido', `
+        <div class="form-grid" style="grid-template-columns:1fr 1fr">
+            <div class="form-group" style="grid-column:1/-1">
+                <label>Comprador</label>
+                <input type="text" id="fcComprador" list="fcCompradoresList" placeholder="Nombre y apellido">
+                <datalist id="fcCompradoresList">
+                    ${compradores.map(c => `<option value="${c}">`).join('')}
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label>Tipo de prenda</label>
+                <select id="fcTipo" onchange="onCamisetaTipoChange()">
+                    <option value="Equipo completo">Equipo completo</option>
+                    <option value="Camiseta">Camiseta</option>
+                    <option value="Short">Short</option>
+                </select>
+            </div>
+            <div class="form-group" id="fcMangaGroup">
+                <label>Manga</label>
+                <select id="fcManga">
+                    <option value="Corta">Corta</option>
+                    <option value="Larga">Larga</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Nombre en la camiseta</label>
+                <input type="text" id="fcNombre" placeholder="Ej: PEREZ">
+            </div>
+            <div class="form-group">
+                <label>Número</label>
+                <input type="number" id="fcNumero" min="0" placeholder="Ej: 10">
+            </div>
+            <div class="form-group">
+                <label>Talle</label>
+                <select id="fcTalle">
+                    <option value="XS">XS</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" style="width:auto" onclick="savePedidoCamiseta()">
+                <i class="ph-bold ph-floppy-disk"></i> Guardar
+            </button>
+        </div>
+    `);
+}
+
+async function savePedidoCamiseta() {
+    const comprador = document.getElementById('fcComprador').value.trim();
+    const tipo = document.getElementById('fcTipo').value;
+    const manga = tipo === 'Short' ? null : document.getElementById('fcManga').value;
+    const nombre = document.getElementById('fcNombre').value.trim();
+    const numero = parseInt(document.getElementById('fcNumero').value) || 0;
+    const talle = document.getElementById('fcTalle').value;
+
+    if (!comprador) { toast('Ingresá el nombre del comprador', 'error'); return; }
+
+    const pedido = {
+        id: 'cm' + Date.now(),
+        comprador, tipo, manga, nombre, numero, talle,
+        precio: calcularPrecioCamiseta(tipo, manga)
+    };
+
+    if (!camisetasData.pedidos) camisetasData.pedidos = [];
+    camisetasData.pedidos.push(pedido);
+
+    const res = await saveCamisetasData();
+    if (res !== null) {
+        toast('Pedido agregado', 'success');
+        closeModal();
+        renderCamisetas();
+    } else {
+        toast('Error al guardar el pedido, intentá de nuevo', 'error');
+    }
+}
+
+function deletePedidoCamiseta(id) {
+    confirmAction('Eliminar Pedido', '¿Seguro que querés eliminar este pedido?', async () => {
+        camisetasData.pedidos = (camisetasData.pedidos || []).filter(p => p.id !== id);
+        const res = await saveCamisetasData();
+        if (res !== null) {
+            toast('Pedido eliminado', 'success');
+            renderCamisetas();
+        } else {
+            toast('Error al eliminar el pedido, intentá de nuevo', 'error');
+        }
+    }, 'Eliminar', 'danger');
+}
+
+function showPagoCamisetaForm(comprador) {
+    openModal('Registrar Pago', `
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
+            Comprador: <strong>${comprador}</strong>
+        </p>
+        <div class="form-group">
+            <label>Monto abonado ahora</label>
+            <input type="number" id="fcPagoMonto" min="0" placeholder="0">
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+            <button class="btn btn-primary" style="width:auto" onclick="savePagoCamiseta('${comprador}')">
+                <i class="ph-bold ph-floppy-disk"></i> Guardar
+            </button>
+        </div>
+    `);
+}
+
+async function savePagoCamiseta(comprador) {
+    const monto = parseInt(document.getElementById('fcPagoMonto').value) || 0;
+    if (!monto) { toast('Ingresá un monto', 'error'); return; }
+
+    if (!camisetasData.pagos) camisetasData.pagos = {};
+    if (!camisetasData.pagos[comprador]) camisetasData.pagos[comprador] = { pagado: 0 };
+    camisetasData.pagos[comprador].pagado += monto;
+
+    const res = await saveCamisetasData();
+    if (res !== null) {
+        toast('Pago registrado', 'success');
+        closeModal();
+        renderCamisetas();
+    } else {
+        toast('Error al registrar el pago, intentá de nuevo', 'error');
+    }
+}
+
+function renderCamisetas() {
+    const container = document.getElementById('camisetasList');
+    if (!container) return;
+
+    const pedidos = camisetasData.pedidos || [];
+    if (pedidos.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay pedidos registrados</p></div>';
+        return;
+    }
+
+    const porComprador = {};
+    pedidos.forEach(p => {
+        if (!porComprador[p.comprador]) porComprador[p.comprador] = [];
+        porComprador[p.comprador].push(p);
+    });
+
+    container.innerHTML = Object.entries(porComprador).map(([comprador, items]) => {
+        const total = items.reduce((sum, p) => sum + (p.precio || 0), 0);
+        const pagado = (camisetasData.pagos?.[comprador]?.pagado) || 0;
+        const saldo = total - pagado;
+
+        const itemsHtml = items.map(p => `
+            <div class="transaction-item">
+                <div class="transaction-info">
+                    <div class="desc">${p.tipo}${p.manga ? ' · Manga ' + p.manga : ''} — "${p.nombre || ''}" ${p.numero ? '#' + p.numero : ''}</div>
+                    <div class="cat">Talle ${p.talle}</div>
+                </div>
+                <div class="transaction-amount">$${(p.precio || 0).toLocaleString()}</div>
+                <div class="match-actions">
+                    <button class="btn btn-icon btn-danger btn-sm" onclick="deletePedidoCamiseta('${p.id}')">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        return `
+            <div class="panel" style="margin-bottom:1rem;">
+                <div class="panel-header" style="align-items:center;">
+                    <div class="panel-title" style="margin:0;">${comprador}</div>
+                    <button class="btn btn-secondary btn-sm" onclick="showPagoCamisetaForm('${comprador}')">
+                        <i class="ph-bold ph-hand-coins"></i> Registrar pago
+                    </button>
+                </div>
+                ${itemsHtml}
+                <div style="display:flex; justify-content:space-between; gap:1rem; margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.9rem; flex-wrap:wrap;">
+                    <span>Total: <strong>$${total.toLocaleString()}</strong></span>
+                    <span style="color:var(--green)">Pagado: <strong>$${pagado.toLocaleString()}</strong></span>
+                    <span style="color:${saldo > 0 ? 'var(--red)' : 'var(--green)'}">Saldo: <strong>$${saldo.toLocaleString()}</strong></span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // ─── MODAL ───

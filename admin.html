@@ -80,6 +80,9 @@
             <button class="tab-btn" data-tab="liga" onclick="switchTab('liga')">
                 <i class="ph-bold ph-ranking"></i> Liga
             </button>
+            <button class="tab-btn" data-tab="camisetas" onclick="switchTab('camisetas')">
+                <i class="ph-bold ph-t-shirt"></i> Camisetas
+            </button>
         </div>
 
         <!-- ═══ TAB: PARTIDOS ═══ -->
@@ -466,6 +469,28 @@
                     <i class="ph-bold ph-arrow-counter-clockwise"></i> Reiniciar tabla
                 </button>
             </div>
+        </div>
+    </section>
+
+    <!-- ═══ TAB: CAMISETAS ═══ -->
+    <section id="tab-camisetas" class="tab-content" style="display:none;">
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Pedido Grupal de Indumentaria</div>
+                <button class="btn btn-primary btn-sm" onclick="showPedidoCamisetaForm()">
+                    <i class="ph-bold ph-plus"></i> Agregar Pedido
+                </button>
+            </div>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin:0;">
+                Precios: Equipo completo $2300 (corta) / $2400 (larga) · Camiseta $1555 (corta) / $1655 (larga) · Short $780.
+            </p>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Pedidos por Comprador</div>
+            </div>
+            <div id="camisetasList"><div class="empty-state"><p>Cargando pedidos...</p></div></div>
         </div>
     </section>
 
