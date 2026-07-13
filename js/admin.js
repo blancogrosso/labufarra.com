@@ -3259,7 +3259,7 @@ function buildAsistenciaCounts(matches) {
 
 function buildAsistenciaHTML(matches) {
     const counts = buildAsistenciaCounts(matches);
-    const total = roster.length;
+    const total = matches.length;
     const rows = Object.entries(counts)
         .map(([key, pj]) => ({ key, pj, pct: Math.round(pj / total * 100) }))
         .sort((a, b) => b.pj - a.pj);
@@ -3348,7 +3348,7 @@ function buildReportText() {
 
     if (currentReportType === 'jugador') {
         const counts = buildAsistenciaCounts(matches);
-        const total = roster.length;
+        const total = matches.length;
         Object.entries(counts)
             .sort((a, b) => b[1] - a[1])
             .forEach(([key, pj], i) => {
