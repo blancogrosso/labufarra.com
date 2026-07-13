@@ -2751,13 +2751,11 @@ function renderCamisetas() {
     renderPedidosPorComprador();
 }
 
-const TALLE_ORDER_CAMISETAS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-
 function buildPedidoUmbroText() {
     const pedidos = camisetasData.pedidos || [];
     const grupos = {};
     pedidos.forEach(p => {
-        const key = `${p.tipo}|${p.manga || ''}|${p.talle}`;
+        const key = `${p.tipo}|${p.manga || ''}`;
         grupos[key] = (grupos[key] || 0) + 1;
     });
 
@@ -2765,27 +2763,25 @@ function buildPedidoUmbroText() {
     const mangaOrder = ['Corta', 'Larga', ''];
 
     const keys = Object.keys(grupos).sort((a, b) => {
-        const [tipoA, mangaA, talleA] = a.split('|');
-        const [tipoB, mangaB, talleB] = b.split('|');
+        const [tipoA, mangaA] = a.split('|');
+        const [tipoB, mangaB] = b.split('|');
         const tipoDiff = tipoOrder.indexOf(tipoA) - tipoOrder.indexOf(tipoB);
         if (tipoDiff !== 0) return tipoDiff;
-        const mangaDiff = mangaOrder.indexOf(mangaA) - mangaOrder.indexOf(mangaB);
-        if (mangaDiff !== 0) return mangaDiff;
-        return TALLE_ORDER_CAMISETAS.indexOf(talleA) - TALLE_ORDER_CAMISETAS.indexOf(talleB);
+        return mangaOrder.indexOf(mangaA) - mangaOrder.indexOf(mangaB);
     });
 
     return keys.map(key => {
-        const [tipo, manga, talle] = key.split('|');
+        const [tipo, manga] = key.split('|');
         const count = grupos[key];
         const plural = count !== 1;
 
         if (tipo === 'Short') {
-            return `${count} short${plural ? 's' : ''} talle ${talle}`;
+            return `${count} short${plural ? 's' : ''}`;
         }
         if (tipo === 'Equipo completo') {
-            return `${count} equipo${plural ? 's' : ''} completo${plural ? 's' : ''} manga ${manga.toLowerCase()} talle ${talle}`;
+            return `${count} equipo${plural ? 's' : ''} completo${plural ? 's' : ''} manga ${manga.toLowerCase()}`;
         }
-        return `${count} camiseta${plural ? 's' : ''} manga ${manga.toLowerCase()} talle ${talle}`;
+        return `${count} camiseta${plural ? 's' : ''} manga ${manga.toLowerCase()}`;
     }).join('\n');
 }
 
