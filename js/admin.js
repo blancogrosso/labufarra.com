@@ -3259,7 +3259,7 @@ function buildAsistenciaCounts(matches) {
 
 function buildAsistenciaHTML(matches) {
     const counts = buildAsistenciaCounts(matches);
-    const total = matches.length;
+    const total = roster.length;
     const rows = Object.entries(counts)
         .map(([key, pj]) => ({ key, pj, pct: Math.round(pj / total * 100) }))
         .sort((a, b) => b.pj - a.pj);
@@ -3281,13 +3281,8 @@ function buildAsistenciaHTML(matches) {
     `;
 }
 
-// Jugadores distintos que estuvieron disponibles/aparecieron en el conjunto filtrado
-function getAvailablePlayerCount(matches) {
-    return Object.keys(buildAsistenciaCounts(matches)).length;
-}
-
 function buildAsistenciaPartidoHTML(matches) {
-    const denom = getAvailablePlayerCount(matches);
+    const denom = roster.length;
     return matches.map(m => {
         const jugadores = Object.entries(m.jugadores || {}).filter(([k]) => !k.startsWith('__'));
         const pj = jugadores.length;
@@ -3353,14 +3348,14 @@ function buildReportText() {
 
     if (currentReportType === 'jugador') {
         const counts = buildAsistenciaCounts(matches);
-        const total = matches.length;
+        const total = roster.length;
         Object.entries(counts)
             .sort((a, b) => b[1] - a[1])
             .forEach(([key, pj], i) => {
                 text += `${i + 1}. ${playerDisplayName(key)} — ${pj}/${total} (${Math.round(pj / total * 100)}%)\n`;
             });
     } else if (currentReportType === 'partido') {
-        const denom = getAvailablePlayerCount(matches);
+        const denom = roster.length;
         let sum = 0;
         matches.forEach(m => {
             const pj = Object.keys(m.jugadores || {}).filter(k => !k.startsWith('__')).length;
