@@ -369,3 +369,17 @@ PENDIENTE:
 - Normalización de nombres unificada.
 - data/players.json y rosterBase desactualizados.
 - Web pública al 100% — trabajo futuro.
+
+## Sesión — Fotos plantel, Contador Jugadores, Cleanup (Ago 2026)
+
+RESUELTO:
+- getPlayerImage() en db.js y path de fotos en jugadores.js: extensión
+  cambiada de .jpg a .png para coincidir con archivos reales en
+  img/jugadores/.
+- jugadores.html: fix contador duplicado (eliminado initCounter() local,
+  queda solo window.animateCounter()), eliminado rival.js (código muerto),
+  limpieza de clases CSS sin regla, cache-busting actualizado a v=8.1.
+- OneSignal descartado — se reemplaza por canal de WhatsApp manual
+  (sin código, el admin ya tiene el flujo de WhatsApp suficiente).
+- Fotos pendientes en img/jugadores/: faltan Molina.png, De Leon.png
+  y Mateo-Reyes.png.
