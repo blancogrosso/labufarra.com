@@ -334,10 +334,10 @@ function formatDateProperly(s) {
 }
 
 function getPlayerImage(name) {
-    if (!name) return "img/jugadores/default.jpg";
+    if (!name) return "img/jugadores/default.png";
     // Mapeo básico para asegurar que usamos el nombre del archivo correcto
     const filename = name.trim().split('/').map(p => p.trim()).join('-');
-    return `img/jugadores/${filename}.jpg`;
+    return `img/jugadores/${filename}.png`;
 }
 
 function mapPlayers(data) {
