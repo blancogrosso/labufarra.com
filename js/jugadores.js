@@ -201,7 +201,7 @@ function renderPlayersGrid() {
         const displayName = p.DISPLAY_PLAYER || csvName;
         
         let initial = displayName.charAt(0).toUpperCase();
-        let imgPath = `img/jugadores/${csvName}.jpg`;
+        let imgPath = `img/jugadores/${csvName}.png`;
         
         // Compute dynamic subtitle and stars based on active filter
         let subtitleText = '';
@@ -336,15 +336,13 @@ document.querySelectorAll('#sortFilters .filter-btn').forEach(btn => {
 // Initialized directly by db.js when data is ready or via local listener
 document.addEventListener('dataLoaded', () => {
     applyYearFilters();
-    initCounter();
 });
 window.renderAll = applyYearFilters;
 
 // Triple-check for late loading
 if (window.dataLoaded || (window.allPlayers && Object.keys(window.allPlayers).length > 0)) {
     applyYearFilters();
-    initCounter();
-    
+
     // Sync UI with URL filter
     if (filterQuery) {
         document.querySelectorAll('#sortFilters .filter-btn').forEach(b => {
@@ -355,25 +353,4 @@ if (window.dataLoaded || (window.allPlayers && Object.keys(window.allPlayers).le
              }
         });
     }
-}
-
-function initCounter() {
-    const total = window.allPlayers['ALL'] ? window.allPlayers['ALL'].length : 0;
-    const counterEl = document.getElementById('playerCountLarge');
-    if(!counterEl || total === 0) return;
-    
-    let count = 0;
-    const duration = 1500; // 1.5 seconds
-    const start = performance.now();
-    
-    function update(now) {
-        const progress = Math.min((now - start) / duration, 1);
-        counterEl.innerText = Math.floor(progress * total);
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        } else {
-            counterEl.innerText = total;
-        }
-    }
-    requestAnimationFrame(update);
 }
